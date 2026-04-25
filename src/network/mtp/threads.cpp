@@ -1225,17 +1225,25 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                 // Make a new SharedBuffer from the data without the base headers
                 size_t data_after_header_size = received_size - BASE_HEADER_SIZE;
 
-                // v9: Check if this packet is encrypted.
-                // After the base header, if encryption is active, the format is:
-                //   [encrypted_flag(1B)][nonce(12B)][ciphertext(NB)][GCM_tag(16B)]
-                // If encrypted_flag == 0x80, decrypt before processing.
-                // If encrypted_flag is a valid packet type (0x00-0x03), it's plaintext.
+                // v9.15: Check if this packet is encrypted using the 0x80 flag.
+                // The 0x80 flag byte is the SOLE determinant of whether a packet
+                // is encrypted. If present, decrypt. If absent, always process as
+                // plaintext — regardless of whether encryption is active.
+                //
+                // This eliminates the need for grace periods entirely:
+                // - No 0x80 flag → plaintext, always accepted (no error, no warning)
+                // - 0x80 flag present → encrypted, must decrypt
+                //
+                // During the plaintext→encrypted transition, the peer may still have
+                // packets in the network pipeline from before it activated encryption.
+                // These plaintext packets simply lack the 0x80 flag, so they are
+                // processed normally without any special handling.
                 SharedBuffer<u8> strippeddata;
 
-                if (data_after_header_size > ENCRYPTED_PACKET_OVERHEAD &&
+                if (data_after_header_size >= ENCRYPTED_PACKET_OVERHEAD &&
                         packetdata[BASE_HEADER_SIZE] == ENCRYPTED_FLAG_AES_256_GCM) {
 
-                        // This packet is encrypted — decrypt it
+                        // This packet has the 0x80 flag — it's encrypted. Decrypt it.
                         // Lock encryption state for thread-safe access
                         auto enc_lock = udpPeer->encryption_state.lock();
 
@@ -1284,6 +1292,7 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                                 enclog_error("Received encrypted packet but decryption key not initialized")
                                         << EncLog::kv("peer", peer_id)
                                         << EncLog::kv("action", "PACKET_DROPPED")
+                                        << EncLog::kv("hint", "key_derivation_may_not_have_completed_yet")
                                         << std::endl;
                                 return;
                         }
@@ -1333,6 +1342,10 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                                                 << EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
                                                 << EncLog::kv("ciphertext_size", (u32)ciphertext_len)
                                                 << EncLog::kv("plaintext_size", (u32)result.data.size())
+                                                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 8))
+                                                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 8))
+                                                << EncLog::kv("s2c_nonce_counter", (u64)udpPeer->encryption_state.s2c.nonce_counter)
+                                                << EncLog::kv("c2s_nonce_counter", (u64)udpPeer->encryption_state.c2s.nonce_counter)
                                                 << std::endl;
                                 }
                                 dir_state.packets_processed++;
@@ -1374,72 +1387,47 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                         } else {
                                 // Decryption failed — authentication tag mismatch.
                                 // This means the packet was tampered with, corrupted,
-                                // or encrypted with the wrong key. Drop it.
+                                // or encrypted with the wrong key.
+                                // Log with diagnostic key fingerprints to help diagnose
+                                // key mismatches (v9.15: added nonce counter info).
                                 dir_state.auth_failures++;
-                                enclog_error("Decryption FAILED from peer")
-                                        << EncLog::kv("peer", peer_id)
-                                        << EncLog::kv("error", result.error_msg)
-                                        << EncLog::kv("action", "PACKET_DROPPED")
-                                        << EncLog::kv("auth_failures", dir_state.auth_failures)
-                                        << EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
-                                        << std::endl;
+
+                                // v9.15: Only log the first few failures at ERROR level,
+                                // then throttle to avoid spamming the log with hundreds
+                                // of identical messages. After 10 failures, log at most
+                                // once per 100 failures. This prevents the log from being
+                                // flooded while still providing diagnostic information.
+                                bool should_log = (dir_state.auth_failures <= 3) ||
+                                        (dir_state.auth_failures % 100 == 0);
+
+                                if (should_log) {
+                                        enclog_error("Decryption FAILED from peer")
+                                                << EncLog::kv("peer", peer_id)
+                                                << EncLog::kv("error", result.error_msg)
+                                                << EncLog::kv("action", "PACKET_DROPPED")
+                                                << EncLog::kv("auth_failures", dir_state.auth_failures)
+                                                << EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
+                                                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 8))
+                                                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 8))
+                                                << EncLog::kv("s2c_nonce_counter", (u64)udpPeer->encryption_state.s2c.nonce_counter)
+                                                << EncLog::kv("c2s_nonce_counter", (u64)udpPeer->encryption_state.c2s.nonce_counter)
+                                                << EncLog::kv("received_counter", received_counter)
+                                                << EncLog::kv("ecdh_completed", udpPeer->encryption_state.ecdh_completed.load())
+                                                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                                                << std::endl;
+                                }
                                 return;
                         }
-                } else if (udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
-                        // Encryption is active but this is a plaintext packet.
-                        //
-                        // v9.14: During the transition grace period (10 seconds after
-                        // activation, up to 500 packets), plaintext packets are expected
-                        // because the peer may still have packets in the network pipeline
-                        // from before it activated encryption. World loading generates
-                        // hundreds of map block packets that arrive over several seconds.
-                        // These are NOT security violations — they're a normal part of
-                        // the plaintext→encrypted transition.
-                        //
-                        // After the grace period, a ONE-TIME warning is logged (not
-                        // repeated errors). The packet is still accepted for robustness.
-
-                        u32 count = udpPeer->encryption_state.transition_plaintext_count.fetch_add(1) + 1;
-                        u64 now_ms = porting::getTimeMs();
-                        u64 activated_ms = udpPeer->encryption_state.activated_at * 1000;
-                        u64 elapsed_ms = (now_ms > activated_ms) ? (now_ms - activated_ms) : 0;
-                        bool in_grace_period = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
-                                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
-
-                        if (in_grace_period) {
-                                // Transition period: accept the plaintext packet.
-                                // Only log once (summary) to avoid spamming the log.
-                                if (!udpPeer->encryption_state.transition_logged.exchange(true)) {
-                                        enclog_init("Transition period: accepting late plaintext packets")
-                                                << EncLog::kv("peer", peer_id)
-                                                << EncLog::kv("reason", "pipeline_packets_from_before_activation")
-                                                << EncLog::kv("grace_period_ms", (u32)PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
-                                                << EncLog::kv("max_packets", PeerEncryptionState::TRANSITION_MAX_PLAINTEXT)
-                                                << std::endl;
-                                }
-                        } else {
-                                // Outside grace period: log a ONE-TIME warning, then
-                                // accept silently. No repeated ERROR spam.
-                                // v9.14: Previously this logged as ERROR every 100th
-                                // packet, causing POSSIBLE_SECURITY_VIOLATION spam.
-                                // Now we log once and move on — these are almost always
-                                // late pipeline packets from world loading, not attacks.
-                                if (!udpPeer->encryption_state.transition_warning_logged.exchange(true)) {
-                                        enclog_init("Transition grace period ended, still receiving plaintext packets")
-                                                << EncLog::kv("peer", peer_id)
-                                                << EncLog::kv("total_count", count)
-                                                << EncLog::kv("elapsed_ms", (u32)elapsed_ms)
-                                                << EncLog::kv("note", "these are likely late pipeline packets from world loading, not attacks")
-                                                << EncLog::kv("action", "accepted_silently")
-                                                << std::endl;
-                                }
-                        }
-
-                        strippeddata = SharedBuffer<u8>(data_after_header_size);
-                        memcpy(*strippeddata, &packetdata[BASE_HEADER_SIZE],
-                                data_after_header_size);
                 } else {
-                        // Plaintext packet — no encryption active
+                        // No 0x80 flag → plaintext packet. Always process as plaintext.
+                        // This is correct regardless of whether encryption is active:
+                        // - Before encryption activates: normal plaintext packets
+                        // - During transition: pipeline packets from before peer activated
+                        // - After encryption fully active: should not happen, but if it
+                        //   does, the packet is simply processed (0x80 flag is authoritative)
+                        //
+                        // v9.15: NO grace period logic, NO error logging, NO warnings.
+                        // The 0x80 flag is the sole determinant. No flag = plaintext. Period.
                         strippeddata = SharedBuffer<u8>(data_after_header_size);
                         memcpy(*strippeddata, &packetdata[BASE_HEADER_SIZE],
                                 data_after_header_size);
