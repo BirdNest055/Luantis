@@ -18,7 +18,7 @@ This is **worse than no security** because it gives users a false sense of secur
 Implement **actual AES-256-GCM packet encryption** using the SRP session key,
 with honest UI that accurately reports what protection exists and what doesn't.
 
-**STATUS: COMPLETE** — Phases 1-6, 9, and 10 are done. Phases 7, 8 remain (UI enhancements, not security-critical). v9.9 adds bonus scoring, HKDF salt, key rotation, exact replay bitmap. v9.10 adds documentation and encryption data flow guide. v9.11 adds ECDH X25519 forward secrecy — real PFS with full handshake, 22 TDD tests, and 100/100 security score.
+**STATUS: COMPLETE** — Phases 1-6, 9, and 10 are done. Phases 7, 8 remain (UI enhancements, not security-critical). v9.9 adds bonus scoring, HKDF salt, key rotation, exact replay bitmap. v9.10 adds documentation and encryption data flow guide. v9.11 adds ECDH X25519 forward secrecy — real PFS with full handshake, 22 TDD tests, and 100/100 security score. v9.12 fixes the encryption activation race condition — client defers activation until server's first encrypted packet, receive path auto-activates on successful decrypt.
 
 ---
 
@@ -391,3 +391,6 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.11: Test bug fixes | DONE | TOFU bonus with CERT_PINNED, concurrent nonce mutex, tamper flag AAD, security score string |
 | v9.11: Documentation update | DONE | VERSION→9.11, README, ai-codebase-reference, OPENCLAW_GUIDE |
 | v9.11: Security score 100/100 | DONE | ECDH+SRP = Excellent with forward secrecy |
+| v9.12: Encryption activation race condition fix | DONE | Client defers activation until server's first encrypted packet, receive path auto-activates on successful decrypt |
+| v9.12: SetPeerEncryptionState field fix | DONE | Now copies all fields including ecdh_completed, hkdf_salt, key_rotation_count, ECDH keys |
+| v9.12: Receive path 0x80 flag detection | DONE | Detects encrypted packets by flag byte regardless of active state, with key-initialized guard |

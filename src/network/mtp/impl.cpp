@@ -269,12 +269,12 @@ void ReliablePacketBuffer::insert(BufferedPacketPtr &p_ptr, u16 next_expected)
                 return;
         }
 
-	if (m_list.size() >= SEQNUM_MAX) {
-		errorstream << "ReliablePacketBuffer::insert(): buffer full ("
-				<< m_list.size() << " packets), dropping oldest" << std::endl;
-		// shared_ptr will automatically delete when popped
-		m_list.pop_front();
-	}
+        if (m_list.size() >= SEQNUM_MAX) {
+                errorstream << "ReliablePacketBuffer::insert(): buffer full ("
+                                << m_list.size() << " packets), dropping oldest" << std::endl;
+                // shared_ptr will automatically delete when popped
+                m_list.pop_front();
+        }
         
         // Find the right place for the packet and insert it there
         // If list is empty, just add it
@@ -1669,6 +1669,13 @@ void Connection::SetPeerEncryptionState(session_t peer_id, const PeerEncryptionS
                 udpPeer->encryption_state.srp_session_key = state.srp_session_key;
                 udpPeer->encryption_state.session_id = state.session_id;
                 udpPeer->encryption_state.server_fingerprint = state.server_fingerprint;
+                udpPeer->encryption_state.ecdh_completed.store(state.ecdh_completed.load(std::memory_order_acquire),
+                        std::memory_order_release);
+                udpPeer->encryption_state.ecdh_private_key = state.ecdh_private_key;
+                udpPeer->encryption_state.ecdh_public_key = state.ecdh_public_key;
+                udpPeer->encryption_state.ecdh_shared_secret = state.ecdh_shared_secret;
+                udpPeer->encryption_state.hkdf_salt = state.hkdf_salt;
+                udpPeer->encryption_state.key_rotation_count = state.key_rotation_count;
                 udpPeer->encryption_state.activated_at = state.activated_at;
                 udpPeer->encryption_state.packets_since_audit = state.packets_since_audit;
                 udpPeer->encryption_state.last_audit_time_ms = state.last_audit_time_ms;
