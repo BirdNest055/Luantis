@@ -1,7 +1,7 @@
 # AI Codebase Reference — Clawtest Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-04-25 | **Project Version:** v9.3
+> **Last Updated:** 2026-04-25 | **Project Version:** v9.10
 
 ---
 
@@ -16,9 +16,12 @@ This is **Clawtest** — a fork of the **Luanti** (formerly Minetest) voxel game
 5. Provide a modular encryption toggle architecture with centralized policy management (v9.3)
 6. Offer interactive start scripts with secure/insecure mode selection (v9.3)
 7. Use proper version numbering throughout (v9.3)
+8. ECDH X25519 forward secrecy for real forward secrecy (v9.1)
+9. Bonus encryption scoring for first-time and returning connections (v9.9)
+10. Documentation and encryption data flow guide (v9.10)
 
 **Repository:** https://github.com/BirdNest055/Clawtest
-**Current branch:** `clawtest-v9.3`
+**Current branch:** `clawtest-v9.10`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -27,11 +30,12 @@ This is **Clawtest** — a fork of the **Luanti** (formerly Minetest) voxel game
 
 - **`main` branch:** Upstream Luanti 5.16.0-dev
 - **`clawtest-upload` branch:** Previous development branch (v9.0-v9.2 work)
-- **`clawtest-v9.3` branch:** Current branch with all v9.3 changes committed
+- **`clawtest-v9.3` branch:** Previous development branch (v9.3 work)
+- **`clawtest-v9.10` branch:** Current branch with all v9.10 changes committed
 
-**Commit on clawtest-v9.3:**
+**Commit on clawtest-v9.10:**
 ```
-c6b573d Clawtest v9.3 - Modular encryption toggle, interactive start scripts, version numbering
+Clawtest v9.10 - Documentation update, ENCRYPTION_DATA_FLOW.md, all MDs updated
 ```
 
 ---
@@ -102,8 +106,15 @@ Defined in `src/network/connection_security.h`. This is the **central data struc
 | `connected_since` | `u64` | `0` | Unix timestamp of connection start |
 | `server_fingerprint` | `string` | `""` | Server public key fingerprint |
 | `tls_version` | `int` | `TLS_NONE` | TLS version |
+| `tofu_acknowledged` | `bool` | `false` | TOFU provides partial verification credit (+3) |
+| `key_rotation_capable` | `bool` | `false` | Session key rekeying implemented (+5) |
+| `salted_key_derivation` | `bool` | `false` | HKDF uses salt for key separation (+2) |
+| `exact_replay_bitmap` | `bool` | `false` | Bitmap tracking within window (+2) |
+| `integrity_verified` | `bool` | `false` | Zero auth failures in session (+3) |
 
 Has convenience methods: `isSecure()`, `isForwardSecret()`, `isReplayProtected()`, `isAuthenticated()`, `getSecurityScore()` (0-100), `getSecurityScoreString()`, `getTlsVersionString()`, and static `get*String()` methods for human-readable output.
+
+**Bonus scoring methods:** `getBonusScore()` returns the sum of bonus field values, and `getBonusBreakdown()` returns a human-readable breakdown. The total security score is `getSecurityScore()` = `getBaseSecurityScore()` + `getBonusScore()`, capped at 100.
 
 ### 3.4 Security Flags (Wire Protocol)
 
@@ -297,6 +308,9 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.0 | `clawtest-upload` | Real AES-256-GCM encryption implemented and integrated |
 | v9.2 | `clawtest-upload` | Insecure mode actually disables encryption (not just UI flags) |
 | v9.3 | `clawtest-v9.3` | Modular encryption architecture, interactive start scripts, version numbering |
+| v9.8 | `clawtest-v9.8` | VS Code tasks for build and run |
+| v9.9 | `clawtest-v9.9` | TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes |
+| v9.10 | `clawtest-v9.10` | Documentation update, ENCRYPTION_DATA_FLOW.md, all MDs updated |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
@@ -324,6 +338,9 @@ Clawtest/
 +-- start_server.sh                            <- Interactive server script
 +-- start_client.sh                            <- Interactive client script
 +-- test_encryption_toggle.sh                  <- Encryption toggle tests (14 tests)
++-- ENCRYPTION_DATA_FLOW.md                     <- v9.10: Comprehensive encryption data flow guide
++-- .vscode/
+|   +-- tasks.json                              <- v9.8: VS Code tasks
 +-- builtin/
 |   +-- settingtypes.txt                       <- Updated secure_connection description
 |   +-- common/settings/
@@ -350,6 +367,7 @@ Clawtest/
         +-- test_connection_security.cpp       <- v7: 11 tests
         +-- test_connection_security_info.cpp  <- v8: 33 tests
         +-- test_encrypted_connection.cpp      <- v9: 31 tests
+        +-- test_security_score_v99.cpp          <- v9.9: Bonus scoring tests
         +-- test_gameui.cpp                    <- Extended with security tests
 ```
 
@@ -413,6 +431,7 @@ When bumping the version number, update ALL of these:
 2. **Phase 8 (Security Info Settings Tab) not started** — real security info tab in Settings
 3. **Phase 10 (CI/CD) not started** — GitHub Actions workflow for automated builds
 4. **start_server.sh potential crash** — may still have edge cases; pause-on-exit helps debug
-5. **Crypto layer reconciliation** — two parallel crypto APIs exist (top-level X25519 and detailed P-256); need to reconcile
-6. **No git tags yet** — `clawtest-v9.3` tag should be applied
-7. **WIP crypto code in `src/network/crypto/`** — detailed P-256/ECDSA implementation not yet integrated
+5. **Crypto layer reconciliation** — Partial (X25519 is now integrated for ECDH); two parallel crypto APIs remain, but X25519 ECDH is now the active path
+6. **WIP crypto code in `src/network/crypto/`** — detailed P-256/ECDSA implementation not yet integrated
+7. **Key rotation wire protocol** — `rotateKeys()` exists but requires a protocol exchange to coordinate with the peer
+8. **Compiler warnings in test files** (sign compare, unused variables) — see TODO_FIXME_LIST.md

@@ -1,7 +1,7 @@
 # AI Agent Instructions — Clawtest Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-25 | **Applicable Versions:** v7, v8, v9.x, and all future development
+> **Last Updated:** 2026-04-25 | **Applicable Versions:** v7, v8, v9.x, v9.10, and all future development
 
 ---
 
@@ -25,6 +25,7 @@
 | Bash build script | `test_build_linux.sh` | Project root |
 | Bash server script | `test_start_server.sh` | Project root |
 | Bash encryption toggle | `test_encryption_toggle.sh` | Project root |
+| C++ security score v9.9 | `test_security_score_v99.cpp` | `src/unittest/` |
 
 ### 1.3 C++ Test Conventions
 
@@ -105,13 +106,15 @@
 |--------|---------|------|
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
 | `clawtest-upload` | Clawtest development (previous) | `main` |
-| `clawtest-v9.5` | v9.5–v9.6 development (current) | `clawtest-upload` |
+| `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
+| `clawtest-v9.10` | v9.10 development (current) | `clawtest-v9.9` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
-- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`
+- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.10`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
+- The current branch is `clawtest-v9.10`
 
 ### 3.2 Commit Conventions
 
@@ -272,6 +275,9 @@ For passing data from C++ to the Lua settings dialog:
 | Server start script closes at end | Add `read -rp "Press Enter to close"` at end of script |
 | Insecure mode still encrypts | Use `EncryptionConfig::shouldEncrypt()` — don't read settings directly |
 | No version numbers in zips | Use `Clawtest-v9.X.zip` naming pattern |
+| `i64` type not declared in crypto.h | Use `s64` instead — the project uses `s64` (from irrTypes.h), not `i64` |
+| `populateRealSecurityInfo` too many arguments | 11-param overload MUST be defined BEFORE the 10-param overload (C++ forward declaration issue) |
+| Random HKDF salt causes key mismatch | Salt MUST be derived deterministically from SRP session key, not generated with `secure_random()` — both sides need the same salt |
 
 ---
 
@@ -291,6 +297,9 @@ When adding a new feature to this project, ensure ALL of these are done:
 - [ ] `ai-codebase-reference.md` updated (new feature summary)
 - [ ] `VERSION` file updated (version bump)
 - [ ] `CMakeLists.txt` `VERSION_EXTRA` updated (version bump)
+- [ ] `ENCRYPTION_DATA_FLOW.md` updated (if encryption behavior changes)
+- [ ] `V9_PLAN.md` updated (progress tracker and feature descriptions)
+- [ ] New test files registered in `src/unittest/CMakeLists.txt`
 - [ ] Git commit with descriptive message referencing the version
 
 ---
@@ -298,8 +307,8 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.5`
-- **Previous branch:** `clawtest-upload`
+- **Current branch:** `clawtest-v9.10`
+- **Previous branch:** `clawtest-v9.9`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.7
+- **Current version:** v9.10
