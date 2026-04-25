@@ -1,7 +1,7 @@
 # AI Agent Instructions — Clawtest Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-25 | **Applicable Versions:** v7, v8, v9.x, v9.10, and all future development
+> **Last Updated:** 2026-04-26 | **Applicable Versions:** v7, v8, v9.x, v9.11, and all future development
 
 ---
 
@@ -107,14 +107,14 @@
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
 | `clawtest-upload` | Clawtest development (previous) | `main` |
 | `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
-| `clawtest-v9.10` | v9.10 development (current) | `clawtest-v9.9` |
+| `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
-- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.10`
+- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.10`
+- The current branch is `clawtest-v9.11`
 
 ### 3.2 Commit Conventions
 
@@ -307,8 +307,8 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.10`
-- **Previous branch:** `clawtest-v9.9`
+- **Current branch:** `clawtest-v9.11`
+- **Previous branch:** `clawtest-v9.10`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.10
+- **Current version:** v9.11

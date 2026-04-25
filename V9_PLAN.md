@@ -388,4 +388,6 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.11: ECDH wire protocol | DONE | TOCLIENT_ECDH_PUBKEY (0x65), TOSERVER_ECDH_PUBKEY (0x54) |
 | v9.11: ECDH salt bug fixes | DONE | mixECDHSecretIntoKeys unsalted HKDF, rotateKeys random salt |
 | v9.11: Forward secrecy TDD tests | DONE | 22 tests in test_forward_secrecy.cpp |
+| v9.11: Test bug fixes | DONE | TOFU bonus with CERT_PINNED, concurrent nonce mutex, tamper flag AAD, security score string |
+| v9.11: Documentation update | DONE | VERSION→9.11, README, ai-codebase-reference, OPENCLAW_GUIDE |
 | v9.11: Security score 100/100 | DONE | ECDH+SRP = Excellent with forward secrecy |

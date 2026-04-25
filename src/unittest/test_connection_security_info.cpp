@@ -556,7 +556,8 @@ void TestConnectionSecurityInfo::testSecurityInfoV8GetSecurityScoreString()
         full.tls_version = ConnectionSecurityInfo::TLS_1_3_EQUIVALENT;
         UASSERT(full.getSecurityScoreString() == "100/100 (Excellent)");
 
-        // v9.1: With just CERT_VERIFIED (not PINNED) and no TLS equiv → 90/100 (Good)
+        // v9.1: With CERT_VERIFIED and no TLS equiv → 95/100 (Good)
+        // Base: 30(secure)+15(cipher)+15(FS)+15(auth)+10(replay)+10(VERIFIED)+0(no TLS) = 95
         ConnectionSecurityInfo good;
         good.state = ConnectionSecurity::Encrypted;
         good.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM;
@@ -566,7 +567,7 @@ void TestConnectionSecurityInfo::testSecurityInfoV8GetSecurityScoreString()
         good.certificate_status = ConnectionSecurityInfo::CERT_VERIFIED;
         good.forward_secrecy = true;
         good.replay_protection = true;
-        UASSERT(good.getSecurityScoreString() == "90/100 (Good)");
+        UASSERT(good.getSecurityScoreString() == "95/100 (Good)");
 }
 
 void TestConnectionSecurityInfo::testSecurityInfoV8SecurityInfoFromFlags_withSessionData()

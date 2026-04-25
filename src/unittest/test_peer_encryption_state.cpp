@@ -551,11 +551,16 @@ void TestPeerEncryptionState::testUpdateCounterDoesNotGoBackwards()
 
 void TestPeerEncryptionState::testConcurrentNextNonce()
 {
-        // Multiple threads calling nextNonce() concurrently should not
-        // produce duplicate nonces.
+        // Multiple threads calling nextNonce() concurrently with a mutex
+        // should not produce duplicate nonces.
+        // DirectionalEncryptionState::nextNonce() is NOT thread-safe by itself;
+        // callers must hold PeerEncryptionState::lock() (which they do in
+        // real code via rawSend/receive). We replicate that here.
         DirectionalEncryptionState dir;
         secure_random(dir.nonce_base.data(), dir.nonce_base.size());
         dir.nonce_counter = 0;
+
+        std::mutex dir_mutex;  // Protects dir just like PeerEncryptionState::m_mutex
 
         constexpr int NUM_THREADS = 4;
         constexpr int NONCES_PER_THREAD = 500;
@@ -563,8 +568,9 @@ void TestPeerEncryptionState::testConcurrentNextNonce()
 
         std::vector<std::thread> threads;
         for (int t = 0; t < NUM_THREADS; t++) {
-                threads.emplace_back([&dir, &thread_nonces, t]() {
+                threads.emplace_back([&dir, &dir_mutex, &thread_nonces, t]() {
                         for (int i = 0; i < NONCES_PER_THREAD; i++) {
+                                std::lock_guard<std::mutex> lk(dir_mutex);
                                 thread_nonces[t].push_back(dir.nextNonce());
                         }
                 });

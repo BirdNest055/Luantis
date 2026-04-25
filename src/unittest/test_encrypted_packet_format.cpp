@@ -160,14 +160,15 @@ static std::vector<u8> decryptPacket(
         const DirectionalEncryptionState &dir = use_c2s_for_decrypt ? enc_state.c2s : enc_state.s2c;
 
         const u8 *after_header = enc_packet.data() + BASE_HEADER_SIZE;
+        // Read the actual encrypted flag byte from the packet (not hardcoded)
+        // This ensures that tampering with the flag byte causes GCM auth failure
+        u8 aad = after_header[0];
         const u8 *nonce_ptr = after_header + 1;
         size_t data_after_header = enc_packet.size() - BASE_HEADER_SIZE;
         size_t remaining = data_after_header - 1 - GCM_NONCE_SIZE;
         size_t ciphertext_len = remaining - GCM_TAG_SIZE;
         const u8 *ciphertext_ptr = after_header + 1 + GCM_NONCE_SIZE;
         const u8 *tag_ptr = enc_packet.data() + enc_packet.size() - GCM_TAG_SIZE;
-
-        u8 aad = ENCRYPTED_FLAG_AES_256_GCM;
 
         CryptoResult result = aes256gcm_decrypt(
                 dir.key.data(), dir.key.size(),
