@@ -1,0 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Luanti Server",
+      "type": "shell",
+      "command": "${workspaceFolder}/start_server.sh",
+      "args": ["--foreground"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Start the Luanti server from VS Code"
+    },
+    {
+      "label": "Build Luanti Server and Client",
+      "type": "shell",
+      "command": "${workspaceFolder}/build_linux.sh",
+      "args": ["--both", "--run-in-place"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Build the Luanti server and client using build_linux.sh"
+    },
+    {
+      "label": "Start Luanti Client",
+      "type": "shell",
+      "command": "${workspaceFolder}/start_client.sh",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Start the Luanti client from VS Code"
+    }
+  ]
+}
