@@ -1,0 +1,21 @@
+#!/bin/bash
+# Test Z.AI GLM 4.5 Air model via OpenClaw
+
+echo "Testing Z.AI GLM 4.5 Air model..."
+echo "Gateway should be running at ws://127.0.0.1:18789"
+echo ""
+echo "To chat with the model, use one of these methods:"
+echo ""
+echo "1. Using TUI (Terminal UI):"
+echo "   openclaw tui"
+echo ""
+echo "2. Using agent command (requires session):"
+echo "   openclaw agent --session-id my-session --message \"Your message here\""
+echo ""
+echo "3. Open dashboard in browser:"
+echo "   openclaw dashboard"
+echo ""
+echo "Current configuration:"
+echo "- Model: zai/glm-4.5-air"
+echo "- API Key: Configured"
+echo "- Gateway: Running"
