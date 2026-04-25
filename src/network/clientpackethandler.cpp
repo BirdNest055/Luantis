@@ -2183,9 +2183,9 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 
         // Send our public key to the server
         NetworkPacket ecdh_pkt(TOSERVER_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE);
-        std::string pubkey_str(reinterpret_cast<const char*>(client_kp.public_key.data()),
+        std::string client_pubkey_str(reinterpret_cast<const char*>(client_kp.public_key.data()),
                 X25519_PUBLIC_KEY_SIZE);
-        ecdh_pkt.putLongString(pubkey_str);
+        ecdh_pkt.putLongString(client_pubkey_str);
         Send(&ecdh_pkt);
 
         // Activate encryption with ECDH+SRP keys
