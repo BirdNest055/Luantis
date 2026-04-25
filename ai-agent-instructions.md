@@ -1,0 +1,276 @@
+# AI Agent Instructions — Luanti Security Overlay Project
+
+> **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
+> **Last Updated:** 2026-04-22 | **Applicable Versions:** v7, v8, and all future development
+
+---
+
+## 1. Test-Driven Development (TDD) — MANDATORY
+
+**This is the single most important rule.** Every feature must be developed TDD-first.
+
+### 1.1 TDD Workflow
+
+1. **RED:** Write failing tests that define the expected behavior BEFORE any implementation code
+2. **GREEN:** Write the minimum implementation code to make the tests pass
+3. **REFACTOR:** Clean up the code while keeping tests green
+
+### 1.2 Test File Locations
+
+| Component | Test File | Location |
+|-----------|-----------|----------|
+| C++ security logic | `test_connection_security.cpp`, `test_connection_security_info.cpp` | `src/unittest/` |
+| C++ GameUI | `test_gameui.cpp` | `src/unittest/` |
+| C++ crypto (WIP) | `test_encrypted_connection.cpp` | `src/unittest/` |
+| Bash build script | `test_build_linux.sh` | Project root |
+| Bash server script | `test_start_server.sh` | Project root |
+
+### 1.3 C++ Test Conventions
+
+- Inherit from `TestBase`
+- Register with `TestManager::registerTestModule(this)` in constructor
+- Use `UASSERT(condition)` and `UASSERTEQ(type, a, b)` macros
+- Each test method must be declared in the class and listed in `runTests()`
+- Static instance `g_test_instance` for auto-registration
+- Add test source to `src/unittest/CMakeLists.txt`
+
+### 1.4 Bash Test Conventions
+
+- Use `assert_eq`, `assert_contains`, `assert_not_contains`, `assert_file_exists` helpers
+- Each test is a function named `test_<descriptive_name>`
+- Tests run with `set -uo pipefail` (NOT `set -e`)
+- Count pass/fail and print summary
+
+---
+
+## 2. Coding Standards
+
+### 2.1 C++ Conventions (Follow Luanti Upstream)
+
+- **Language:** C++17
+- **Indentation:** Tabs (8-column width for display)
+- **Naming:**
+  - Classes: `PascalCase` (e.g., `ConnectionSecurityInfo`)
+  - Functions/Methods: `camelCase` (e.g., `isConnectionSecure`)
+  - Constants: `UPPER_SNAKE_CASE` (e.g., `ENCRYPTION_AES_256_GCM`)
+  - Member variables: `m_` prefix (e.g., `m_security_info`)
+  - Static members: `s_` prefix (rare in this project)
+- **Headers:** Use `#pragma once` as include guard
+- **License header:** Every file must start with the Luanti SPDX header:
+  ```cpp
+  // Luanti
+  // SPDX-License-Identifier: LGPL-2.1-or-later
+  // Copyright (C) 2026 Luanti contributors
+  ```
+- **Includes:** Use double quotes for project headers, angle brackets for system/external
+- **Comments:** Use `/** doc */` style for public API, `//` for inline comments
+
+### 2.2 Lua Conventions
+
+- **Indentation:** Tabs
+- **Naming:** `snake_case` for variables and functions
+- **License header:**
+  ```lua
+  -- Luanti
+  -- Copyright (C) 2026 Luanti contributors
+  -- SPDX-License-Identifier: LGPL-2.1-or-later
+  ```
+- **Settings access:** Use `core.settings:get("setting_name")` for reading, `core.settings:set(...)` for writing
+- **Formspec:** Use `core.formspec_escape()` for all user-visible strings, `core.colorize()` for colored text
+- **Internationalization:** Use `fgettext("string")` for all user-visible text
+
+### 2.3 Bash Conventions
+
+- **Shell:** Bash 4+ compatible
+- **Strict mode:** `set -uo pipefail` (NEVER `set -e` — too many false positives with pipelines)
+- **Colors:** Use ANSI-C quoting: `RED=$'\033[0;31m'` (NOT `RED='\033[0;31m'` — those print literally)
+- **User input:** Use `read -rp "prompt: " variable` (NOT `tput` — crashes under certain conditions)
+- **Error handling:** Use `|| exit 1` at every step that must succeed
+- **Array handling:** Use parallel arrays via `_add_group()` helper (NOT bash indirect array expansion — crashes silently)
+- **Platform detection:** Always detect distro/version before installing packages
+  - Ubuntu 24.04+: use `libfreetype-dev` (NOT `libfreetype6-dev` — unmet deps)
+- **CMake cache:** Use `sed 's/^[^=]*=//'` to extract values (NOT `cut -d: -f2-` — fails on stale cache)
+- **Binary path:** Check `bin/` directory first (CMake outputs there, NOT `build/`)
+
+---
+
+## 3. Git Workflow
+
+### 3.1 Branch Strategy
+
+| Branch | Purpose | Base |
+|--------|---------|------|
+| `main` | v7 stable release | Origin |
+| `v8-security-info-tab` | v8 development | `main` |
+| `crypto-wip` | Crypto layer development | `main` |
+| Future: `v9-*` | Next feature | Previous version branch |
+
+**Rules:**
+- Branch names include the version: `v7-overlay-settings`, `v8-security-info-tab`
+- Each version branch contains a self-contained, buildable state
+- Never merge forward until the current version is stable and tested
+
+### 3.2 Commit Conventions
+
+- Write clear, descriptive commit messages
+- Group related changes together
+- Reference the version/feature in the commit message
+- Example: `feat(v8): add ConnectionSecurityInfo struct with TDD tests`
+
+### 3.3 Tags
+
+- Git tags mark release versions: `v7.0.0`, `v8.0.0`, etc.
+- Tags should be annotated: `git tag -a v7.0.0 -m "v7.0.0: Secure connection overlay + settings toggle"`
+
+---
+
+## 4. Settings Architecture
+
+### 4.1 Adding a New Setting
+
+Follow this exact checklist:
+
+1. **`src/defaultsettings.cpp`**: Add `settings->setDefault("name", "value")` in the correct section
+2. **`builtin/settingtypes.txt`**: Add the setting definition with description in the correct section
+3. **`minetest.conf.example`**: Add the setting with full documentation comment
+4. **Read the setting:** In C++ use `g_settings->getBool("name")` or `g_settings->get("name")`; in Lua use `core.settings:get("name")`
+
+### 4.2 Overlay Settings Pattern
+
+For any new overlay/indicator, follow this pattern:
+
+1. Add `bool show_*` flag in `GameUI::Flags` with a comment referencing the pattern
+2. Add `show_*` setting in `defaultsettings.cpp` (default: typically `true` for new features)
+3. Add it to `settingtypes.txt` under `[**HUD]`
+4. Add it to `minetest.conf.example`
+5. Check the flag in `GameUI::initFlags()` and `GameUI::update()`
+6. Write TDD tests first
+
+### 4.3 Runtime Settings Bridge
+
+For passing data from C++ to the Lua settings dialog:
+
+1. Define the setting in `defaultsettings.cpp` with a default like `"N/A"` or `"Not Connected"`
+2. In C++ code, use `g_settings->set("setting_name", value)` to update at runtime
+3. In Lua, use `core.settings:get("setting_name")` to read
+4. These settings are **NOT saved to disk** — they represent transient connection state
+5. Document this clearly with a comment like: `// Runtime settings — populated by client when connected, not saved to disk`
+
+---
+
+## 5. Security Feature Development Rules
+
+### 5.1 Wire Protocol Changes
+
+- **Forward compatibility is mandatory.** New fields must be optional so old clients/servers still work
+- Use the pattern: wrap new fields in a try-catch or version check
+- Example from `clientpackethandler.cpp`:
+  ```cpp
+  u8 security_flags = 0;
+  try {
+      *pkt >> security_flags;
+  } catch (PacketError &e) {
+      // Old server — no security flags, assume insecure
+  }
+  ```
+
+### 5.2 Security Flags
+
+- The `security_flags` byte is a bitfield — new flags must use currently-unused bits
+- Never repurpose existing bit positions
+- Document every flag bit in `connection_security.h` with a comment explaining its meaning
+
+### 5.3 Security Info Integrity
+
+- Security info displayed to the user must be **derived from the actual connection state**, not from user-configurable settings
+- The server advertises what security it provides; the client should not allow users to "fake" a secure indicator
+- Runtime settings (`security_info_*`) are read-only in the UI — users cannot modify them through the settings dialog
+
+---
+
+## 6. Build System Notes
+
+### 6.1 CMake Configuration
+
+- Master file: `CMakeLists.txt` at project root
+- Key options: `BUILD_CLIENT`, `BUILD_SERVER`, `BUILD_UNITTESTS`, `ENABLE_LTO`, `RUN_IN_PLACE`
+- C++17 standard required
+- Dependencies listed in `vcpkg.json`
+
+### 6.2 Adding New Source Files
+
+1. Create the `.h` and `.cpp` files in the appropriate directory
+2. Add the `.cpp` to the corresponding `CMakeLists.txt` (e.g., `src/network/CMakeLists.txt`, `src/unittest/CMakeLists.txt`)
+3. For test files, add to `src/unittest/CMakeLists.txt` in the test sources list
+
+### 6.3 Dependency Management
+
+- `libfreetype-dev` on Ubuntu 24.04+ (NOT `libfreetype6-dev`)
+- The build script handles distro detection automatically
+- OpenSSL is already in `vcpkg.json` for the crypto layer
+
+---
+
+## 7. Documentation Rules
+
+### 7.1 Project Map (`luanti-project-map.md`)
+
+- This is the **living document** — it MUST be updated every time a file is added, renamed, or its purpose changes
+- It contains ~1,460 lines covering every file in the project
+- When adding a new file, add it to the correct section with purpose and key dependencies
+- Update the "Last Updated" date and "Map Version" when making changes
+
+### 7.2 AI Codebase Reference (`ai-codebase-reference.md`)
+
+- Read this file to understand the current state of all modifications
+- It summarizes what changed in each version, the data flow, and key file descriptions
+- Update it when adding new features or making significant changes
+
+### 7.3 This File (`ai-agent-instructions.md`)
+
+- Contains ALL rules and guidelines that AI agents must follow
+- Update when adding new conventions, patterns, or rules
+- Always read this file before starting any work
+
+---
+
+## 8. Common Pitfalls & Fixes
+
+| Pitfall | Fix |
+|---------|-----|
+| `set -e` causing silent exits | Use `set -uo pipefail` instead; use `\|\| exit 1` explicitly |
+| Raw ANSI codes printing literally | Use ANSI-C quoting: `RED=$'\033[0;31m'` |
+| `tput` crashing in scripts | Use `read -rp` for user input instead |
+| Bash indirect array expansion crashing | Use parallel arrays via `_add_group()` helper |
+| `libfreetype6-dev` unmet deps on Ubuntu 24.04 | Auto-detect Ubuntu version; use `libfreetype-dev` for 24.04+ |
+| CMake cache stale false positives | Use `sed 's/^[^=]*=//'` not `cut -d: -f2-` |
+| Binary not found after build | Check `bin/` first (CMake outputs there, not `build/`) |
+| Script auto-installing deps without asking | Always show interactive menu first |
+| `NC: unbound variable` on line 746 | Ensure all variables used under `set -u` are defined in all code paths |
+| False build success after failure | Add `\|\| exit 1` at every step |
+
+---
+
+## 9. File Checklist for New Features
+
+When adding a new feature to this project, ensure ALL of these are done:
+
+- [ ] TDD tests written FIRST (RED phase)
+- [ ] Implementation code written to pass tests (GREEN phase)
+- [ ] Code refactored while keeping tests green (REFACTOR phase)
+- [ ] `defaultsettings.cpp` updated (if new settings needed)
+- [ ] `settingtypes.txt` updated (if new settings needed)
+- [ ] `minetest.conf.example` updated (if new settings needed)
+- [ ] `src/unittest/CMakeLists.txt` updated (if new test files added)
+- [ ] `luanti-project-map.md` updated (file list, dependencies)
+- [ ] `ai-codebase-reference.md` updated (new feature summary)
+- [ ] Git commit with descriptive message referencing the version
+
+---
+
+## 10. Repository Information
+
+- **GitHub URL:** https://github.com/BirdNest055/luanti-v7-overlay-settings.git
+- **Default branch:** `main`
+- **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
+- **License:** LGPL 2.1 (same as upstream Luanti)

@@ -1,0 +1,264 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main, 'v*']
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (Release/Debug)'
+        required: false
+        default: 'Release'
+      run_tests:
+        description: 'Run unit tests'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  BUILD_TYPE: ${{ github.event.inputs.build_type || 'Release' }}
+  RUN_TESTS: ${{ github.event.inputs.run_tests || 'true' }}
+
+jobs:
+  build:
+    name: Build on Ubuntu 24.04
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version tag
+        id: version
+        run: |
+          # Try to extract version from branch name (e.g. v7-foo -> v7)
+          BRANCH="${GITHUB_REF_NAME}"
+          VERSION_TAG="$(echo "$BRANCH" | sed -n 's/^\(v[0-9]*\).*/\1/p')"
+
+          # Fall back to git tag or generate from commit count
+          if [[ -z "$VERSION_TAG" ]]; then
+            VERSION_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo "v$(git rev-list --count HEAD)")"
+          fi
+
+          # Add build number for uniqueness
+          BUILD_NUM="${GITHUB_RUN_NUMBER}"
+          FULL_VERSION="${VERSION_TAG}-build${BUILD_NUM}"
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$VERSION_TAG" >> "$GITHUB_OUTPUT"
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo ""
+          echo "Branch:       $BRANCH"
+          echo "Version tag:  $VERSION_TAG"
+          echo "Full version: $FULL_VERSION"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+
+          # Core build tools
+          sudo apt-get install -y \
+            build-essential cmake pkg-config
+
+          # Common libraries
+          sudo apt-get install -y \
+            zlib1g-dev libzstd-dev libsqlite3-dev libgmp-dev \
+            libjsoncpp-dev libluajit-5.1-dev
+
+          # Client: Graphics & windowing (Ubuntu 24.04 uses libfreetype-dev)
+          sudo apt-get install -y \
+            libfreetype-dev libgl1-mesa-dev libsdl2-dev
+
+          # Client: Audio
+          sudo apt-get install -y \
+            libopenal-dev libvorbis-dev libogg-dev
+
+          # Client: Images & i18n
+          sudo apt-get install -y \
+            libjpeg-dev libpng-dev gettext
+
+          # Client & Server: Networking
+          sudo apt-get install -y \
+            libcurl4-openssl-dev
+
+          # Server: Terminal
+          sudo apt-get install -y \
+            libncurses5-dev
+
+          # Optional: Encryption & spatial (needed for security features)
+          sudo apt-get install -y \
+            libssl-dev libspatialindex-dev
+
+      - name: Configure CMake (client + server)
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DBUILD_CLIENT=TRUE \
+            -DBUILD_SERVER=TRUE \
+            -DRUN_IN_PLACE=TRUE \
+            -DBUILD_UNITTESTS=${{ env.RUN_TESTS }} \
+            -DENABLE_LTO=FALSE
+
+      - name: Build
+        run: cmake --build build -j "$(nproc)"
+
+      - name: Run unit tests
+        if: env.RUN_TESTS == 'true'
+        run: cmake --build build --target test
+
+      - name: Verify binaries
+        id: verify
+        run: |
+          echo "=== Built binaries ==="
+          ls -lh bin/ 2>/dev/null || { echo "ERROR: No bin/ directory found"; exit 1; }
+
+          CLIENT_OK=0
+          SERVER_OK=0
+
+          if [[ -x bin/luanti ]]; then
+            echo "Client binary: $(file bin/luanti)"
+            CLIENT_OK=1
+          else
+            echo "WARNING: Client binary not found at bin/luanti"
+          fi
+
+          if [[ -x bin/luantiserver ]]; then
+            echo "Server binary: $(file bin/luantiserver)"
+            SERVER_OK=1
+          else
+            echo "WARNING: Server binary not found at bin/luantiserver"
+          fi
+
+          echo "client_ok=$CLIENT_OK" >> "$GITHUB_OUTPUT"
+          echo "server_ok=$SERVER_OK" >> "$GITHUB_OUTPUT"
+
+          if [[ "$CLIENT_OK" -eq 0 ]] && [[ "$SERVER_OK" -eq 0 ]]; then
+            echo "ERROR: No binaries were built successfully!"
+            exit 1
+          fi
+
+      - name: Package build artifacts
+        run: |
+          VERSION="${{ steps.version.outputs.full_version }}"
+          ARTIFACT_DIR="luanti-${VERSION}"
+          mkdir -p "$ARTIFACT_DIR/bin"
+
+          # Copy binaries
+          if [[ -d bin ]]; then
+            cp -r bin/* "$ARTIFACT_DIR/bin/" 2>/dev/null || true
+          fi
+
+          # Copy essential runtime files that binaries need
+          for dir in builtin client fonts textures po irr; do
+            if [[ -d "$dir" ]]; then
+              cp -r "$dir" "$ARTIFACT_DIR/"
+            fi
+          done
+
+          # Copy config and docs
+          cp minetest.conf.example "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp README.md "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp LICENSE.txt "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp CMakeLists.txt "$ARTIFACT_DIR/" 2>/dev/null || true
+
+          # Copy our custom scripts and mods
+          cp build_linux.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp start_server.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp start_client.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp test_start_server.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp test_start_client.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp luanti-project-map.md "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp ai-codebase-reference.md "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp ai-agent-instructions.md "$ARTIFACT_DIR/" 2>/dev/null || true
+
+          # Copy source for reproducibility
+          cp -r src "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp -r lib "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp -r cmake "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp -r misc "$ARTIFACT_DIR/" 2>/dev/null || true
+
+          # Copy any mods directory
+          cp -r mods "$ARTIFACT_DIR/" 2>/dev/null || true
+
+          # Write build metadata
+          cat > "$ARTIFACT_DIR/BUILD_INFO.txt" <<EOF
+          Build Version:    ${VERSION}
+          Build Type:       ${{ env.BUILD_TYPE }}
+          Build Date:       $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          Git Commit:       $(git rev-parse HEAD)
+          Git Branch:       ${{ steps.version.outputs.branch }}
+          GitHub Run:       ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Runner OS:        Ubuntu 24.04
+          Client Built:     ${{ steps.verify.outputs.client_ok }}
+          Server Built:     ${{ steps.verify.outputs.server_ok }}
+          Unit Tests:       ${{ env.RUN_TESTS }}
+          EOF
+          sed -i 's/^          //' "$ARTIFACT_DIR/BUILD_INFO.txt"
+
+          # Create zip
+          zip -r "luanti-${VERSION}.zip" "$ARTIFACT_DIR"
+
+          echo ""
+          echo "=== Package contents ==="
+          unzip -l "luanti-${VERSION}.zip" | tail -5
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luanti-${{ steps.version.outputs.full_version }}
+          path: luanti-${{ steps.version.outputs.full_version }}.zip
+          retention-days: 90
+
+      - name: Push to versioned build branch
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.full_version }}"
+          BRANCH_NAME="build/${VERSION}"
+
+          echo "Pushing build artifacts to branch: ${BRANCH_NAME}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create the build branch from current HEAD
+          git checkout -b "$BRANCH_NAME"
+
+          # Add build artifacts (binaries + build dir metadata)
+          git add -f bin/ BUILD_INFO.txt 2>/dev/null || true
+
+          # Also add the build directory compile_commands etc. for reference
+          # but NOT intermediate object files (too large, not useful)
+          git add -f build/compile_commands.json 2>/dev/null || true
+          git add -f build/CMakeCache.txt 2>/dev/null || true
+
+          # Commit
+          git commit -m "build: ${VERSION} (client=${{ steps.verify.outputs.client_ok }}, server=${{ steps.verify.outputs.server_ok }})
+
+          Built from commit $(git rev-parse HEAD~1)
+          Build type: ${{ env.BUILD_TYPE }}
+          Runner: ubuntu-24.04
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Push the build branch
+          git push origin "$BRANCH_NAME"
+
+          echo ""
+          echo "Build branch pushed: ${BRANCH_NAME}"
+          echo "You can clone it with: git clone --branch ${BRANCH_NAME} ..."
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo ""
+          echo "============================================"
+          echo "  Luanti Build Summary"
+          echo "============================================"
+          echo "  Version:  ${{ steps.version.outputs.full_version }}"
+          echo "  Client:   ${{ steps.verify.outputs.client_ok }}"
+          echo "  Server:   ${{ steps.verify.outputs.server_ok }}"
+          echo "  Branch:   build/${{ steps.version.outputs.full_version }}"
+          echo "============================================"
