@@ -1,7 +1,17 @@
 # OpenClaw CLI Guide for Clawtest Project
 
 ## Overview
-OpenClaw is installed globally (v2026.4.21) and ready to use. This guide teaches you how to use it effectively in this project.
+
+OpenClaw is installed globally and ready to use. This guide teaches you how to use it effectively in the Clawtest project.
+
+**Note:** OpenClaw is a separate tool from the Clawtest game engine itself. It provides messaging and agent orchestration capabilities. The Clawtest game engine is the core product — a fork of Luanti with real encrypted communications.
+
+## Project Context
+
+- **Project:** Clawtest v9.3
+- **Repository:** https://github.com/BirdNest055/Clawtest
+- **Current branch:** `clawtest-v9.3`
+- **Key feature:** Real AES-256-GCM encryption for game traffic, modular encryption toggle
 
 ## Quick Start
 

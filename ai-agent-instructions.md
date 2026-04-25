@@ -1,7 +1,7 @@
-# AI Agent Instructions — Luanti Security Overlay Project
+# AI Agent Instructions — Clawtest Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-22 | **Applicable Versions:** v7, v8, and all future development
+> **Last Updated:** 2026-04-25 | **Applicable Versions:** v7, v8, v9.x, and all future development
 
 ---
 
@@ -21,9 +21,10 @@
 |-----------|-----------|----------|
 | C++ security logic | `test_connection_security.cpp`, `test_connection_security_info.cpp` | `src/unittest/` |
 | C++ GameUI | `test_gameui.cpp` | `src/unittest/` |
-| C++ crypto (WIP) | `test_encrypted_connection.cpp` | `src/unittest/` |
+| C++ crypto | `test_encrypted_connection.cpp` | `src/unittest/` |
 | Bash build script | `test_build_linux.sh` | Project root |
 | Bash server script | `test_start_server.sh` | Project root |
+| Bash encryption toggle | `test_encryption_toggle.sh` | Project root |
 
 ### 1.3 C++ Test Conventions
 
@@ -55,6 +56,7 @@
   - Constants: `UPPER_SNAKE_CASE` (e.g., `ENCRYPTION_AES_256_GCM`)
   - Member variables: `m_` prefix (e.g., `m_security_info`)
   - Static members: `s_` prefix (rare in this project)
+  - Namespaces: `PascalCase` (e.g., `EncryptionConfig`)
 - **Headers:** Use `#pragma once` as include guard
 - **License header:** Every file must start with the Luanti SPDX header:
   ```cpp
@@ -91,6 +93,7 @@
   - Ubuntu 24.04+: use `libfreetype-dev` (NOT `libfreetype6-dev` — unmet deps)
 - **CMake cache:** Use `sed 's/^[^=]*=//'` to extract values (NOT `cut -d: -f2-` — fails on stale cache)
 - **Binary path:** Check `bin/` directory first (CMake outputs there, NOT `build/`)
+- **Exit handling:** Always include a `read -rp "Press Enter to close"` at the end of interactive scripts so the terminal doesn't close on crash
 
 ---
 
@@ -100,13 +103,13 @@
 
 | Branch | Purpose | Base |
 |--------|---------|------|
-| `main` | v7 stable release | Origin |
-| `v8-security-info-tab` | v8 development | `main` |
-| `crypto-wip` | Crypto layer development | `main` |
-| Future: `v9-*` | Next feature | Previous version branch |
+| `main` | Upstream Luanti 5.16.0-dev | Origin |
+| `clawtest-upload` | Clawtest development (previous) | `main` |
+| `clawtest-v9.3` | v9.3 release (current) | `clawtest-upload` |
+| Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
-- Branch names include the version: `v7-overlay-settings`, `v8-security-info-tab`
+- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.4`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
 
@@ -115,12 +118,19 @@
 - Write clear, descriptive commit messages
 - Group related changes together
 - Reference the version/feature in the commit message
-- Example: `feat(v8): add ConnectionSecurityInfo struct with TDD tests`
+- Example: `Clawtest v9.3 - Modular encryption toggle, interactive start scripts, version numbering`
 
 ### 3.3 Tags
 
-- Git tags mark release versions: `v7.0.0`, `v8.0.0`, etc.
-- Tags should be annotated: `git tag -a v7.0.0 -m "v7.0.0: Secure connection overlay + settings toggle"`
+- Git tags mark release versions: `clawtest-v9.3`, `clawtest-v9.4`, etc.
+- Tags should be annotated: `git tag -a clawtest-v9.3 -m "v9.3: Modular encryption toggle + interactive scripts"`
+
+### 3.4 Version Numbering
+
+- `VERSION` file in project root contains just the number (e.g., "9.3")
+- `CMakeLists.txt` sets `VERSION_EXTRA` to "v9.3" (used in `--version` output)
+- Zip filenames use the pattern: `Clawtest-v9.3.zip`
+- When bumping version: update BOTH `VERSION` file AND `CMakeLists.txt` `VERSION_EXTRA`
 
 ---
 
@@ -186,6 +196,13 @@ For passing data from C++ to the Lua settings dialog:
 - The server advertises what security it provides; the client should not allow users to "fake" a secure indicator
 - Runtime settings (`security_info_*`) are read-only in the UI — users cannot modify them through the settings dialog
 
+### 5.4 Encryption Toggle Policy
+
+- The `EncryptionConfig` namespace in `encryption_config.h/cpp` is the **single point of truth** for encryption decisions
+- All code that checks whether encryption should be active MUST use `EncryptionConfig::shouldEncrypt()` — do NOT read `g_settings->getBool("secure_connection")` directly in packet handlers
+- When `shouldEncrypt()` returns false: SRP auth still runs (for password verification), but `encryption_state.disable()` is called instead of `initFromSRPSessionKey()`
+- When `shouldEncrypt()` returns true: normal flow — SRP key is used to derive AES-256-GCM keys
+
 ---
 
 ## 6. Build System Notes
@@ -196,6 +213,7 @@ For passing data from C++ to the Lua settings dialog:
 - Key options: `BUILD_CLIENT`, `BUILD_SERVER`, `BUILD_UNITTESTS`, `ENABLE_LTO`, `RUN_IN_PLACE`
 - C++17 standard required
 - Dependencies listed in `vcpkg.json`
+- OpenSSL is REQUIRED (not optional) for the encryption module
 
 ### 6.2 Adding New Source Files
 
@@ -208,6 +226,7 @@ For passing data from C++ to the Lua settings dialog:
 - `libfreetype-dev` on Ubuntu 24.04+ (NOT `libfreetype6-dev`)
 - The build script handles distro detection automatically
 - OpenSSL is already in `vcpkg.json` for the crypto layer
+- Build environment uses local prefix at `/home/z/my-project/local-prefix/`
 
 ---
 
@@ -238,7 +257,7 @@ For passing data from C++ to the Lua settings dialog:
 
 | Pitfall | Fix |
 |---------|-----|
-| `set -e` causing silent exits | Use `set -uo pipefail` instead; use `\|\| exit 1` explicitly |
+| `set -e` causing silent exits | Use `set -uo pipefail` instead; use `|| exit 1` explicitly |
 | Raw ANSI codes printing literally | Use ANSI-C quoting: `RED=$'\033[0;31m'` |
 | `tput` crashing in scripts | Use `read -rp` for user input instead |
 | Bash indirect array expansion crashing | Use parallel arrays via `_add_group()` helper |
@@ -247,7 +266,10 @@ For passing data from C++ to the Lua settings dialog:
 | Binary not found after build | Check `bin/` first (CMake outputs there, not `build/`) |
 | Script auto-installing deps without asking | Always show interactive menu first |
 | `NC: unbound variable` on line 746 | Ensure all variables used under `set -u` are defined in all code paths |
-| False build success after failure | Add `\|\| exit 1` at every step |
+| False build success after failure | Add `|| exit 1` at every step |
+| Server start script closes at end | Add `read -rp "Press Enter to close"` at end of script |
+| Insecure mode still encrypts | Use `EncryptionConfig::shouldEncrypt()` — don't read settings directly |
+| No version numbers in zips | Use `Clawtest-v9.X.zip` naming pattern |
 
 ---
 
@@ -262,15 +284,20 @@ When adding a new feature to this project, ensure ALL of these are done:
 - [ ] `settingtypes.txt` updated (if new settings needed)
 - [ ] `minetest.conf.example` updated (if new settings needed)
 - [ ] `src/unittest/CMakeLists.txt` updated (if new test files added)
+- [ ] `src/network/CMakeLists.txt` updated (if new network source files added)
 - [ ] `luanti-project-map.md` updated (file list, dependencies)
 - [ ] `ai-codebase-reference.md` updated (new feature summary)
+- [ ] `VERSION` file updated (version bump)
+- [ ] `CMakeLists.txt` `VERSION_EXTRA` updated (version bump)
 - [ ] Git commit with descriptive message referencing the version
 
 ---
 
 ## 10. Repository Information
 
-- **GitHub URL:** https://github.com/BirdNest055/luanti-v7-overlay-settings.git
-- **Default branch:** `main`
+- **GitHub URL:** https://github.com/BirdNest055/Clawtest
+- **Current branch:** `clawtest-v9.3`
+- **Previous branch:** `clawtest-upload`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
+- **Current version:** v9.3
