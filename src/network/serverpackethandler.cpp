@@ -1843,17 +1843,43 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
         // its own encryption keys from the SRP session key.
         acceptAuth(peer_id, wantSudo);
 
-        // Now activate encryption via the command queue. The send thread will
-        // process this AFTER sending all currently queued packets (including
-        // AUTH_ACCEPT), ensuring a clean plaintext→encrypted transition.
+        // v9.11: ECDH forward secrecy — if encryption is initialized,
+        // generate an X25519 key pair and send the public key to the client
+        // BEFORE activating encryption. The client will respond with its
+        // public key, and the server activates encryption in handleCommand_EcdhPubkey.
+        //
+        // This ensures that both sides derive ECDH+SRP combined keys before
+        // encryption starts, providing REAL forward secrecy from the first
+        // encrypted packet.
         if (encryption_initialized) {
-                m_con->ActivatePeerEncryption(peer_id);
-                client->encryption_state.activated_at = porting::getTimeS();
-                enclog_activate("Encryption activation queued for peer")
-                        << EncLog::kv("peer", peer_id)
-                        << EncLog::kv("session_id", client->encryption_state.session_id)
-                        << EncLog::kv("note", "AUTH_ACCEPT sent as last plaintext packet")
-                        << std::endl;
+                X25519KeyPair server_kp = x25519_generate_keypair();
+                if (server_kp.success) {
+                        // Store the ECDH key pair in the encryption state
+                        client->encryption_state.ecdh_private_key = server_kp.private_key;
+                        client->encryption_state.ecdh_public_key = server_kp.public_key;
+
+                        // Update the connection state with the stored keypair
+                        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+
+                        // Send the ECDH public key to the client (plaintext, before activation)
+                        NetworkPacket ecdh_pkt(TOCLIENT_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE, peer_id);
+                        std::string pubkey_str(reinterpret_cast<const char*>(server_kp.public_key.data()),
+                                X25519_PUBLIC_KEY_SIZE);
+                        ecdh_pkt.putLongString(pubkey_str);
+                        Send(&ecdh_pkt);
+
+                        enclog_init("ECDH public key sent to peer, waiting for client response")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << EncLog::kv("note", "encryption will activate after ECDH exchange")
+                                << std::endl;
+                } else {
+                        // ECDH key generation failed — fall back to SRP-only activation
+                        errorstream << "ECDH key generation failed for peer " << peer_id
+                                << ", falling back to SRP-only encryption" << std::endl;
+                        m_con->ActivatePeerEncryption(peer_id);
+                        client->encryption_state.activated_at = porting::getTimeS();
+                }
         } else {
                 EncLog::logInsecureConnectionBanner(
                         "SRP key exchange failed or auth_data was NULL");
@@ -1992,4 +2018,73 @@ void Server::handleCommand_UpdateClientInfo(NetworkPacket *pkt)
         session_t peer_id = pkt->getPeerId();
         RemoteClient *client = getClient(peer_id, CS_Invalid);
         client->setDynamicInfo(info);
+}
+
+// v9.11: ECDH X25519 forward secrecy — receive client's public key
+void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemoteClient *client = getClient(peer_id, CS_Invalid);
+
+        // Read client's X25519 public key (32 bytes)
+        std::vector<u8> client_pubkey;
+        pkt->readLongString(client_pubkey);
+
+        if (client_pubkey.size() != X25519_PUBLIC_KEY_SIZE) {
+                errorstream << "Server::handleCommand_EcdhPubkey: invalid public key size from peer "
+                        << peer_id << " (" << client_pubkey.size()
+                        << ", expected " << X25519_PUBLIC_KEY_SIZE << ")" << std::endl;
+                return;
+        }
+
+        if (!EncryptionConfig::shouldEncrypt()) {
+                infostream << "Server::handleCommand_EcdhPubkey: ignoring, encryption disabled" << std::endl;
+                return;
+        }
+
+        // Check that we have a stored ECDH key pair (generated during SRP auth)
+        bool our_keypair_valid = false;
+        for (size_t i = 0; i < X25519_PRIVATE_KEY_SIZE; i++) {
+                if (client->encryption_state.ecdh_private_key[i] != 0) {
+                        our_keypair_valid = true;
+                        break;
+                }
+        }
+        if (!our_keypair_valid) {
+                errorstream << "Server::handleCommand_EcdhPubkey: no stored ECDH key pair for peer "
+                        << peer_id << std::endl;
+                return;
+        }
+
+        infostream << "Server::handleCommand_EcdhPubkey: received client ECDH public key from peer "
+                << peer_id << std::endl;
+
+        // Compute the ECDH shared secret using our stored private key and client's public key
+        X25519SharedSecret shared_secret = x25519_compute_shared_secret(
+                client->encryption_state.ecdh_private_key.data(),
+                client->encryption_state.ecdh_private_key.size(),
+                client_pubkey.data(), client_pubkey.size());
+        if (!shared_secret.success) {
+                errorstream << "Server::handleCommand_EcdhPubkey: failed to compute ECDH shared secret for peer "
+                        << peer_id << std::endl;
+                return;
+        }
+
+        // Mix the ECDH shared secret into the encryption keys
+        bool ok = mixECDHSecretIntoKeys(client->encryption_state,
+                shared_secret.shared_secret.data(), shared_secret.shared_secret.size());
+        if (!ok) {
+                errorstream << "Server::handleCommand_EcdhPubkey: mixECDHSecretIntoKeys failed for peer "
+                        << peer_id << std::endl;
+                return;
+        }
+
+        // Update the connection with the new ECDH-mixed keys
+        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+
+        // Activate encryption with ECDH+SRP keys
+        m_con->ActivatePeerEncryption(peer_id);
+
+        infostream << "Server::handleCommand_EcdhPubkey: ECDH forward secrecy established for peer "
+                << peer_id << " (session_id=" << client->encryption_state.session_id << ")" << std::endl;
 }
