@@ -1,0 +1,261 @@
+// Luanti
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (C) 2026 Luanti contributors
+
+#pragma once
+
+#include "log.h"
+#include "irrlichttypes.h"
+#include "network/networkprotocol.h"  // for session_t
+#include <string>
+#include <sstream>
+#include <ctime>
+
+// ============================================================================
+// Structured Encryption Logging System
+// ============================================================================
+//
+// This module provides a consistent, structured logging format for all
+// encryption-related events. The goal is to make it trivially easy to:
+//
+//   1. Grep logs for "[ENC]" to find ALL encryption events
+//   2. See at a glance whether a connection is SECURE or INSECURE
+//   3. Track the full encryption lifecycle per session
+//   4. Audit key derivation, activation, and error events
+//   5. Get a security summary for each peer connection
+//
+// Log format:
+//   [ENC:<category>] <message> | key=value | key=value | ...
+//
+// Categories:
+//   INIT     - Key derivation and initialization
+//   ACTIVATE - Encryption activation (plaintext->encrypted transition)
+//   SEND     - Outbound packet encryption events
+//   RECV     - Inbound packet decryption events
+//   SECURITY - Security state changes and summaries
+//   ERROR    - Encryption failures and security violations
+//   DISABLE  - Encryption teardown and key zeroing
+//   AUDIT    - Periodic security audits and statistics
+//
+// Usage:
+//   ENC_LOG_INIT("Keys derived from SRP session key")
+//     << " | peer=" << peer_id
+//     << " | session=" << session_id;
+//
+// This produces:
+//   [ENC:INIT] Keys derived from SRP session key | peer=42 | session=a1b2c3...
+// ============================================================================
+
+// Category tags for structured log lines
+#define ENC_TAG_INIT     "[ENC:INIT] "
+#define ENC_TAG_ACTIVATE "[ENC:ACTIVATE] "
+#define ENC_TAG_SEND     "[ENC:SEND] "
+#define ENC_TAG_RECV     "[ENC:RECV] "
+#define ENC_TAG_SECURITY "[ENC:SECURITY] "
+#define ENC_TAG_ERROR    "[ENC:ERROR] "
+#define ENC_TAG_DISABLE  "[ENC:DISABLE] "
+#define ENC_TAG_AUDIT    "[ENC:AUDIT] "
+
+// ---- Convenience macros for structured encryption logging ----
+// Each macro streams to `actionstream` (always logged) or `infostream`
+// depending on severity. The format is:
+//   [ENC:<CATEGORY>] <message> | key=value | key=value
+
+// INIT: Key derivation and initialization events (info level)
+#define enclog_init(msg) infostream << ENC_TAG_INIT << msg
+
+// ACTIVATE: Encryption activation events (action level — always logged)
+#define enclog_activate(msg) actionstream << ENC_TAG_ACTIVATE << msg
+
+// SEND: Outbound encryption events (info level, not per-packet)
+#define enclog_send(msg) infostream << ENC_TAG_SEND << msg
+
+// RECV: Inbound decryption events (info level, not per-packet)
+#define enclog_recv(msg) infostream << ENC_TAG_RECV << msg
+
+// SECURITY: Security state changes — ALWAYS logged (action level)
+#define enclog_security(msg) actionstream << ENC_TAG_SECURITY << msg
+
+// ERROR: Encryption failures — ALWAYS logged (error level)
+#define enclog_error(msg) errorstream << ENC_TAG_ERROR << msg
+
+// DISABLE: Encryption teardown — ALWAYS logged (action level)
+#define enclog_disable(msg) actionstream << ENC_TAG_DISABLE << msg
+
+// AUDIT: Periodic statistics — info level
+#define enclog_audit(msg) infostream << ENC_TAG_AUDIT << msg
+
+// ---- Security status banner helpers ----
+
+/// Generate a visual security status banner for a connection.
+/// This produces a multi-line block that clearly shows whether
+/// the connection is SECURE or INSECURE with all relevant details.
+///
+/// Example SECURE output:
+///   ╔══════════════════════════════════════════════════════════╗
+///   ║  CONNECTION SECURE — AES-256-GCM Encryption Active     ║
+///   ╠══════════════════════════════════════════════════════════╣
+///   ║  Cipher:      AES-256-GCM                              ║
+///   ║  Key Exchange: SRP (Secure Remote Password)            ║
+///   ║  Session ID:   a1b2c3d4e5f6...                         ║
+///   ║  Fingerprint:  SHA256:9f8e7d...                        ║
+///   ║  Forward Secrecy: No (SRP-derived keys)                ║
+///   ║  Replay Protection: Yes (sliding window)               ║
+///   ║  Score: 70/100 (Fair)                                  ║
+///   ╚══════════════════════════════════════════════════════════╝
+///
+/// Example INSECURE output:
+///   ╔══════════════════════════════════════════════════════════╗
+///   ║  ⚠ CONNECTION INSECURE — No Encryption                 ║
+///   ╠══════════════════════════════════════════════════════════╣
+///   ║  All traffic is sent as PLAINTEXT UDP                   ║
+///   ║  Any network observer can read and modify packets       ║
+///   ║  Reason: OpenSSL not linked or SRP key derivation failed║
+///   ╚══════════════════════════════════════════════════════════╝
+
+namespace EncLog {
+
+/// Format a key=value pair for structured logging
+inline std::string kv(const char* key, const std::string& value)
+{
+        return std::string(" | ") + key + "=" + value;
+}
+
+inline std::string kv(const char* key, int value)
+{
+        return std::string(" | ") + key + "=" + std::to_string(value);
+}
+
+inline std::string kv(const char* key, u16 value)
+{
+        return std::string(" | ") + key + "=" + std::to_string(value);
+}
+
+inline std::string kv(const char* key, u32 value)
+{
+        return std::string(" | ") + key + "=" + std::to_string(value);
+}
+
+inline std::string kv(const char* key, u64 value)
+{
+        return std::string(" | ") + key + "=" + std::to_string(value);
+}
+
+inline std::string kv(const char* key, bool value)
+{
+        return std::string(" | ") + key + "=" + (value ? "yes" : "no");
+}
+
+inline std::string kv(const char* key, const char* value)
+{
+        return std::string(" | ") + key + "=" + value;
+}
+
+/// Log the SECURE connection banner with all details
+inline void logSecureConnectionBanner(
+        const std::string& session_id,
+        const std::string& fingerprint,
+        bool forward_secrecy,
+        bool replay_protection,
+        int security_score,
+        const std::string& score_label,
+        u64 c2s_packets,
+        u64 s2c_packets)
+{
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  CONNECTION SECURE -- AES-256-GCM Encryption Active" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Cipher:           AES-256-GCM (256-bit key)" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Key Exchange:     SRP (Secure Remote Password)" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Authentication:   SRP mutual" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Session ID:       " << session_id << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Fingerprint:      " << fingerprint << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Forward Secrecy:  " << (forward_secrecy ? "Yes" : "No (SRP-derived keys)") << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Replay Protection:" << (replay_protection ? " Yes (sliding window)" : " No") << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Score:            " << security_score << "/100 (" << score_label << ")" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  C2S packets:      " << c2s_packets << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  S2C packets:      " << s2c_packets << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+}
+
+/// Log the INSECURE connection banner with the reason
+inline void logInsecureConnectionBanner(const std::string& reason)
+{
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  !! CONNECTION INSECURE -- No Encryption !!" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  All traffic is sent as PLAINTEXT UDP" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Any network observer can read and modify packets" << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "  Reason: " << reason << std::endl;
+        actionstream
+                << ENC_TAG_SECURITY
+                << "========================================================" << std::endl;
+}
+
+/// Log a periodic encryption audit summary for a peer.
+/// Called every N packets to give a health check on the encryption.
+inline void logEncryptionAudit(
+        session_t peer_id,
+        bool active,
+        const std::string& session_id,
+        u64 c2s_packets,
+        u64 s2c_packets,
+        u64 c2s_auth_failures,
+        u64 s2c_auth_failures,
+        u64 c2s_replay_attempts,
+        u64 s2c_replay_attempts)
+{
+        enclog_audit("Encryption audit")
+                << kv("peer", peer_id)
+                << kv("active", active)
+                << kv("session", session_id.substr(0, 16))
+                << kv("c2s_pkts", c2s_packets)
+                << kv("s2c_pkts", s2c_packets)
+                << kv("c2s_auth_fail", c2s_auth_failures)
+                << kv("s2c_auth_fail", s2c_auth_failures)
+                << kv("c2s_replay", c2s_replay_attempts)
+                << kv("s2c_replay", s2c_replay_attempts)
+                << std::endl;
+}
+
+} // namespace EncLog
