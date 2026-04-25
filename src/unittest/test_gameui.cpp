@@ -326,22 +326,22 @@ void TestGameUI::testSecurityInfoSetAndGetFullInfo()
 void TestGameUI::testSecurityInfoStateTransitionOnConnect()
 {
         // Simulate connecting to a secure server: state transitions from
-        // Insecure (default) to Encrypted (after TOCLIENT_HELLO)
+        // Insecure (default) to Encrypted (after SRP auth completes).
+        // v9.1 honest: connectionSecurityInfoFromFlags() does NOT set Encrypted,
+        // so we use populateRealSecurityInfo() for the real encrypted state.
         GameUI gui{};
 
         // Initially insecure
         UASSERT(gui.getConnectionSecurity() == ConnectionSecurity::Insecure);
         UASSERT(!gui.getConnectionSecurityInfo().isSecure());
 
-        // Simulate server handshake with all security flags
-        ConnectionSecurityInfo info = connectionSecurityInfoFromFlags(
-                ConnectionSecurityFlags::ENCRYPTED
-                | ConnectionSecurityFlags::FORWARD_SECRECY
-                | ConnectionSecurityFlags::AUTHENTICATED
-                | ConnectionSecurityFlags::REPLAY_PROTECTED);
-        info.protocol_version = 44;
-        info.server_address = "secure.example.com";
-        info.server_port = 30000;
+        // v9.1: Using populateRealSecurityInfo for honest security info
+        ConnectionSecurityInfo info = populateRealSecurityInfo(
+                true,   /* encryption_active */
+                true,   /* ecdh_completed */
+                true,   /* fingerprint_pinned */
+                1,      /* fingerprint_verify_result = match */
+                "session-abc", "SHA256:def", 0, 44, "secure.example.com", 30000);
 
         gui.setConnectionSecurityInfo(info);
 
