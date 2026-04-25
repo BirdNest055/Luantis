@@ -5,7 +5,7 @@ Generated automatically from code comments.
 
 ## Summary
 
-**Total entries:** 465 (code comments) + 7 (compiler warnings) + 2 (v9.9 bugs fixed)
+**Total entries:** 465 (code comments) + 7 (compiler warnings) + 2 (v9.9 bugs fixed) + 2 (v9.11 bugs fixed)
 
 | Type | Count |
 |------|-------|
@@ -14,6 +14,7 @@ Generated automatically from code comments.
 | TODO | 294 |
 | WARNING | 7 (Clawtest-specific compiler warnings from CI) |
 | BUG FIX | 2 (v9.9 build and runtime bugs — FIXED) |
+| BUG FIX | 2 (v9.11 ECDH salt bugs — FIXED) |
 
 ## Clawtest v9.9 Bug Fixes
 
@@ -24,6 +25,15 @@ These bugs were discovered and fixed during v9.9 development:
 | `src/network/crypto.h:205,222` | `i64` not declared | `i64` is not a type alias in the project — only `s64` exists in `irrTypes.h` | Changed all `i64` → `s64` (4 instances) | Fixed |
 | `src/network/connection_security.h:610` | Too many arguments to `populateRealSecurityInfo` | 10-param overload was defined before 11-param overload, causing recursive call with wrong arity | Moved 11-param overload before 10-param wrapper | Fixed |
 | `src/network/crypto.cpp:362` | S2C decryption failures (GCM auth tag mismatch) | `initFromSRPSessionKey()` used `secure_random()` for HKDF salt — each side generated different salts → different keys | Changed to deterministic HKDF salt derivation from SRP session key | Fixed |
+
+## Clawtest v9.11 Bug Fixes
+
+These bugs were discovered and fixed during v9.11 ECDH forward secrecy development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `src/network/crypto.cpp` | `mixECDHSecretIntoKeys()` used unsalted HKDF | HKDF was called with `nullptr, 0` for salt, causing key mismatch between client and server | Derive salt deterministically from combined IKM (SRP + ECDH), matching `initFromSRPSessionKey()` pattern | Fixed |
+| `src/network/crypto.cpp` | `rotateKeys()` used random HKDF salt | `secure_random()` for HKDF salt caused KEY MISMATCH between client and server (same bug pattern as v9.9 salt bug) | Derive salt deterministically from rotation IKM | Fixed |
 
 ## Clawtest Compiler Warnings (from GitHub Actions CI)
 

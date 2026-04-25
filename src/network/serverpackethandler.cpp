@@ -2027,15 +2027,15 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         RemoteClient *client = getClient(peer_id, CS_Invalid);
 
         // Read client's X25519 public key (32 bytes)
-        std::vector<u8> client_pubkey;
-        pkt->readLongString(client_pubkey);
+        std::string pubkey_str = pkt->readLongString();
 
-        if (client_pubkey.size() != X25519_PUBLIC_KEY_SIZE) {
+        if (pubkey_str.size() != X25519_PUBLIC_KEY_SIZE) {
                 errorstream << "Server::handleCommand_EcdhPubkey: invalid public key size from peer "
-                        << peer_id << " (" << client_pubkey.size()
+                        << peer_id << " (" << pubkey_str.size()
                         << ", expected " << X25519_PUBLIC_KEY_SIZE << ")" << std::endl;
                 return;
         }
+        const u8* client_pubkey = reinterpret_cast<const u8*>(pubkey_str.data());
 
         if (!EncryptionConfig::shouldEncrypt()) {
                 infostream << "Server::handleCommand_EcdhPubkey: ignoring, encryption disabled" << std::endl;
@@ -2063,7 +2063,7 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         X25519SharedSecret shared_secret = x25519_compute_shared_secret(
                 client->encryption_state.ecdh_private_key.data(),
                 client->encryption_state.ecdh_private_key.size(),
-                client_pubkey.data(), client_pubkey.size());
+                client_pubkey, X25519_PUBLIC_KEY_SIZE);
         if (!shared_secret.success) {
                 errorstream << "Server::handleCommand_EcdhPubkey: failed to compute ECDH shared secret for peer "
                         << peer_id << std::endl;

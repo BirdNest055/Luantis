@@ -1,4 +1,4 @@
-# Encryption Data Flow — Clawtest v9.10
+# Encryption Data Flow — Clawtest v9.11
 
 > A comprehensive guide to how encryption works between the Clawtest server and client, what happens to data at each stage, and what protections exist (and don't exist) at every point.
 
@@ -28,7 +28,7 @@ The encryption is derived from the SRP (Secure Remote Password) authentication t
 | Encryption algorithm | AES-256-GCM | 256-bit key, 12-byte nonce, 16-byte auth tag |
 | Key derivation | HKDF-SHA256 | Salted with derived salt, separate C2S/S2C keys |
 | Authentication | SRP (Secure Remote Password) | Mutual password-based authentication |
-| Forward secrecy | ECDH X25519 (optional) | When ECDH completes, past sessions protected |
+| Forward secrecy | ECDH X25519 | Real PFS — ephemeral key exchange during auth, past sessions protected |
 | Replay protection | Monotonic counters + exact bitmap | 64-position sliding window with per-bit tracking |
 | Integrity | GCM authentication tag | Detects any tampering with ciphertext or AAD |
 | Key separation | Separate C2S and S2C keys | Each direction has its own key, nonce base, and counter |
@@ -57,18 +57,38 @@ The client and server authenticate using SRP (Secure Remote Password) protocol. 
 
 **Data at this point:** The SRP parameters (verifier, salt, public ephemeral values) are visible, but the password and session key are not. An attacker sees the SRP exchange but cannot compute the session key without the password.
 
+### Phase 2.5: ECDH Key Exchange (v9.11)
+
+After SRP auth succeeds but BEFORE encryption activates, the server and client perform an ECDH X25519 key exchange to establish forward secrecy:
+
+1. **Server** generates an ephemeral X25519 keypair during auth
+2. **Server** sends `TOCLIENT_ECDH_PUBKEY` (0x65) with its 32-byte public key — this is sent BEFORE encryption activation
+3. **Client** receives `TOCLIENT_ECDH_PUBKEY`, generates its own ephemeral X25519 keypair
+4. **Client** computes the ECDH shared secret: `X25519(client_private, server_public)` → 32-byte shared secret
+5. **Client** calls `mixECDHSecretIntoKeys()` which re-derives keys using both the SRP session key AND the ECDH shared secret as combined IKM
+6. **Client** sends `TOSERVER_ECDH_PUBKEY` (0x54) with its 32-byte public key back to the server
+7. **Server** receives `TOSERVER_ECDH_PUBKEY`, computes the same ECDH shared secret: `X25519(server_private, client_public)`
+8. **Server** calls `mixECDHSecretIntoKeys()` with the same combined IKM
+9. Both sides now have the same ECDH+SRP-derived encryption keys
+
+Both sides derive keys using salted HKDF where the salt is derived deterministically from the combined IKM (SRP session key + ECDH shared secret), ensuring both sides produce identical keys without any additional salt exchange.
+
+**Why this provides forward secrecy:** The ephemeral X25519 private keys exist only in memory during the session and are destroyed on disconnect. Even if the SRP password is later compromised, an attacker cannot reconstruct the ECDH shared secret without those ephemeral private keys, and therefore cannot derive the session encryption keys to decrypt past captured traffic.
+
+**Data at this point:** Two new packet types on the wire (ECDH pubkeys), both in plaintext since encryption has not yet activated. The ECDH pubkeys themselves are not secret — only the shared secret computed from them is.
+
 ### Phase 3: Key Derivation (Local Only)
 
-After SRP completes, both sides independently derive encryption keys from the shared session key using HKDF-SHA256. This is a purely local operation — no data is sent over the network during key derivation. The derivation steps are:
+After SRP + ECDH complete, both sides independently derive encryption keys using HKDF-SHA256. This is a purely local operation — no data is sent over the network during key derivation. The derivation steps are:
 
-1. **Derive HKDF salt**: `HKDF(session_key, no_salt, "Luanti v9 HKDF Salt")` → 16-byte salt
-2. **Derive C2S key**: `HKDF(session_key, salt, "Luanti v9 C2S Key")` → 32-byte AES key
-3. **Derive S2C key**: `HKDF(session_key, salt, "Luanti v9 S2C Key")` → 32-byte AES key
-4. **Derive C2S nonce base**: `HKDF(session_key, salt, "Luanti v9 C2S Nonce")` → 4-byte base
-5. **Derive S2C nonce base**: `HKDF(session_key, salt, "Luanti v9 S2C Nonce")` → 4-byte base
-6. **Derive session ID**: `HKDF(session_key, salt, "Luanti v9 Session ID")` → 16-byte ID (hex string)
+1. **Derive HKDF salt**: `HKDF(SRP_key || ECDH_secret, no_salt, "Luanti v9 HKDF Salt")` → 16-byte salt
+2. **Derive C2S key**: `HKDF(SRP_key || ECDH_secret, salt, "Luanti v9 C2S Key")` → 32-byte AES key
+3. **Derive S2C key**: `HKDF(SRP_key || ECDH_secret, salt, "Luanti v9 S2C Key")` → 32-byte AES key
+4. **Derive C2S nonce base**: `HKDF(SRP_key || ECDH_secret, salt, "Luanti v9 C2S Nonce")` → 4-byte base
+5. **Derive S2C nonce base**: `HKDF(SRP_key || ECDH_secret, salt, "Luanti v9 S2C Nonce")` → 4-byte base
+6. **Derive session ID**: `HKDF(SRP_key || ECDH_secret, salt, "Luanti v9 Session ID")` → 16-byte ID (hex string)
 
-The salt is deterministically derived from the session key so both sides produce the same salt without exchanging it. This is critical — if each side generated a random salt independently, the derived keys would differ and decryption would fail.
+The IKM (input keying material) is the concatenation of the SRP session key and the ECDH shared secret. The salt is deterministically derived from this combined IKM so both sides produce the same salt without exchanging it. This is critical — if each side generated a random salt independently, the derived keys would differ and decryption would fail (this was a bug in v9.9 and v9.11 pre-release).
 
 **Data at this point:** No network traffic. The keys exist only in memory on each side.
 
@@ -105,9 +125,16 @@ From this point forward, all game traffic is encrypted with AES-256-GCM:
     |  ◄─── SRP Response ──────────     |
     |      (session key derived)         |
     |                                    |
+    |  ◄─── Phase 2.5: ECDH ──────     |
+    |      TOCLIENT_ECDH_PUBKEY (0x65)  |
+    |      (server X25519 pubkey)        |
+    |  ──── TOSERVER_ECDH_PUBKEY ──►    |
+    |      (0x54, client X25519 pubkey)  |
+    |      (ECDH shared secret derived)  |
+    |                                    |
     |  ──── Phase 3: Key Deriv ──►      |
     |      (LOCAL ONLY — no traffic)     |
-    |      HKDF → C2S/S2C keys          |
+    |      HKDF(SRP+ECDH) → keys        |
     |                                    |
     |  ──── Phase 4: Transition ─►      |
     |      Last plaintext packets        |
@@ -378,9 +405,9 @@ The security score is an honest assessment of the connection's protection level.
 |----------|------|-------|-------|-------|
 | No encryption (insecure mode) | 0 | 0 | 0 | Insecure |
 | SRP-only encryption (no ECDH, first connection) | 70 | 15 | 85 | Good |
-| SRP+ECDH encryption, first connection | 85 | 15 | 100 | Excellent |
-| SRP+ECDH encryption, returning (pinned) | 100 | 12 | 100 | Excellent |
-| SRP-only, returning (pinned), no bonuses | 90 | 0 | 90 | Good |
+| SRP-only encryption, returning (pinned fingerprint) | 80 | 15 | 95 | Good |
+| ECDH+SRP encryption, first connection | 85 | 15 | 100 | Excellent |
+| ECDH+SRP encryption, returning (pinned fingerprint) | 100 | 15 | 100 | Excellent |
 
 Note: The score is capped at 100 for display. Bonus points help first-time TOFU connections reach higher scores honestly, rather than pretending that TOFU provides the same verification as certificate pinning.
 
@@ -435,9 +462,10 @@ Encryption protects data in transit, not on the endpoints.
 The encryption's strength depends on the SRP session key, which depends on the password:
 - Weak passwords can be brute-forced from captured SRP exchanges
 - If the password is compromised, the session key is compromised
-- If the password is compromised AND there is no ECDH, past sessions can be decrypted
+- **Without ECDH**: If the password is compromised, past sessions can be decrypted
+- **With ECDH (v9.11)**: Even if the password is later compromised, past sessions encrypted with ECDH+SRP-derived keys remain safe because the ephemeral X25519 private keys are destroyed after the session
 
-ECDH X25519 forward secrecy mitigates this: even if the password is later compromised, past sessions encrypted with ECDH-derived keys remain safe because the ephemeral X25519 private keys are destroyed after the session.
+ECDH X25519 forward secrecy (v9.11) directly mitigates the password compromise risk: the encryption keys are derived from both the SRP session key AND the ephemeral ECDH shared secret. Since the ephemeral private keys no longer exist after disconnect, there is no way to reconstruct the ECDH shared secret from captured traffic alone, regardless of whether the password is later cracked.
 
 ### Protocol Downgrade
 An attacker with a man-in-the-middle position could potentially:

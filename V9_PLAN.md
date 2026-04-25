@@ -18,7 +18,7 @@ This is **worse than no security** because it gives users a false sense of secur
 Implement **actual AES-256-GCM packet encryption** using the SRP session key,
 with honest UI that accurately reports what protection exists and what doesn't.
 
-**STATUS: COMPLETE** — Phases 1-6, 9, and 10 are done. Phases 7, 8 remain (UI enhancements, not security-critical). v9.9 adds bonus scoring, HKDF salt, key rotation, exact replay bitmap. v9.10 adds documentation and encryption data flow guide.
+**STATUS: COMPLETE** — Phases 1-6, 9, and 10 are done. Phases 7, 8 remain (UI enhancements, not security-critical). v9.9 adds bonus scoring, HKDF salt, key rotation, exact replay bitmap. v9.10 adds documentation and encryption data flow guide. v9.11 adds ECDH X25519 forward secrecy — real PFS with full handshake, 22 TDD tests, and 100/100 security score.
 
 ---
 
@@ -40,13 +40,20 @@ with honest UI that accurately reports what protection exists and what doesn't.
 - **Wireshark-proof**: Captured packets show ciphertext, not game data
 
 ### What This Does NOT Give Us (HONEST LIMITATIONS)
-- **No Forward secrecy**: Key is derived from password, not ephemeral ECDH
-  - If the password is compromised, past sessions can be decrypted
-  - Future: Could add X25519 key exchange on top for PFS
 - **No Certificate-based trust**: No PKI, no CA verification
   - Uses "Trust On First Use" (TOFU) model with SRP verifier hash
   - Future: Could add self-signed cert management
 - **No Quantum resistance**: AES-256 is believed quantum-resistant, but SRP is not
+
+### Forward Secrecy (v9.11)
+
+With the addition of ECDH X25519 key exchange in v9.11, forward secrecy is now **real**:
+- Server generates ephemeral X25519 keypair during auth, sends pubkey before encryption activation
+- Client generates ephemeral X25519 keypair, computes shared secret, mixes into keys via HKDF, sends its pubkey back
+- Ephemeral private keys are destroyed after session
+- Even if the SRP password is later compromised, past sessions cannot be decrypted
+- Key exchange: KEY_EXCHANGE_ECDH_X25519
+- TLS equivalent: TLS_1_3_EQUIVALENT
 
 ### Wire Protocol (After Encryption Active)
 
@@ -297,11 +304,11 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 |----------|--------|--------|
 | Encryption active | +30 | Real AES-256-GCM |
 | Strong cipher suite | +15 | AES-256-GCM |
-| Forward secrecy | +15 | ECDH X25519 (when completed) |
+| Forward secrecy | +15 | ECDH X25519 (v9.11: now real) |
 | Authentication | +15 | SRP password auth |
 | Replay protection | +10 | Nonce counters + exact bitmap |
 | Certificate verification | +10 | Pinned (returning) / TOFU (first) |
-| TLS version | +5 | TLS 1.3 equivalent (with ECDH) |
+| TLS version | +5 | TLS 1.3 equivalent (v9.11: ECDH+AEAD+replay) |
 
 **Bonus scoring** (v9.9, max +15):
 | Bonus | Points | Condition |
@@ -312,7 +319,7 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 | Exact replay bitmap | +2 | Bitmap tracking within sliding window |
 | Integrity verified | +3 | Zero auth failures in session |
 
-**Typical scores:** First connection 85/100, Returning 97-100/100, SRP-only 70/100
+**Typical scores:** With ECDH: First connection 100/100 (Excellent), Returning 100/100 (Excellent). Without ECDH (SRP-only): First connection 85/100 (Good), Returning 90/100 (Good). Insecure: 0/100.
 
 ---
 
@@ -335,6 +342,20 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 - Updated all project documentation for v9.10
 - Created `ENCRYPTION_DATA_FLOW.md` — comprehensive guide to encryption system
 - Updated version in VERSION, CMakeLists.txt, and all MD files
+
+### v9.11: ECDH X25519 Forward Secrecy
+
+Implements real forward secrecy using ECDH X25519 key exchange on top of SRP authentication:
+
+- **New wire protocol**: `TOCLIENT_ECDH_PUBKEY` (0x65) and `TOSERVER_ECDH_PUBKEY` (0x54) packet types
+- **Server flow**: After `acceptAuth()`, generates X25519 keypair, sends `TOCLIENT_ECDH_PUBKEY`, waits for `TOSERVER_ECDH_PUBKEY`, computes shared secret, mixes into keys via `mixECDHSecretIntoKeys()`, activates encryption
+- **Client flow**: Receives `TOCLIENT_ECDH_PUBKEY`, computes shared secret, mixes into keys, sends back `TOSERVER_ECDH_PUBKEY`, activates encryption with ECDH+SRP keys
+- **Client defers encryption activation**: Instead of activating in `handleCommand_AuthAccept`, waits for `TOCLIENT_ECDH_PUBKEY` and activates in `handleCommand_EcdhPubkey`
+- **Server defers activation**: Instead of activating immediately after `acceptAuth()`, waits for `TOSERVER_ECDH_PUBKEY` and activates in `handleCommand_EcdhPubkey`
+- **Fixed `mixECDHSecretIntoKeys()`**: Was using unsalted HKDF (`nullptr, 0` for salt) — now derives salt deterministically from combined IKM (SRP + ECDH)
+- **Fixed `rotateKeys()`**: Was using `secure_random()` for HKDF salt — now derives salt deterministically from rotation IKM
+- **22 TDD tests** in `test_forward_secrecy.cpp`: X25519 key generation, ECDH shared secret consistency, salted HKDF key derivation, both-sides-same-keys, ECDH keys differ from SRP-only, full ECDH handshake encrypt/decrypt roundtrip, key rotation with deterministic salt, forward secrecy property, security scoring with/without ECDH, insecure mode does not attempt ECDH
+- **Security score**: With ECDH completed: Forward secrecy +15, Key exchange = KEY_EXCHANGE_ECDH_X25519, TLS version = TLS_1_3_EQUIVALENT, typical score 100/100 (Excellent)
 
 ---
 
@@ -363,3 +384,8 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 | v9.9: Bonus encryption scoring | DONE | TOFU acknowledged, key rotation, salted HKDF, exact replay, integrity |
 | v9.9: Build error fixes | DONE | i64→s64, overload ordering, deterministic HKDF salt |
 | v9.10: Documentation update | DONE | All MDs updated, ENCRYPTION_DATA_FLOW.md created |
+| v9.11: ECDH X25519 forward secrecy | DONE | Real PFS via ECDH handshake, deferred encryption activation |
+| v9.11: ECDH wire protocol | DONE | TOCLIENT_ECDH_PUBKEY (0x65), TOSERVER_ECDH_PUBKEY (0x54) |
+| v9.11: ECDH salt bug fixes | DONE | mixECDHSecretIntoKeys unsalted HKDF, rotateKeys random salt |
+| v9.11: Forward secrecy TDD tests | DONE | 22 tests in test_forward_secrecy.cpp |
+| v9.11: Security score 100/100 | DONE | ECDH+SRP = Excellent with forward secrecy |
