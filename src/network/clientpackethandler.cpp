@@ -275,7 +275,8 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                                         m_encryption_state.activated_at,
                                                         m_proto_ver,
                                                         m_address_name,
-                                                        remote.getPort());
+                                                        remote.getPort(),
+                                                        PeerEncryptionState::KEY_ROTATION_SUPPORTED /* key_rotation_supported */);
                                         encryption_initialized = true;
                                         enclog_activate("Client encryption initialized and activation queued")
                                                 << EncLog::kv("session_id", m_encryption_state.session_id)

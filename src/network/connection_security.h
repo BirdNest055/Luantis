@@ -591,31 +591,10 @@ inline ConnectionSecurityInfo connectionSecurityInfoFromFlags(u8 security_flags)
         return info;
 }
 
-// v9.1: Populate ConnectionSecurityInfo from ACTUAL encryption state.
-// This is the honest version — only called after SRP auth succeeds
-// and encryption keys are successfully derived.
-// Updated to support ECDH X25519 forward secrecy and fingerprint pinning.
-inline ConnectionSecurityInfo populateRealSecurityInfo(
-        bool encryption_active,
-        bool ecdh_completed,
-        bool fingerprint_pinned,
-        int fingerprint_verify_result,
-        const std::string &session_id,
-        const std::string &server_fingerprint,
-        u64 activated_at,
-        u16 protocol_version,
-        const std::string &server_address,
-        u16 server_port)
-{
-        return populateRealSecurityInfo(
-                encryption_active, ecdh_completed, fingerprint_pinned,
-                fingerprint_verify_result, session_id, server_fingerprint,
-                activated_at, protocol_version, server_address, server_port,
-                false);  // key_rotation_supported defaults to false for v9.1 compat
-}
-
 // v9.9: Extended populateRealSecurityInfo with key_rotation_supported parameter.
 // All bonus fields are populated automatically based on connection properties.
+// NOTE: This overload MUST be defined before the 10-parameter version below,
+// because the 10-param version delegates to this one.
 inline ConnectionSecurityInfo populateRealSecurityInfo(
         bool encryption_active,
         bool ecdh_completed,
@@ -719,4 +698,26 @@ inline ConnectionSecurityInfo populateRealSecurityInfo(
         info.server_port = server_port;
 
         return info;
+}
+
+// v9.1: Backward-compatible 10-parameter populateRealSecurityInfo.
+// Delegates to the 11-parameter version with key_rotation_supported=false
+// for v9.1 compatibility (callers that don't know about key rotation).
+inline ConnectionSecurityInfo populateRealSecurityInfo(
+        bool encryption_active,
+        bool ecdh_completed,
+        bool fingerprint_pinned,
+        int fingerprint_verify_result,
+        const std::string &session_id,
+        const std::string &server_fingerprint,
+        u64 activated_at,
+        u16 protocol_version,
+        const std::string &server_address,
+        u16 server_port)
+{
+        return populateRealSecurityInfo(
+                encryption_active, ecdh_completed, fingerprint_pinned,
+                fingerprint_verify_result, session_id, server_fingerprint,
+                activated_at, protocol_version, server_address, server_port,
+                false);  // key_rotation_supported defaults to false for v9.1 compat
 }

@@ -202,8 +202,8 @@ struct DirectionalEncryptionState
         {
                 // Calculate the bit position within the window
                 if (nonce_counter == 0) return;
-                i64 offset = static_cast<i64>(nonce_counter) - static_cast<i64>(received_counter) - 1;
-                if (offset >= 0 && offset < static_cast<i64>(REPLAY_WINDOW_SIZE)) {
+                s64 offset = static_cast<s64>(nonce_counter) - static_cast<s64>(received_counter) - 1;
+                if (offset >= 0 && offset < static_cast<s64>(REPLAY_WINDOW_SIZE)) {
                         size_t word = static_cast<size_t>(offset) / 64;
                         size_t bit = static_cast<size_t>(offset) % 64;
                         if (word < REPLAY_BITMAP_WORDS) {
@@ -219,8 +219,8 @@ struct DirectionalEncryptionState
         bool isAlreadySeen(u64 received_counter) const
         {
                 if (nonce_counter == 0) return false;
-                i64 offset = static_cast<i64>(nonce_counter) - static_cast<i64>(received_counter) - 1;
-                if (offset >= 0 && offset < static_cast<i64>(REPLAY_WINDOW_SIZE)) {
+                s64 offset = static_cast<s64>(nonce_counter) - static_cast<s64>(received_counter) - 1;
+                if (offset >= 0 && offset < static_cast<s64>(REPLAY_WINDOW_SIZE)) {
                         size_t word = static_cast<size_t>(offset) / 64;
                         size_t bit = static_cast<size_t>(offset) % 64;
                         if (word < REPLAY_BITMAP_WORDS) {
