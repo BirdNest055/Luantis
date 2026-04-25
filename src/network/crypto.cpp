@@ -356,11 +356,18 @@ bool PeerEncryptionState::initFromSRPSessionKey(const u8* session_key, size_t ke
         // Store the SRP session key (for fingerprint derivation)
         std::memcpy(srp_session_key.data(), session_key, SRP_SESSION_KEY_SIZE);
 
-        // v9.9: Generate a random HKDF salt for this session.
-        // Using a salt strengthens key separation between sessions,
-        // even when the same SRP session key is used.
-        if (!secure_random(hkdf_salt.data(), hkdf_salt.size())) {
-                enclog_error("initFromSRPSessionKey: failed to generate HKDF salt") << std::endl;
+        // v9.9: Derive HKDF salt deterministically from the SRP session key.
+        // Both sides must derive the SAME salt so that the resulting encryption
+        // keys are identical. Using a derived salt (rather than random) ensures:
+        //   1. No protocol change needed (no salt exchange over the wire)
+        //   2. Key separation between sessions with different SRP keys
+        //   3. Salted HKDF provides stronger key separation than unsalted
+        const char* salt_info = "Luanti v9 HKDF Salt";
+        if (!hkdf_sha256(session_key, key_len,
+                nullptr, 0,  // no salt for the salt derivation itself
+                reinterpret_cast<const u8*>(salt_info), strlen(salt_info),
+                hkdf_salt.data(), hkdf_salt.size())) {
+                enclog_error("initFromSRPSessionKey: failed to derive HKDF salt") << std::endl;
                 return false;
         }
 
