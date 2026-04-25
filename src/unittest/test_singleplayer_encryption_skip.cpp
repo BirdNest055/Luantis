@@ -3,6 +3,7 @@
 // Copyright (C) 2026 Luanti contributors
 //
 // Unit tests for v9.13 singleplayer encryption skip and transition grace period.
+// Updated for v9.14: extended grace period + one-time warning instead of ERROR spam.
 //
 // BUG 1 (Singleplayer): When playing singleplayer (localhost), the encryption
 // system was fully activated because SRP auth succeeds. The guard that was
@@ -18,23 +19,32 @@
 // from the network pipeline. Each one logged an ERROR, spamming the log
 // with hundreds of "POSSIBLE_SECURITY_VIOLATION" lines per second.
 //
-// FIX (2 parts):
+// v9.13 FIX (2 parts):
 //   Part 1: Singleplayer skips encryption entirely — check isSingleplayer()
 //     / m_internal_server BEFORE initFromSRPSessionKey, not after.
-//     This prevents keys from being derived, ECDH from running, and
-//     encryption from activating on localhost connections.
 //   Part 2: Transition grace period — accept plaintext packets within
 //     2 seconds of activation (up to 50 packets), log once instead of
 //     per-packet, and rate-limit logs after the grace period.
 //
+// v9.14 FIX (transition period improvement):
+//   The 2-second / 50-packet grace period was too short for world loading,
+//   which generates hundreds of map block packets over several seconds.
+//   After the grace period expired, the rate-limited ERROR spam (every
+//   100th packet with POSSIBLE_SECURITY_VIOLATION) still appeared.
+//
+//   Fix: Extended grace period to 10 seconds / 500 packets, and replaced
+//   the repeated ERROR spam with a ONE-TIME warning after the grace period.
+//   Added transition_warning_logged atomic flag to prevent re-logging.
+//
 // These tests prove that:
 // - PeerEncryptionState transition counters are initialized to zero
-// - activate() resets transition counters
-// - disable() resets transition counters
-// - Transition grace period constants are reasonable
+// - activate() resets transition counters including warning flag
+// - disable() resets transition counters including warning flag
+// - Transition grace period constants are reasonable (v9.14: 10s/500 packets)
 // - Transition plaintext count is tracked correctly
 // - Grace period detection logic works for in-period and after-period
-// - Transition logged flag prevents spam
+// - Transition logged flag prevents spam during grace period
+// - Transition warning logged flag prevents spam after grace period
 // - Singleplayer security info shows "Local" not "Insecure"
 // - Singleplayer encryption state is disabled (keys zeroed)
 // - Multiplayer connections still encrypt when configured
@@ -60,6 +70,7 @@ public:
         // Part 1: Transition grace period — PeerEncryptionState fields
         void testTransitionCountStartsAtZero();
         void testTransitionLoggedStartsFalse();
+        void testTransitionWarningLoggedStartsFalse();
         void testTransitionMaxPlaintextConstant();
         void testTransitionGracePeriodConstant();
         void testActivateResetsTransitionCounters();
@@ -70,7 +81,13 @@ public:
         void testGracePeriodRejectsLatePackets();
         void testGracePeriodRejectsTooManyPackets();
         void testTransitionLoggedFlagPreventsSpam();
+        void testTransitionWarningLoggedFlagPreventsSpam();
         void testTransitionCountIncremental();
+
+        // Part 2b: v9.14 extended grace period — world loading scenarios
+        void testExtendedGracePeriodAcceptsWorldLoadingPackets();
+        void testExtendedGracePeriodCovers10Seconds();
+        void testExtendedGracePeriodCovers500Packets();
 
         // Part 3: Singleplayer encryption skip
         void testSingleplayerDisableZerosKeys();
@@ -113,6 +130,7 @@ void TestSingleplayerEncryptionSkip::runTests(IGameDef *gamedef)
         // Part 1: Transition grace period fields
         TEST(testTransitionCountStartsAtZero);
         TEST(testTransitionLoggedStartsFalse);
+        TEST(testTransitionWarningLoggedStartsFalse);
         TEST(testTransitionMaxPlaintextConstant);
         TEST(testTransitionGracePeriodConstant);
         TEST(testActivateResetsTransitionCounters);
@@ -123,7 +141,13 @@ void TestSingleplayerEncryptionSkip::runTests(IGameDef *gamedef)
         TEST(testGracePeriodRejectsLatePackets);
         TEST(testGracePeriodRejectsTooManyPackets);
         TEST(testTransitionLoggedFlagPreventsSpam);
+        TEST(testTransitionWarningLoggedFlagPreventsSpam);
         TEST(testTransitionCountIncremental);
+
+        // Part 2b: v9.14 extended grace period
+        TEST(testExtendedGracePeriodAcceptsWorldLoadingPackets);
+        TEST(testExtendedGracePeriodCovers10Seconds);
+        TEST(testExtendedGracePeriodCovers500Packets);
 
         // Part 3: Singleplayer encryption skip
         TEST(testSingleplayerDisableZerosKeys);
@@ -176,28 +200,33 @@ void TestSingleplayerEncryptionSkip::testTransitionMaxPlaintextConstant()
         // the transition period must be a reasonable number. Too low
         // and legitimate pipeline packets are rejected; too high and
         // an attacker can inject many plaintext packets.
-        UASSERT(PeerEncryptionState::TRANSITION_MAX_PLAINTEXT >= 10);
-        UASSERT(PeerEncryptionState::TRANSITION_MAX_PLAINTEXT <= 200);
-        // Default is 50 — allows for several packets from the pipeline
+        // v9.14: Increased from 50 to 500 — world loading generates
+        // hundreds of map block packets that arrive over several seconds.
+        UASSERT(PeerEncryptionState::TRANSITION_MAX_PLAINTEXT >= 100);
+        UASSERT(PeerEncryptionState::TRANSITION_MAX_PLAINTEXT <= 2000);
+        // Default is 500 — allows for world loading pipeline packets
         // without being too permissive
-        UASSERTEQ(u32, PeerEncryptionState::TRANSITION_MAX_PLAINTEXT, 50u);
+        UASSERTEQ(u32, PeerEncryptionState::TRANSITION_MAX_PLAINTEXT, 500u);
 }
 
 void TestSingleplayerEncryptionSkip::testTransitionGracePeriodConstant()
 {
         // The grace period duration must be long enough for in-flight
         // packets to arrive but short enough to detect attacks.
-        // 2000ms (2 seconds) is reasonable for a localhost or LAN
-        // connection with typical network latency.
-        UASSERT(PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS >= 500);
-        UASSERT(PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS <= 10000);
-        UASSERTEQ(u64, PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS, 2000u);
+        // v9.14: Increased from 2000ms to 10000ms — world loading on
+        // localhost/LAN can take several seconds, and pipeline packets
+        // from before the server activated encryption can arrive for
+        // much longer than 2 seconds.
+        UASSERT(PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS >= 2000);
+        UASSERT(PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS <= 30000);
+        UASSERTEQ(u64, PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS, 10000u);
 }
 
 void TestSingleplayerEncryptionSkip::testActivateResetsTransitionCounters()
 {
         // When encryption is activated, the transition counters must be
         // reset so that the grace period starts fresh.
+        // v9.14: Also resets transition_warning_logged.
         PeerEncryptionState state;
         auto key = makeTestSessionKey();
         state.initFromSRPSessionKey(key.data(), key.size(), false);
@@ -206,12 +235,14 @@ void TestSingleplayerEncryptionSkip::testActivateResetsTransitionCounters()
         // but let's verify reset works)
         state.transition_plaintext_count.store(99);
         state.transition_logged.store(true);
+        state.transition_warning_logged.store(true);
 
         // Activate
         state.activate();
 
         UASSERTEQ(u32, state.transition_plaintext_count.load(), 0u);
         UASSERT(!state.transition_logged.load());
+        UASSERT(!state.transition_warning_logged.load());
 }
 
 void TestSingleplayerEncryptionSkip::testDisableResetsTransitionCounters()
@@ -219,6 +250,7 @@ void TestSingleplayerEncryptionSkip::testDisableResetsTransitionCounters()
         // When encryption is disabled, transition counters must also
         // be reset so that if encryption is later re-enabled, the
         // grace period starts fresh.
+        // v9.14: Also resets transition_warning_logged.
         PeerEncryptionState state;
         auto key = makeTestSessionKey();
         state.initFromSRPSessionKey(key.data(), key.size(), false);
@@ -227,12 +259,14 @@ void TestSingleplayerEncryptionSkip::testDisableResetsTransitionCounters()
         // Simulate transition state
         state.transition_plaintext_count.store(42);
         state.transition_logged.store(true);
+        state.transition_warning_logged.store(true);
 
         // Disable
         state.disable();
 
         UASSERTEQ(u32, state.transition_plaintext_count.load(), 0u);
         UASSERT(!state.transition_logged.load());
+        UASSERT(!state.transition_warning_logged.load());
 }
 
 // ============================================================================
@@ -241,7 +275,7 @@ void TestSingleplayerEncryptionSkip::testDisableResetsTransitionCounters()
 
 void TestSingleplayerEncryptionSkip::testGracePeriodAcceptsEarlyPackets()
 {
-        // During the grace period (within 2 seconds, under 50 packets),
+        // During the grace period (within 10 seconds, under 500 packets),
         // plaintext packets should be accepted as transition packets.
         // This simulates the logic from threads.cpp.
         PeerEncryptionState state;
@@ -264,16 +298,17 @@ void TestSingleplayerEncryptionSkip::testGracePeriodAcceptsEarlyPackets()
 
 void TestSingleplayerEncryptionSkip::testGracePeriodRejectsLatePackets()
 {
-        // After the grace period (more than 2 seconds), plaintext
-        // packets should be treated as security violations.
+        // After the grace period (more than 10 seconds), plaintext
+        // packets should be outside the grace period.
+        // v9.14: Grace period is now 10 seconds, so 15 seconds is outside.
         PeerEncryptionState state;
         auto key = makeTestSessionKey();
         state.initFromSRPSessionKey(key.data(), key.size(), false);
         state.activate();
         state.activated_at = 1000;
 
-        // Simulate a packet arriving 5 seconds after activation
-        u64 now_ms = (state.activated_at * 1000) + 5000;
+        // Simulate a packet arriving 15 seconds after activation
+        u64 now_ms = (state.activated_at * 1000) + 15000;
         u64 activated_ms = state.activated_at * 1000;
         u64 elapsed_ms = now_ms - activated_ms;
         u32 count = 1;
@@ -288,6 +323,7 @@ void TestSingleplayerEncryptionSkip::testGracePeriodRejectsTooManyPackets()
 {
         // Even within the time window, too many plaintext packets
         // (more than TRANSITION_MAX_PLAINTEXT) should end the grace period.
+        // v9.14: Max is now 500, so 501 should be outside.
         PeerEncryptionState state;
         auto key = makeTestSessionKey();
         state.initFromSRPSessionKey(key.data(), key.size(), false);
@@ -298,7 +334,7 @@ void TestSingleplayerEncryptionSkip::testGracePeriodRejectsTooManyPackets()
         u64 now_ms = (state.activated_at * 1000) + 500; // 500ms = within time
         u64 activated_ms = state.activated_at * 1000;
         u64 elapsed_ms = now_ms - activated_ms;
-        u32 count = PeerEncryptionState::TRANSITION_MAX_PLAINTEXT + 1; // over limit
+        u32 count = PeerEncryptionState::TRANSITION_MAX_PLAINTEXT + 1; // 501 = over limit
 
         bool in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
                 && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
@@ -342,6 +378,127 @@ void TestSingleplayerEncryptionSkip::testTransitionCountIncremental()
         }
 
         UASSERTEQ(u32, state.transition_plaintext_count.load(), 5u);
+}
+
+void TestSingleplayerEncryptionSkip::testTransitionWarningLoggedStartsFalse()
+{
+        // v9.14: The transition_warning_logged flag must start false so
+        // that the first post-grace-period plaintext packet triggers the
+        // one-time warning log.
+        PeerEncryptionState state;
+        UASSERT(!state.transition_warning_logged.load());
+}
+
+void TestSingleplayerEncryptionSkip::testTransitionWarningLoggedFlagPreventsSpam()
+{
+        // v9.14: The transition_warning_logged flag should ensure that
+        // after the grace period expires, only ONE warning is logged,
+        // not repeated ERROR spam every 100 packets.
+        PeerEncryptionState state;
+
+        // Initially not logged
+        UASSERT(!state.transition_warning_logged.load());
+
+        // First post-grace-period packet: should trigger the warning
+        bool should_warn_first = !state.transition_warning_logged.exchange(true);
+        UASSERT(should_warn_first); // First time: log it
+
+        // Second post-grace-period packet: should NOT trigger the warning
+        bool should_warn_second = !state.transition_warning_logged.exchange(true);
+        UASSERT(!should_warn_second); // Already logged: skip
+
+        // Subsequent packets: also skip (no more spam)
+        for (int i = 0; i < 1000; i++) {
+                bool should_warn = !state.transition_warning_logged.exchange(true);
+                UASSERT(!should_warn);
+        }
+}
+
+// ============================================================================
+// Part 2b: v9.14 Extended Grace Period — World Loading Scenarios
+// ============================================================================
+
+void TestSingleplayerEncryptionSkip::testExtendedGracePeriodAcceptsWorldLoadingPackets()
+{
+        // v9.14: Simulate a realistic world loading scenario where
+        // the server sends 200 map block packets over 5 seconds.
+        // With the v9.13 grace period (2s/50), these would be flagged
+        // as security violations. With v9.14 (10s/500), they're accepted.
+        PeerEncryptionState state;
+        auto key = makeTestSessionKey();
+        state.initFromSRPSessionKey(key.data(), key.size(), false);
+        state.activate();
+        state.activated_at = 1000;
+
+        // Simulate 200 packets arriving over 5 seconds
+        for (u32 i = 0; i < 200; i++) {
+                // Each packet arrives at a different time within 5 seconds
+                u64 packet_time_ms = (state.activated_at * 1000) + (i * 25); // 25ms apart
+                u64 activated_ms = state.activated_at * 1000;
+                u64 elapsed_ms = packet_time_ms - activated_ms;
+                u32 count = i + 1;
+
+                bool in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                        && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+
+                // All 200 packets should be within the grace period
+                UASSERT(in_grace);
+        }
+}
+
+void TestSingleplayerEncryptionSkip::testExtendedGracePeriodCovers10Seconds()
+{
+        // v9.14: The grace period should cover the full 10 seconds.
+        // A packet at 9.9 seconds (with count < 500) should be in grace.
+        PeerEncryptionState state;
+        auto key = makeTestSessionKey();
+        state.initFromSRPSessionKey(key.data(), key.size(), false);
+        state.activate();
+        state.activated_at = 1000;
+
+        u64 now_ms = (state.activated_at * 1000) + 9900; // 9.9 seconds
+        u64 activated_ms = state.activated_at * 1000;
+        u64 elapsed_ms = now_ms - activated_ms;
+        u32 count = 100;
+
+        bool in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+
+        UASSERT(in_grace); // 9.9s with 100 packets is within 10s/500 grace
+
+        // But 10.1 seconds should be outside
+        now_ms = (state.activated_at * 1000) + 10100;
+        elapsed_ms = now_ms - activated_ms;
+        in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+        UASSERT(!in_grace); // 10.1s is outside
+}
+
+void TestSingleplayerEncryptionSkip::testExtendedGracePeriodCovers500Packets()
+{
+        // v9.14: The grace period should accept up to 500 packets.
+        // 500 packets within 10 seconds should be in grace.
+        PeerEncryptionState state;
+        auto key = makeTestSessionKey();
+        state.initFromSRPSessionKey(key.data(), key.size(), false);
+        state.activate();
+        state.activated_at = 1000;
+
+        u64 now_ms = (state.activated_at * 1000) + 5000; // 5 seconds
+        u64 activated_ms = state.activated_at * 1000;
+        u64 elapsed_ms = now_ms - activated_ms;
+        u32 count = 500;
+
+        bool in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+
+        UASSERT(in_grace); // 5s with 500 packets is within 10s/500 grace
+
+        // But 501 packets should be outside
+        count = 501;
+        in_grace = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+        UASSERT(!in_grace); // 501 packets is outside
 }
 
 // ============================================================================

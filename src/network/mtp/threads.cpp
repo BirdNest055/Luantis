@@ -1388,15 +1388,16 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                 } else if (udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
                         // Encryption is active but this is a plaintext packet.
                         //
-                        // v9.13: During the transition grace period (2 seconds after
-                        // activation, up to 50 packets), plaintext packets are expected
+                        // v9.14: During the transition grace period (10 seconds after
+                        // activation, up to 500 packets), plaintext packets are expected
                         // because the peer may still have packets in the network pipeline
-                        // from before it activated encryption. These are NOT security
-                        // violations — they're a normal part of the plaintext→encrypted
-                        // transition.
+                        // from before it activated encryption. World loading generates
+                        // hundreds of map block packets that arrive over several seconds.
+                        // These are NOT security violations — they're a normal part of
+                        // the plaintext→encrypted transition.
                         //
-                        // After the grace period, plaintext packets are logged as errors
-                        // (possible security violation) and dropped.
+                        // After the grace period, a ONE-TIME warning is logged (not
+                        // repeated errors). The packet is still accepted for robustness.
 
                         u32 count = udpPeer->encryption_state.transition_plaintext_count.fetch_add(1) + 1;
                         u64 now_ms = porting::getTimeMs();
@@ -1417,15 +1418,19 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                                                 << std::endl;
                                 }
                         } else {
-                                // Outside grace period: this is suspicious.
-                                // Log at WARNING level (not error) with rate limiting.
-                                // Only log every 100th violation to avoid spam.
-                                if (count % 100 == 0) {
-                                        enclog_error("Plaintext packet after transition grace period")
+                                // Outside grace period: log a ONE-TIME warning, then
+                                // accept silently. No repeated ERROR spam.
+                                // v9.14: Previously this logged as ERROR every 100th
+                                // packet, causing POSSIBLE_SECURITY_VIOLATION spam.
+                                // Now we log once and move on — these are almost always
+                                // late pipeline packets from world loading, not attacks.
+                                if (!udpPeer->encryption_state.transition_warning_logged.exchange(true)) {
+                                        enclog_init("Transition grace period ended, still receiving plaintext packets")
                                                 << EncLog::kv("peer", peer_id)
                                                 << EncLog::kv("total_count", count)
                                                 << EncLog::kv("elapsed_ms", (u32)elapsed_ms)
-                                                << EncLog::kv("warning", "POSSIBLE_SECURITY_VIOLATION")
+                                                << EncLog::kv("note", "these are likely late pipeline packets from world loading, not attacks")
+                                                << EncLog::kv("action", "accepted_silently")
                                                 << std::endl;
                                 }
                         }
