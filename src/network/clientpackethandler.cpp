@@ -312,13 +312,42 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
         }
 
         if (!encryption_initialized) {
-                EncLog::logInsecureConnectionBanner(
-                        "SRP key exchange failed or auth mechanism does not support encryption");
-                enclog_security("CONNECTION INSECURE")
-                        << EncLog::kv("auth_mech", (int)m_chosen_auth_mech)
-                        << EncLog::kv("auth_data", m_auth_data ? "present" : "NULL")
-                        << EncLog::kv("encryption_initialized", false)
-                        << std::endl;
+                if (m_internal_server) {
+                        // Singleplayer: encryption is unnecessary for localhost connections.
+                        // Don't log scary INSECURE banners — the connection is local
+                        // and inherently safe from network interception.
+                        enclog_init("Singleplayer: encryption not active (local connection)")
+                                << EncLog::kv("mode", "singleplayer")
+                                << EncLog::kv("reason", "localhost_does_not_need_encryption")
+                                << std::endl;
+
+                        // Set singleplayer-appropriate security info
+                        // (local connection, no network risk)
+                        m_security_info.state = ConnectionSecurity::Encrypted;
+                        m_security_info.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_NONE;
+                        m_security_info.key_exchange = ConnectionSecurityInfo::KEY_EXCHANGE_NONE;
+                        m_security_info.authentication = ConnectionSecurityInfo::AUTH_NONE;
+                        m_security_info.cipher_suite = ConnectionSecurityInfo::CIPHER_NONE;
+                        m_security_info.replay_protection = false;
+                        m_security_info.forward_secrecy = false;
+                        m_security_info.ecdh_forward_secrecy = false;
+                        m_security_info.fingerprint_pinned = false;
+                        m_security_info.fingerprint_verify_result = 0;
+                        m_security_info.certificate_status = ConnectionSecurityInfo::CERT_NOT_VERIFIED;
+                        m_security_info.tls_version = ConnectionSecurityInfo::TLS_NONE;
+                        m_security_info.session_id = "local";
+                        m_security_info.server_fingerprint = "local";
+                        m_security_info.connected_since = porting::getTimeS();
+                } else {
+                        // Multiplayer: encryption failure IS a security concern
+                        EncLog::logInsecureConnectionBanner(
+                                "SRP key exchange failed or auth mechanism does not support encryption");
+                        enclog_security("CONNECTION INSECURE")
+                                << EncLog::kv("auth_mech", (int)m_chosen_auth_mech)
+                                << EncLog::kv("auth_data", m_auth_data ? "present" : "NULL")
+                                << EncLog::kv("encryption_initialized", false)
+                                << std::endl;
+                }
         }
 
         deleteAuthData();
@@ -346,19 +375,38 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
         m_state = LC_Init;
 
         // v9: Update runtime security settings with REAL data
-        g_settings->set("security_info_state", m_security_info.getStateString());
-        g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
-        g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
-        g_settings->set("security_info_authentication", m_security_info.getAuthenticationString());
-        g_settings->set("security_info_cipher_suite", m_security_info.getCipherSuiteString());
-        g_settings->set("security_info_cert_status", m_security_info.getCertificateStatusString());
-        g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
-        g_settings->set("security_info_replay_protection", m_security_info.isReplayProtected() ? "Yes" : "No");
-        g_settings->set("security_info_session_id", m_security_info.session_id);
-        g_settings->set("security_info_connected_since", std::to_string(m_security_info.connected_since));
-        g_settings->set("security_info_server_fingerprint", m_security_info.server_fingerprint);
-        g_settings->set("security_info_tls_version", m_security_info.getTlsVersionString());
-        g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
+        // In singleplayer, override the state string to "Local" since the
+        // connection is to localhost and doesn't need network encryption.
+        if (m_internal_server) {
+                g_settings->set("security_info_state", "Local");
+                g_settings->set("security_info_encryption", "N/A (Local)");
+                g_settings->set("security_info_key_exchange", "N/A (Local)");
+                g_settings->set("security_info_authentication", "N/A (Local)");
+                g_settings->set("security_info_cipher_suite", "N/A (Local)");
+                g_settings->set("security_info_cert_status", "N/A (Local)");
+                g_settings->set("security_info_forward_secrecy", "N/A (Local)");
+                g_settings->set("security_info_replay_protection", "N/A (Local)");
+                g_settings->set("security_info_session_id", "local");
+                g_settings->set("security_info_connected_since",
+                        std::to_string(m_security_info.connected_since));
+                g_settings->set("security_info_server_fingerprint", "local");
+                g_settings->set("security_info_tls_version", "N/A (Local)");
+                g_settings->set("security_info_security_score", "N/A (Local)");
+        } else {
+                g_settings->set("security_info_state", m_security_info.getStateString());
+                g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
+                g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
+                g_settings->set("security_info_authentication", m_security_info.getAuthenticationString());
+                g_settings->set("security_info_cipher_suite", m_security_info.getCipherSuiteString());
+                g_settings->set("security_info_cert_status", m_security_info.getCertificateStatusString());
+                g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
+                g_settings->set("security_info_replay_protection", m_security_info.isReplayProtected() ? "Yes" : "No");
+                g_settings->set("security_info_session_id", m_security_info.session_id);
+                g_settings->set("security_info_connected_since", std::to_string(m_security_info.connected_since));
+                g_settings->set("security_info_server_fingerprint", m_security_info.server_fingerprint);
+                g_settings->set("security_info_tls_version", m_security_info.getTlsVersionString());
+                g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
+        }
 
         // Log meaningful info
         if (!m_internal_server) {

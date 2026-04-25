@@ -276,7 +276,7 @@ void set_default_settings()
         settings->setDefault("security_info_connected_since", "N/A");
         settings->setDefault("security_info_server_fingerprint", "N/A");
         settings->setDefault("security_info_tls_version", "N/A");
-        settings->setDefault("security_info_security_score", "0/100 (Insecure)");
+        settings->setDefault("security_info_security_score", "N/A");
         settings->setDefault("fsaa", "2");
         settings->setDefault("undersampling", "1");
         settings->setDefault("world_aligned_mode", "enable");

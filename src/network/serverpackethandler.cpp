@@ -1881,12 +1881,23 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
                         client->encryption_state.activated_at = porting::getTimeS();
                 }
         } else {
-                EncLog::logInsecureConnectionBanner(
-                        "SRP key exchange failed or auth_data was NULL");
-                enclog_security("Peer connection INSECURE")
-                        << EncLog::kv("peer", peer_id)
-                        << EncLog::kv("encryption_initialized", false)
-                        << std::endl;
+                // Singleplayer: encryption is unnecessary for localhost connections.
+                // Don't log scary INSECURE banners — the connection is local
+                // and inherently safe from network interception.
+                if (!isSingleplayer()) {
+                        EncLog::logInsecureConnectionBanner(
+                                "SRP key exchange failed or auth_data was NULL");
+                        enclog_security("Peer connection INSECURE")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("encryption_initialized", false)
+                                << std::endl;
+                } else {
+                        enclog_init("Singleplayer: encryption not active (local connection)")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("mode", "singleplayer")
+                                << EncLog::kv("reason", "localhost_does_not_need_encryption")
+                                << std::endl;
+                }
         }
 }
 
