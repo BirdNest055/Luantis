@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Clawtest</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.10-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.11-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -45,7 +45,7 @@ Clawtest extends Luanti v5.16.0-dev with these major features:
 | Version numbering | v9.3+ | `VERSION` file, `VERSION_EXTRA` in CMake, versioned zip filenames |
 | Portable build system | v9.6+ | No hardcoded paths — `build_env.sh` and `build_linux.sh` auto-detect `local-prefix/`, support `--local-prefix` flag, work on any Ubuntu/Debian machine |
 | Consolidated CI | v9.5+ | Single GitHub Actions workflow with toggleable options (build, test, lint, package) |
-| ECDH X25519 forward secrecy | v9.1+ | Real forward secrecy via ephemeral X25519 key exchange after SRP auth; protocol equivalent to TLS 1.3 |
+| ECDH X25519 forward secrecy | v9.11+ | Real forward secrecy via ephemeral X25519 key exchange after SRP auth; protocol equivalent to TLS 1.3 |
 | Bonus encryption scoring | v9.9+ | TOFU acknowledged (+3), key rotation capable (+5), salted HKDF (+2), exact replay bitmap (+2), integrity verified (+3) — first-connection score up to 85/100, returning 100/100 |
 | VS Code tasks | v9.8+ | `.vscode/tasks.json` with Start Server, Build Both, Start Client tasks |
 | Build error fixes | v9.9+ | Fixed `i64`→`s64` type alias, `populateRealSecurityInfo` overload ordering, deterministic HKDF salt derivation |
@@ -349,9 +349,9 @@ Version scheme
 Clawtest uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.10)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.11)
 
-The full version string is `5.16.1-v9.10-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.11-dev`, displayed via `--version` and in the UI.
 
 The Clawtest version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -366,5 +366,6 @@ The Clawtest version tracks encryption feature development:
 - v9.8: VS Code tasks for build and run
 - v9.9: TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes (i64→s64, overload ordering, deterministic salt)
 - v9.10: Documentation update, encryption data flow document
+- v9.11: ECDH X25519 forward secrecy with TDD — wire protocol (TOCLIENT/TOSERVER_ECDH_PUBKEY), salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes (TOFU bonus, concurrent nonce, tamper flag, security score)
 
-Git tags follow the pattern `clawtest-v9.10`.
+Git tags follow the pattern `clawtest-v9.11`.

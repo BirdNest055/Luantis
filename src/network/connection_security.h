@@ -347,10 +347,10 @@ struct ConnectionSecurityInfo
                 int bonus = 0;
 
                 // TOFU acknowledged: TOFU provides partial verification credit.
-                // Only counts when certificate_status is actually TOFU
-                // (not when pinned/verified, which already scores in base).
-                if (tofu_acknowledged &&
-                    certificate_status == CERT_TRUST_ON_FIRST_USE)
+                // Counts when the user acknowledged the TOFU prompt, regardless
+                // of whether the cert is currently TOFU, pinned, or verified.
+                // CERT_PINNED/VERIFIED implies the user previously acknowledged TOFU.
+                if (tofu_acknowledged)
                         bonus += BONUS_TOFU_ACKNOWLEDGED;
 
                 // Key rotation capable: session can rotate keys
@@ -379,7 +379,7 @@ struct ConnectionSecurityInfo
 
                 if (isSecure()) {
                         breakdown.push_back({"TOFU Acknowledged",
-                                (tofu_acknowledged && certificate_status == CERT_TRUST_ON_FIRST_USE)
+                                tofu_acknowledged
                                         ? BONUS_TOFU_ACKNOWLEDGED : 0});
                         breakdown.push_back({"Key Rotation",
                                 key_rotation_capable ? BONUS_KEY_ROTATION : 0});
