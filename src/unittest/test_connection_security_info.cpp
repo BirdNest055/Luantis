@@ -316,7 +316,10 @@ void TestConnectionSecurityInfo::testSecurityInfoFromExtendedFlags_zero()
 
 void TestConnectionSecurityInfo::testSecurityInfoFromExtendedFlags_allSet()
 {
-        // All flags set → fully secure info
+        // All flags set → v9.1 honest: connectionSecurityInfoFromFlags() only notes
+        // that the server supports encryption. It does NOT set state=Encrypted
+        // because encryption isn't confirmed until SRP auth completes.
+        // The real security info is populated by populateRealSecurityInfo().
         u8 all_flags = ConnectionSecurityFlags::ENCRYPTED
                 | ConnectionSecurityFlags::ENCRYPTION_SUPPORTED
                 | ConnectionSecurityFlags::FORWARD_SECRECY
@@ -325,25 +328,57 @@ void TestConnectionSecurityInfo::testSecurityInfoFromExtendedFlags_allSet()
 
         ConnectionSecurityInfo info = connectionSecurityInfoFromFlags(all_flags);
 
-        UASSERT(info.state == ConnectionSecurity::Encrypted);
-        UASSERT(info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM);
-        UASSERT(info.forward_secrecy);
-        UASSERT(info.replay_protection);
+        // v9.1: flags only indicate server support, not active encryption
+        // state remains Insecure until populateRealSecurityInfo() is called
+        UASSERT(info.state == ConnectionSecurity::Insecure);
+        // authentication is set from AUTHENTICATED flag
         UASSERT(info.authentication == ConnectionSecurityInfo::AUTH_SRP);
+        // forward_secrecy, replay_protection, encryption_algorithm are NOT set
+        // from flags alone — they require actual encryption activation
+        UASSERT(!info.forward_secrecy);
+        UASSERT(!info.replay_protection);
+        UASSERT(info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_NONE);
+
+        // Now test the REAL path: populateRealSecurityInfo with encryption active
+        ConnectionSecurityInfo real_info = populateRealSecurityInfo(
+                true,   /* encryption_active */
+                true,   /* ecdh_completed */
+                true,   /* fingerprint_pinned */
+                1,      /* fingerprint_verify_result = match */
+                "test-session", "SHA256:abc", 0, 44, "server.com", 30000);
+        UASSERT(real_info.state == ConnectionSecurity::Encrypted);
+        UASSERT(real_info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM);
+        UASSERT(real_info.forward_secrecy);
+        UASSERT(real_info.replay_protection);
+        UASSERT(real_info.authentication == ConnectionSecurityInfo::AUTH_SRP);
 }
 
 void TestConnectionSecurityInfo::testSecurityInfoFromExtendedFlags_partial()
 {
-        // ENCRYPTED but not FORWARD_SECRECY → encrypted but no forward secrecy
+        // v9.1 honest: ENCRYPTED flag alone doesn't mean encryption is active.
+        // Use populateRealSecurityInfo for the real state.
         u8 flags = ConnectionSecurityFlags::ENCRYPTED
                 | ConnectionSecurityFlags::REPLAY_PROTECTED;
 
         ConnectionSecurityInfo info = connectionSecurityInfoFromFlags(flags);
 
-        UASSERT(info.state == ConnectionSecurity::Encrypted);
-        UASSERT(info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM);
+        // Flags don't set Encrypted state or algorithm — only SRP auth does
+        UASSERT(info.state == ConnectionSecurity::Insecure);
+        UASSERT(info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_NONE);
         UASSERT(!info.forward_secrecy);
-        UASSERT(info.replay_protection);
+        UASSERT(!info.replay_protection);
+
+        // The REAL path: encryption active but no ECDH → no forward secrecy
+        ConnectionSecurityInfo real_info = populateRealSecurityInfo(
+                true,   /* encryption_active */
+                false,  /* ecdh_completed = NO forward secrecy */
+                false,  /* fingerprint_pinned */
+                0,      /* fingerprint_verify_result */
+                "test-session", "SHA256:abc", 0, 44, "server.com", 30000);
+        UASSERT(real_info.state == ConnectionSecurity::Encrypted);
+        UASSERT(real_info.encryption_algorithm == ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM);
+        UASSERT(!real_info.forward_secrecy);
+        UASSERT(real_info.replay_protection);  // Always true when encryption is active
 }
 
 void TestConnectionSecurityInfo::testSecurityInfoFromExtendedFlags_forwardSecrecyOnly()
@@ -476,16 +511,18 @@ void TestConnectionSecurityInfo::testSecurityInfoV8SecurityScore_partial()
 
 void TestConnectionSecurityInfo::testSecurityInfoV8SecurityScore_full()
 {
-        // Fully secure: all properties set
+        // Fully secure: all properties set, including v9.1 honest requirements:
+        // ECDH forward secrecy, fingerprint pinning, and TLS 1.3 equivalent
         ConnectionSecurityInfo info;
         info.state = ConnectionSecurity::Encrypted;
         info.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM;
         info.key_exchange = ConnectionSecurityInfo::KEY_EXCHANGE_ECDH_X25519;
         info.authentication = ConnectionSecurityInfo::AUTH_SRP;
         info.cipher_suite = ConnectionSecurityInfo::CIPHER_AES_256_GCM;
-        info.certificate_status = ConnectionSecurityInfo::CERT_VERIFIED;
+        info.certificate_status = ConnectionSecurityInfo::CERT_PINNED;  // v9.1: needs PINNED for full score
         info.forward_secrecy = true;
         info.replay_protection = true;
+        info.tls_version = ConnectionSecurityInfo::TLS_1_3_EQUIVALENT;  // v9.1: needs this for +5
 
         UASSERTEQ(int, info.getSecurityScore(), 100);
 }
@@ -506,21 +543,37 @@ void TestConnectionSecurityInfo::testSecurityInfoV8GetSecurityScoreString()
         ConnectionSecurityInfo insecure;
         UASSERT(insecure.getSecurityScoreString() == "0/100 (Insecure)");
 
+        // v9.1: Full score requires CERT_PINNED and TLS_1_3_EQUIVALENT
         ConnectionSecurityInfo full;
         full.state = ConnectionSecurity::Encrypted;
         full.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM;
         full.key_exchange = ConnectionSecurityInfo::KEY_EXCHANGE_ECDH_X25519;
         full.authentication = ConnectionSecurityInfo::AUTH_SRP;
         full.cipher_suite = ConnectionSecurityInfo::CIPHER_AES_256_GCM;
-        full.certificate_status = ConnectionSecurityInfo::CERT_VERIFIED;
+        full.certificate_status = ConnectionSecurityInfo::CERT_PINNED;
         full.forward_secrecy = true;
         full.replay_protection = true;
+        full.tls_version = ConnectionSecurityInfo::TLS_1_3_EQUIVALENT;
         UASSERT(full.getSecurityScoreString() == "100/100 (Excellent)");
+
+        // v9.1: With just CERT_VERIFIED (not PINNED) and no TLS equiv → 90/100 (Good)
+        ConnectionSecurityInfo good;
+        good.state = ConnectionSecurity::Encrypted;
+        good.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM;
+        good.key_exchange = ConnectionSecurityInfo::KEY_EXCHANGE_ECDH_X25519;
+        good.authentication = ConnectionSecurityInfo::AUTH_SRP;
+        good.cipher_suite = ConnectionSecurityInfo::CIPHER_AES_256_GCM;
+        good.certificate_status = ConnectionSecurityInfo::CERT_VERIFIED;
+        good.forward_secrecy = true;
+        good.replay_protection = true;
+        UASSERT(good.getSecurityScoreString() == "90/100 (Good)");
 }
 
 void TestConnectionSecurityInfo::testSecurityInfoV8SecurityInfoFromFlags_withSessionData()
 {
-        // When building from flags, TLS version should default to TLS 1.3 when encrypted
+        // v9.1 honest: connectionSecurityInfoFromFlags() does NOT set tls_version
+        // because flags alone don't prove encryption is active.
+        // Use populateRealSecurityInfo() for real TLS version info.
         u8 all_flags = ConnectionSecurityFlags::ENCRYPTED
                 | ConnectionSecurityFlags::ENCRYPTION_SUPPORTED
                 | ConnectionSecurityFlags::FORWARD_SECRECY
@@ -529,7 +582,26 @@ void TestConnectionSecurityInfo::testSecurityInfoV8SecurityInfoFromFlags_withSes
 
         ConnectionSecurityInfo info = connectionSecurityInfoFromFlags(all_flags);
 
-        UASSERT(info.tls_version == ConnectionSecurityInfo::TLS_1_3);
+        // v9.1: flags don't set tls_version — that requires actual encryption
+        UASSERT(info.tls_version == ConnectionSecurityInfo::TLS_NONE);
+
+        // The REAL path with ECDH gives TLS 1.3 equivalent
+        ConnectionSecurityInfo real_info = populateRealSecurityInfo(
+                true,   /* encryption_active */
+                true,   /* ecdh_completed */
+                true,   /* fingerprint_pinned */
+                1,      /* fingerprint_verify_result */
+                "session-123", "SHA256:abc", 0, 44, "server.com", 30000);
+        UASSERT(real_info.tls_version == ConnectionSecurityInfo::TLS_1_3_EQUIVALENT);
+
+        // Without ECDH, it's TLS_CUSTOM (SRP-derived)
+        ConnectionSecurityInfo srp_info = populateRealSecurityInfo(
+                true,   /* encryption_active */
+                false,  /* ecdh_completed */
+                false,  /* fingerprint_pinned */
+                0,      /* fingerprint_verify_result */
+                "session-123", "SHA256:abc", 0, 44, "server.com", 30000);
+        UASSERT(srp_info.tls_version == ConnectionSecurityInfo::TLS_CUSTOM);
 }
 
 void TestConnectionSecurityInfo::testSecurityInfoV8ResetClearsNewFields()
