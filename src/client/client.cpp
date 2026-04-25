@@ -12,7 +12,7 @@ enum class SSCMMode {
 };
 
 // Convert string setting to SSCMMode enum
-static SSCMMode getSSCMMode(const std::string &setting)
+[[maybe_unused]] static SSCMMode getSSCMMode(const std::string &setting)
 {
         if (setting == "singleplayer")
                 return SSCMMode::SINGLEPLAYER;

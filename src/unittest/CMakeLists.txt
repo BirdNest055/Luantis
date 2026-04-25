@@ -14,6 +14,10 @@ set(unittest_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/test_connection_security.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_connection_security_info.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_crypto.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_security_score_v91.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_security_score_v99.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_ecdh_x25519.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_fingerprint_store.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_peer_encryption_state.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_encrypted_packet_format.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_craft.cpp

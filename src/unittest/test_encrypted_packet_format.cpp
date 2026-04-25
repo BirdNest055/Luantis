@@ -544,16 +544,17 @@ void TestEncryptedPacketFormat::testTamperEncryptedFlagFails()
         enc_packet[BASE_HEADER_SIZE] ^= 0x01;
 
         // Decryption should fail (AAD tampering detected)
-        bool decrypt_ok = true;
+        bool decrypt_ok_flag = true;
         try {
                 auto dec = decryptPacket(enc_packet, *enc_state, false);
                 // If we get here, check if the decrypted data matches
-                if (dec != pt_packet) decrypt_ok = false;
+                if (dec != pt_packet) decrypt_ok_flag = false;
         } catch (...) {
-                decrypt_ok = false;
+                decrypt_ok_flag = false;
         }
         // The key point: tampering should cause decryption to fail
         // (either exception or wrong output)
+        UASSERT(!decrypt_ok_flag);
 }
 
 void TestEncryptedPacketFormat::testTamperNonceByteFails()
