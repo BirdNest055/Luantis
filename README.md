@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Clawtest</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.3-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.7-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -43,6 +43,8 @@ Clawtest extends Luanti v5.16.0-dev with these major features:
 | Security info settings tab | v8+ | Dedicated tab showing cipher, key exchange, auth method, replay protection, and limitations |
 | Insecure mode actually works | v9.2+ | When `secure_connection = false`, encryption is genuinely disabled (SRP still runs for auth, but no AES-GCM) |
 | Version numbering | v9.3+ | `VERSION` file, `VERSION_EXTRA` in CMake, versioned zip filenames |
+| Portable build system | v9.6+ | No hardcoded paths — `build_env.sh` and `build_linux.sh` auto-detect `local-prefix/`, support `--local-prefix` flag, work on any Ubuntu/Debian machine |
+| Consolidated CI | v9.5+ | Single GitHub Actions workflow with toggleable options (build, test, lint, package) |
 
 Encryption Architecture
 -----------------------
@@ -179,6 +181,10 @@ Where each location is on each platform:
     * `bin`   = `/usr/bin`
     * `share` = `/usr/share/minetest`
     * `user`  = `~/.minetest` or `$MINETEST_USER_PATH`
+* Linux run-in-place (this project):
+    * `bin`   = `bin`
+    * `share` = `.`
+    * `user`  = `.`
 * macOS:
     * `bin`   = `Contents/MacOS`
     * `share` = `Contents/Resources`
@@ -208,15 +214,109 @@ Command-line options
 Compiling
 ---------
 
+### Prerequisites
+
+- **GCC 7.5+** or **Clang 7.0.1+**
+- **CMake 3.5+**
+- **OpenSSL 3.0+** (required for encryption module)
+- Standard libraries: zlib, zstd, sqlite3, GMP, JsonCPP, LuaJIT, SDL2, freetype, etc.
+
+### Quick Build — Most PCs (system packages only)
+
+The easiest way to build on any Ubuntu/Debian machine. The `build_linux.sh` script auto-detects your distribution, installs the right packages, and builds both client and server:
+
+```bash
+# Clone the repo
+git clone https://github.com/BirdNest055/Clawtest.git
+cd Clawtest
+
+# Build client + server (interactive dependency menu)
+./build_linux.sh --both --run-in-place
+
+# Or non-interactive (for CI / automated builds)
+./build_linux.sh --non-interactive --no-deps --both --run-in-place --clean
+```
+
+### Quick Build — With Local Dependencies
+
+If you have libraries installed in a custom location (e.g., `local-prefix/`), use `--local-prefix`:
+
+```bash
+# Auto-detect: looks for local-prefix/ next to the project or one directory up
+./build_linux.sh --both --run-in-place --local-prefix /path/to/local-prefix
+
+# Or use build_env.sh (auto-detects local-prefix/)
+source build_env.sh
+./build_linux.sh --non-interactive --no-deps --both --run-in-place
+```
+
+The `build_env.sh` script auto-detects your `local-prefix/` directory and sets up `CMAKE_PREFIX_PATH`, `PKG_CONFIG_PATH`, `LD_LIBRARY_PATH`, etc. It can be configured in three ways:
+
+1. **Auto-detect** (default): Searches for `local-prefix/` next to the project or one directory up
+2. **Environment variable**: `LOCAL_PREFIX=/opt/deps source build_env.sh`
+3. **Argument**: `source build_env.sh /opt/deps`
+
+### Manual CMake Build
+
+For more control over the build:
+
+```bash
+# With system packages only
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENT=1 -DBUILD_SERVER=1 -DRUN_IN_PLACE=TRUE
+cmake --build build -j$(nproc)
+
+# With local dependencies
+source build_env.sh /path/to/local-prefix
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENT=1 -DBUILD_SERVER=1 -DRUN_IN_PLACE=TRUE
+cmake --build build -j$(nproc)
+```
+
+### Build Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--client` | Yes (default) | Build graphical game client |
+| `--server` | No | Build headless dedicated server |
+| `--both` | - | Build both client and server |
+| `--run-in-place` | No | Run from source directory (no install needed) |
+| `--local-prefix PATH` | Auto | Path to locally-built dependencies |
+| `--prefix PATH` | `/usr/local` | Install prefix for system install |
+| `--release` | Yes | Release build (optimized) |
+| `--debug` | No | Debug build (with symbols) |
+| `--tests` | No | Build and run unit tests |
+| `--clean` | No | Clean build directory before building |
+| `--non-interactive` | No | Skip all menus, use defaults |
+| `--enable-lto` | No | Enable Link-Time Optimization |
+| `--verbose` | No | Verbose output |
+
+### Cross-PC Build Notes
+
+The build system is fully portable — no hardcoded absolute paths. Key design decisions:
+
+- **`build_env.sh`** auto-detects `LOCAL_PREFIX` from the script's location, not from hardcoded paths
+- **`build_linux.sh`** supports `--local-prefix PATH` and auto-discovers `local-prefix/` directories
+- **`irr/src/CMakeLists.txt`** resolves SDL2 include directories dynamically from `CMAKE_PREFIX_PATH` instead of using hardcoded paths
+- **Architecture suffix** (e.g., `x86_64-linux-gnu`) is auto-detected via `dpkg-architecture`
+- Works on Ubuntu 22.04, 24.04, Debian, Fedora, Arch, Alpine, and other distros
+
+### Running the Built Binaries
+
+```bash
+# With system packages
+./bin/luanti --version
+./bin/luantiserver --version
+
+# With local dependencies
+source build_env.sh
+LD_LIBRARY_PATH="$LOCAL_PREFIX/usr/lib/x86_64-linux-gnu" ./bin/luanti --version
+```
+
+### More Compiling Documentation
+
 - [Compiling - common information](doc/compiling/README.md)
 - [Compiling on GNU/Linux](doc/compiling/linux.md)
 - [Compiling on Windows](doc/compiling/windows.md)
 - [Compiling on MacOS](doc/compiling/macos.md)
-
-Quick build (Linux, run-in-place):
-```bash
-./build_linux.sh --non-interactive --no-deps --client --run-in-place
-```
 
 Docker
 ------
@@ -230,9 +330,9 @@ Version scheme
 Clawtest uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.3)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.7)
 
-The full version string is `5.16.1-v9.3-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.7-dev`, displayed via `--version` and in the UI.
 
 The Clawtest version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -240,5 +340,8 @@ The Clawtest version tracks encryption feature development:
 - v9.0: Real AES-256-GCM encryption implemented and integrated
 - v9.2: Insecure mode actually disables encryption (not just UI flags)
 - v9.3: Modular encryption architecture, interactive start scripts, version numbering
+- v9.4: Version bump, minor fixes
+- v9.5: Consolidated CI workflow (single build.yml), toggleable options
+- v9.6: Portable build system — removed all hardcoded paths, auto-detect local-prefix, cross-PC support
 
-Git tags follow the pattern `clawtest-v9.3`, `clawtest-v9.4`, etc.
+Git tags follow the pattern `clawtest-v9.7`, `clawtest-v9.8`, etc.

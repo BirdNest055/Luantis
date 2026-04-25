@@ -105,11 +105,11 @@
 |--------|---------|------|
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
 | `clawtest-upload` | Clawtest development (previous) | `main` |
-| `clawtest-v9.3` | v9.3 release (current) | `clawtest-upload` |
+| `clawtest-v9.5` | v9.5–v9.6 development (current) | `clawtest-upload` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
-- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.4`
+- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
 
@@ -122,8 +122,8 @@
 
 ### 3.3 Tags
 
-- Git tags mark release versions: `clawtest-v9.3`, `clawtest-v9.4`, etc.
-- Tags should be annotated: `git tag -a clawtest-v9.3 -m "v9.3: Modular encryption toggle + interactive scripts"`
+- Git tags mark release versions: `clawtest-v9.6`, `clawtest-v9.7`, etc.
+- Tags should be annotated: `git tag -a clawtest-v9.6 -m "v9.6: Portable build system, CI warnings tracked"`
 
 ### 3.4 Version Numbering
 
@@ -226,7 +226,7 @@ For passing data from C++ to the Lua settings dialog:
 - `libfreetype-dev` on Ubuntu 24.04+ (NOT `libfreetype6-dev`)
 - The build script handles distro detection automatically
 - OpenSSL is already in `vcpkg.json` for the crypto layer
-- Build environment uses local prefix at `/home/z/my-project/local-prefix/`
+- Build environment auto-detects `local-prefix/` via `build_env.sh` or `--local-prefix` flag (no hardcoded paths since v9.6)
 
 ---
 
@@ -262,6 +262,8 @@ For passing data from C++ to the Lua settings dialog:
 | `tput` crashing in scripts | Use `read -rp` for user input instead |
 | Bash indirect array expansion crashing | Use parallel arrays via `_add_group()` helper |
 | `libfreetype6-dev` unmet deps on Ubuntu 24.04 | Auto-detect Ubuntu version; use `libfreetype-dev` for 24.04+ |
+| Hardcoded `/home/user/...` paths in build files | NEVER hardcode absolute paths — use auto-detection (`SCRIPT_DIR`, `LOCAL_PREFIX`, `CMAKE_PREFIX_PATH`) |
+| Build fails on different PC due to path assumptions | Use `--local-prefix` flag or `build_env.sh` auto-detection |
 | CMake cache stale false positives | Use `sed 's/^[^=]*=//'` not `cut -d: -f2-` |
 | Binary not found after build | Check `bin/` first (CMake outputs there, not `build/`) |
 | Script auto-installing deps without asking | Always show interactive menu first |
@@ -296,8 +298,8 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.3`
+- **Current branch:** `clawtest-v9.5`
 - **Previous branch:** `clawtest-upload`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.3
+- **Current version:** v9.7

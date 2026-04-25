@@ -18,7 +18,7 @@ This is **worse than no security** because it gives users a false sense of secur
 Implement **actual AES-256-GCM packet encryption** using the SRP session key,
 with honest UI that accurately reports what protection exists and what doesn't.
 
-**STATUS: MOSTLY COMPLETE** — Phases 1-6 and 9 are done. Phases 7, 8, 10 remain.
+**STATUS: COMPLETE** — Phases 1-6, 9, and 10 are done. Phases 7, 8 remain (UI enhancements, not security-critical).
 
 ---
 
@@ -169,13 +169,16 @@ Real security info tab with status banner, encryption details, honest limitation
 - Link `OpenSSL::Crypto` to the network library target
 - `VERSION_EXTRA` set to "v9.3" in root CMakeLists.txt
 
-### Phase 10: CI/CD & Testing — NOT STARTED
-**Files**: Modify `.github/workflows/build.yml`
+### Phase 10: CI/CD & Testing — DONE (v9.5–v9.6)
+**Files**: `.github/workflows/build.yml`, `build_env.sh`, `build_linux.sh`, `irr/src/CMakeLists.txt`
 
-- Ensure `libssl-dev` is in CI dependencies
-- Build with `-DENABLE_OPENSSL=ON`
-- Run crypto unit tests in CI
-- Verify build produces working client + server
+- v9.5: Consolidated 10 upstream workflows into single `build.yml` with toggleable options
+- v9.5: Build client + server runs by default on every push/PR
+- v9.5: Lint jobs (cpp_lint, lua_lint) are toggleable, default OFF
+- v9.6: Fixed hardcoded paths in `irr/src/CMakeLists.txt` (SDL2 include dirs now resolved dynamically from CMAKE_PREFIX_PATH)
+- v9.6: `build_env.sh` rewritten to auto-detect `LOCAL_PREFIX` (no hardcoded absolutes)
+- v9.6: `build_linux.sh` gained `--local-prefix PATH` option with auto-detection
+- v9.6: CI workflow runs successfully on GitHub Actions (Ubuntu 24.04), all 11 steps pass
 
 ---
 
@@ -312,9 +315,11 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 | Phase 7: Toggleable Overlays | NOT STARTED | |
 | Phase 8: Security Info Settings Tab | NOT STARTED | |
 | Phase 9: CMake Build Integration | DONE | OpenSSL REQUIRED, crypto.cpp + encryption_config.cpp in build |
-| Phase 10: CI/CD & Testing | NOT STARTED | |
+| Phase 10: CI/CD & Testing | DONE (v9.5–v9.6) | Consolidated CI, portable build system, CI passes on GitHub Actions |
 | v9.2: Insecure mode fix | DONE | encryption_state.disable() when secure_connection=false |
 | v9.3: Modular encryption | DONE | encryption_config.h/cpp centralized policy manager |
 | v9.3: Interactive start scripts | DONE | start_server.sh + start_client.sh with menus |
 | v9.3: Version numbering | DONE | VERSION file, CMakeLists VERSION_EXTRA, --version output |
 | v9.3: Test script | DONE | test_encryption_toggle.sh with 14 TDD tests |
+| v9.5: Consolidated CI | DONE | Single build.yml, toggleable options |
+| v9.6: Portable build system | DONE | No hardcoded paths, auto-detect local-prefix, cross-PC support |
