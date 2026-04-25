@@ -385,13 +385,22 @@ public:
         std::atomic<bool> transition_logged{false};
 
         /// Maximum number of plaintext packets to accept during transition.
-        /// Packets beyond this limit after the grace period are dropped.
-        static constexpr u32 TRANSITION_MAX_PLAINTEXT = 50;
+        /// v9.14: Increased from 50 to 500 — world loading generates hundreds
+        /// of map block packets that arrive over several seconds.
+        static constexpr u32 TRANSITION_MAX_PLAINTEXT = 500;
 
         /// Duration of the transition grace period in milliseconds.
-        /// Plaintext packets received within this window after activation
-        /// are accepted (they're from the pipeline), but logged once.
-        static constexpr u64 TRANSITION_GRACE_PERIOD_MS = 2000;
+        /// v9.14: Increased from 2000 to 10000 — world loading on a localhost
+        /// or LAN connection can take several seconds, and pipeline packets
+        /// from before the server activated encryption can arrive for much
+        /// longer than 2 seconds.
+        static constexpr u64 TRANSITION_GRACE_PERIOD_MS = 10000;
+
+        /// Whether we have already logged the one-time post-grace-period warning.
+        /// v9.14: Prevents repeated ERROR spam after the grace period expires.
+        /// Instead of logging every 100th violation as ERROR, we log a single
+        /// WARNING once and then accept plaintext packets silently.
+        std::atomic<bool> transition_warning_logged{false};
 
         /// Time of last encryption audit log (to avoid log spam)
         u64 last_audit_time_ms = 0;
@@ -424,21 +433,25 @@ public:
         /// This should be called only after ensuring that any necessary
         /// plaintext packets (like AUTH_ACCEPT) have been queued/sent.
         /// v9.13: Also resets transition grace period counters.
+        /// v9.14: Also resets transition_warning_logged.
         void activate()
         {
                 active.store(true, std::memory_order_release);
                 transition_plaintext_count.store(0, std::memory_order_release);
                 transition_logged.store(false, std::memory_order_release);
+                transition_warning_logged.store(false, std::memory_order_release);
         }
 
         /// Disable encryption (e.g., on disconnect or auth failure)
         /// v9.13: Also resets transition grace period counters.
+        /// v9.14: Also resets transition_warning_logged.
         void disable()
         {
                 active.store(false, std::memory_order_release);
                 ecdh_completed.store(false, std::memory_order_release);
                 transition_plaintext_count.store(0, std::memory_order_release);
                 transition_logged.store(false, std::memory_order_release);
+                transition_warning_logged.store(false, std::memory_order_release);
                 std::lock_guard<std::mutex> lock(m_mutex);
                 // Zero out sensitive key material
                 c2s.key.fill(0);
