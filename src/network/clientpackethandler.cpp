@@ -255,11 +255,20 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                         // Keys are loaded but encryption is NOT active yet.
                                         m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
 
-                                        // v9.11: Do NOT activate encryption here. The server will send
-                                        // TOCLIENT_ECDH_PUBKEY with its X25519 public key BEFORE
-                                        // activating encryption. The client handles ECDH in
-                                        // handleCommand_EcdhPubkey() and activates there with
-                                        // ECDH+SRP combined keys for real forward secrecy.
+                                        // v9.12: Do NOT activate encryption here. The flow is:
+                                        // 1. AuthAccept: init keys (active=false), push to connection
+                                        // 2. handleCommand_EcdhPubkey: mix ECDH secret into keys,
+                                        //    push updated keys to connection (still active=false)
+                                        // 3. Server activates first (it calls ActivatePeerEncryption
+                                        //    after processing TOSERVER_ECDH_PUBKEY)
+                                        // 4. Server sends first encrypted packet
+                                        // 5. Client receive path auto-activates when it successfully
+                                        //    decrypts that first encrypted packet (see threads.cpp)
+                                        //
+                                        // This deferred activation eliminates the race condition where
+                                        // the client would activate before the server, causing
+                                        // encrypted packets to be sent to a server still in plaintext
+                                        // mode. Both sides now activate symmetrically.
                                         //
                                         // If the server does NOT support ECDH (old version), the
                                         // ECDH pubkey packet will never arrive, and encryption
@@ -268,7 +277,7 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                         // a timeout, we activate with SRP-only keys.
                                         //
                                         // For now, we populate security info as "not yet active"
-                                        // and let handleCommand_EcdhPubkey update it.
+                                        // and let the auto-activation in the receive path update it.
                                         encryption_initialized = true;
                                         enclog_activate("Client encryption initialized and activation queued")
                                                 << EncLog::kv("session_id", m_encryption_state.session_id)
@@ -2188,9 +2197,20 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         ecdh_pkt.putLongString(client_pubkey_str);
         Send(&ecdh_pkt);
 
-        // Activate encryption with ECDH+SRP keys
-        m_con->ActivatePeerEncryption(PEER_ID_SERVER);
-        m_encryption_state.activated_at = porting::getTimeS();
+        // v9.12: Do NOT activate encryption here. Defer activation until the
+        // server sends its first encrypted packet. This avoids a race condition
+        // where the client activates encryption immediately after sending
+        // TOSERVER_ECDH_PUBKEY, but the server hasn't activated yet — causing
+        // the client to send encrypted packets the server can't read, and the
+        // server to send plaintext packets the client logs as errors.
+        //
+        // Instead, the receive path (ConnectionReceiveThread::receive) will
+        // auto-activate encryption when it successfully decrypts the first
+        // encrypted packet from the server. This guarantees symmetric
+        // activation: both sides encrypt from the same point onward.
+        //
+        // m_encryption_state.activated_at will be set by the auto-activation
+        // in the receive path when encryption actually activates.
 
         // Populate HONEST security info with ECDH forward secrecy
         Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);

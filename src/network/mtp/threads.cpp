@@ -1232,8 +1232,7 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                 // If encrypted_flag is a valid packet type (0x00-0x03), it's plaintext.
                 SharedBuffer<u8> strippeddata;
 
-                if (udpPeer->encryption_state.active.load(std::memory_order_acquire) &&
-                        data_after_header_size > ENCRYPTED_PACKET_OVERHEAD &&
+                if (data_after_header_size > ENCRYPTED_PACKET_OVERHEAD &&
                         packetdata[BASE_HEADER_SIZE] == ENCRYPTED_FLAG_AES_256_GCM) {
 
                         // This packet is encrypted — decrypt it
@@ -1269,6 +1268,25 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                         DirectionalEncryptionState &dir_state =
                                 we_are_server ? udpPeer->encryption_state.c2s
                                           : udpPeer->encryption_state.s2c;
+
+                        // Check that decryption key is initialized (not all zeros).
+                        // This can happen if we receive an encrypted packet before
+                        // our local key derivation is complete (e.g., during the
+                        // ECDH handshake when the server activates before the client).
+                        bool key_initialized = false;
+                        for (size_t i = 0; i < dir_state.key.size(); i++) {
+                                if (dir_state.key[i] != 0) {
+                                        key_initialized = true;
+                                        break;
+                                }
+                        }
+                        if (!key_initialized) {
+                                enclog_error("Received encrypted packet but decryption key not initialized")
+                                        << EncLog::kv("peer", peer_id)
+                                        << EncLog::kv("action", "PACKET_DROPPED")
+                                        << std::endl;
+                                return;
+                        }
 
                         // Extract nonce counter for replay detection
                         u64 received_counter = 0;
@@ -1318,6 +1336,22 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                                                 << std::endl;
                                 }
                                 dir_state.packets_processed++;
+
+                                // Auto-activate encryption if not already active.
+                                // This happens when the peer activates encryption before us.
+                                // Receiving a valid encrypted packet proves the peer has activated,
+                                // so we should activate too for outgoing packets.
+                                if (!udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
+                                        udpPeer->encryption_state.activate();
+                                        udpPeer->encryption_state.activated_at = porting::getTimeS();
+                                        enclog_activate("Encryption AUTO-ACTIVATED on receive")
+                                                << EncLog::kv("peer", peer_id)
+                                                << EncLog::kv("reason", "received valid encrypted packet from peer")
+                                                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                                                << EncLog::kv("fingerprint", udpPeer->encryption_state.server_fingerprint)
+                                                << EncLog::kv("status", "ALL_FUTURE_PACKETS_ENCRYPTED")
+                                                << std::endl;
+                                }
 
                                 // Periodic audit logging (every AUDIT_INTERVAL_MS or AUDIT_MIN_PACKETS)
                                 udpPeer->encryption_state.packets_since_audit++;
