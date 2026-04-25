@@ -1795,12 +1795,25 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
 
                 // v9.3: Use modular encryption config for encryption policy.
                 // See encryption_config.h for the centralized toggle.
+                //
+                // v9.13: Singleplayer connections skip encryption entirely.
+                // There is no network risk on localhost — encryption adds
+                // unnecessary latency and the transition period causes
+                // "Plaintext packet received while encryption active" errors.
 
-                if (!EncryptionConfig::shouldEncrypt()) {
-                        // v9.3: Use modular encryption config.
-                        // In insecure mode, SRP still runs for password authentication,
-                        // but the session key is NOT used to activate AES-256-GCM encryption.
-                        EncryptionConfig::logEncryptionDecision(peer_id, true, false);
+                if (!EncryptionConfig::shouldEncrypt() || isSingleplayer()) {
+                        // Encryption disabled or singleplayer: SRP still runs for
+                        // password authentication, but the session key is NOT used
+                        // to activate AES-256-GCM encryption.
+                        if (isSingleplayer()) {
+                                enclog_init("Singleplayer: skipping encryption (local connection)")
+                                        << EncLog::kv("peer", peer_id)
+                                        << EncLog::kv("mode", "singleplayer")
+                                        << EncLog::kv("reason", "localhost_does_not_need_encryption")
+                                        << std::endl;
+                        } else {
+                                EncryptionConfig::logEncryptionDecision(peer_id, true, false);
+                        }
                         client->encryption_state.disable();
                 } else if (session_key && key_len == SRP_SESSION_KEY_SIZE) {
                         bool ok = client->encryption_state.initFromSRPSessionKey(
@@ -2048,8 +2061,11 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         }
         const u8* client_pubkey = reinterpret_cast<const u8*>(pubkey_str.data());
 
-        if (!EncryptionConfig::shouldEncrypt()) {
-                infostream << "Server::handleCommand_EcdhPubkey: ignoring, encryption disabled" << std::endl;
+        if (!EncryptionConfig::shouldEncrypt() || isSingleplayer()) {
+                // v9.13: Also skip in singleplayer (localhost doesn't need encryption)
+                infostream << "Server::handleCommand_EcdhPubkey: ignoring, encryption disabled"
+                        << (isSingleplayer() ? " (singleplayer)" : "")
+                        << std::endl;
                 return;
         }
 

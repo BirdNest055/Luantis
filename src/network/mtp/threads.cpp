@@ -1387,14 +1387,49 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                         }
                 } else if (udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
                         // Encryption is active but this is a plaintext packet.
-                        // During the transition period (right after activation),
-                        // we may receive a few late plaintext packets. Log a warning
-                        // but still accept them to avoid breaking the connection.
-                        enclog_error("Plaintext packet received while encryption active")
-                                << EncLog::kv("peer", peer_id)
-                                << EncLog::kv("reason", "transition_period_or_attack")
-                                << EncLog::kv("warning", "POSSIBLE_SECURITY_VIOLATION")
-                                << std::endl;
+                        //
+                        // v9.13: During the transition grace period (2 seconds after
+                        // activation, up to 50 packets), plaintext packets are expected
+                        // because the peer may still have packets in the network pipeline
+                        // from before it activated encryption. These are NOT security
+                        // violations — they're a normal part of the plaintext→encrypted
+                        // transition.
+                        //
+                        // After the grace period, plaintext packets are logged as errors
+                        // (possible security violation) and dropped.
+
+                        u32 count = udpPeer->encryption_state.transition_plaintext_count.fetch_add(1) + 1;
+                        u64 now_ms = porting::getTimeMs();
+                        u64 activated_ms = udpPeer->encryption_state.activated_at * 1000;
+                        u64 elapsed_ms = (now_ms > activated_ms) ? (now_ms - activated_ms) : 0;
+                        bool in_grace_period = (elapsed_ms < PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                                && (count <= PeerEncryptionState::TRANSITION_MAX_PLAINTEXT);
+
+                        if (in_grace_period) {
+                                // Transition period: accept the plaintext packet.
+                                // Only log once (summary) to avoid spamming the log.
+                                if (!udpPeer->encryption_state.transition_logged.exchange(true)) {
+                                        enclog_init("Transition period: accepting late plaintext packets")
+                                                << EncLog::kv("peer", peer_id)
+                                                << EncLog::kv("reason", "pipeline_packets_from_before_activation")
+                                                << EncLog::kv("grace_period_ms", (u32)PeerEncryptionState::TRANSITION_GRACE_PERIOD_MS)
+                                                << EncLog::kv("max_packets", PeerEncryptionState::TRANSITION_MAX_PLAINTEXT)
+                                                << std::endl;
+                                }
+                        } else {
+                                // Outside grace period: this is suspicious.
+                                // Log at WARNING level (not error) with rate limiting.
+                                // Only log every 100th violation to avoid spam.
+                                if (count % 100 == 0) {
+                                        enclog_error("Plaintext packet after transition grace period")
+                                                << EncLog::kv("peer", peer_id)
+                                                << EncLog::kv("total_count", count)
+                                                << EncLog::kv("elapsed_ms", (u32)elapsed_ms)
+                                                << EncLog::kv("warning", "POSSIBLE_SECURITY_VIOLATION")
+                                                << std::endl;
+                                }
+                        }
+
                         strippeddata = SharedBuffer<u8>(data_after_header_size);
                         memcpy(*strippeddata, &packetdata[BASE_HEADER_SIZE],
                                 data_after_header_size);
