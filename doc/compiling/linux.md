@@ -18,11 +18,11 @@
 | JsonCPP    | 1.0.0+  | Bundled JsonCPP is used if not present |
 | Curl       | 7.56.0+ | Optional   |
 | gettext    | -       | Optional   |
-| OpenSSL    | 3.0+    | Optional (only libcrypto used) |
+| OpenSSL    | 3.0+    | Required (Clawtest encryption module) |
 
 For Debian/Ubuntu users:
 
-    sudo apt install g++ make libc6-dev cmake libpng-dev libjpeg-dev libgl1-mesa-dev libsqlite3-dev libogg-dev libvorbis-dev libopenal-dev libcurl4-gnutls-dev libfreetype6-dev zlib1g-dev libgmp-dev libjsoncpp-dev libzstd-dev libluajit-5.1-dev gettext libsdl2-dev
+    sudo apt install g++ make libc6-dev cmake libpng-dev libjpeg-dev libgl1-mesa-dev libsqlite3-dev libogg-dev libvorbis-dev libopenal-dev libcurl4-gnutls-dev libfreetype6-dev zlib1g-dev libgmp-dev libjsoncpp-dev libzstd-dev libluajit-5.1-dev gettext libsdl2-dev libssl-dev libncurses-dev
 
 For Fedora users:
 
@@ -30,7 +30,7 @@ For Fedora users:
 
 For openSUSE users:
 
-	sudo zypper install gcc gcc-c++ cmake libjpeg8-devel libpng16-devel openal-soft-devel libcurl-devel sqlite3-devel luajit-devel libzstd-devel Mesa-libGL-devel libvorbis-devel freetype2-devel SDL2-devel
+        sudo zypper install gcc gcc-c++ cmake libjpeg8-devel libpng16-devel openal-soft-devel libcurl-devel sqlite3-devel luajit-devel libzstd-devel Mesa-libGL-devel libvorbis-devel freetype2-devel SDL2-devel
 
 For Arch users:
 
@@ -58,11 +58,11 @@ For Fedora users:
 
 For Arch users:
 
-	sudo pacman -S git
+        sudo pacman -S git
 
 For Alpine users:
 
-	sudo apk add git
+        sudo apk add git
 
 For Void users:
 
@@ -80,6 +80,45 @@ Download source, without using Git:
     cd luanti-master
 
 ## Build
+
+### Using build_linux.sh (Recommended for Clawtest)
+
+The `build_linux.sh` script handles dependency detection, installation, and building automatically:
+
+```bash
+# Interactive build with dependency menu (both client and server)
+./build_linux.sh --both --run-in-place
+
+# Non-interactive build (for CI or automation)
+./build_linux.sh --non-interactive --no-deps --both --run-in-place --clean
+
+# With custom dependency location
+./build_linux.sh --both --run-in-place --local-prefix /path/to/local-prefix
+
+# Build server only
+./build_linux.sh --server --run-in-place
+
+# Build client only
+./build_linux.sh --client --run-in-place
+```
+
+### Using build_env.sh + CMake (More Control)
+
+If you have libraries in a custom location (e.g., `local-prefix/`), use `build_env.sh` first:
+
+```bash
+# Auto-detect local-prefix/ (searches next to project and parent dir)
+source build_env.sh
+
+# Or specify explicitly
+source build_env.sh /path/to/local-prefix
+
+# Then build with CMake
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_CLIENT=1 -DBUILD_SERVER=1 -DRUN_IN_PLACE=TRUE
+cmake --build build -j$(nproc)
+```
+
+### Manual CMake Build (Upstream Method)
 
 Build a version that runs directly from the source directory:
 
@@ -101,3 +140,15 @@ Run unit tests:
 - You can disable the client build by specifying `-DBUILD_CLIENT=FALSE`.
 - You can select between Release and Debug build by `-DCMAKE_BUILD_TYPE=<Debug or Release>`.
   - Debug build is slower, but gives much more useful output in a debugger.
+
+### Clawtest-Specific CMake Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `BUILD_CLIENT` | TRUE | Build graphical game client |
+| `BUILD_SERVER` | FALSE | Build headless dedicated server |
+| `RUN_IN_PLACE` | FALSE (Linux) | Run from source directory (no install needed) |
+| `BUILD_UNITTESTS` | TRUE | Build unit tests (includes crypto tests) |
+| `ENABLE_LTO` | TRUE (Release) | Link-Time Optimization (disable for faster builds) |
+
+Note: OpenSSL 3.0+ is **required** for the Clawtest encryption module (not optional as in upstream Luanti).

@@ -8,10 +8,10 @@ OpenClaw is installed globally and ready to use. This guide teaches you how to u
 
 ## Project Context
 
-- **Project:** Clawtest v9.3
+- **Project:** Clawtest v9.7
 - **Repository:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.3`
-- **Key feature:** Real AES-256-GCM encryption for game traffic, modular encryption toggle
+- **Current branch:** `clawtest-v9.5`
+- **Key feature:** Real AES-256-GCM encryption for game traffic, modular encryption toggle, portable build system
 
 ## Quick Start
 

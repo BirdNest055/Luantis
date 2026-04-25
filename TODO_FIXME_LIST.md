@@ -5,13 +5,31 @@ Generated automatically from code comments.
 
 ## Summary
 
-**Total entries:** 465
+**Total entries:** 465 (code comments) + 7 (compiler warnings)
 
 | Type | Count |
 |------|-------|
 | FIXME | 149 |
 | HACK | 22 |
 | TODO | 294 |
+| WARNING | 7 (Clawtest-specific compiler warnings from CI) |
+
+## Clawtest Compiler Warnings (from GitHub Actions CI)
+
+These warnings appear when building Clawtest with `-Wall` on Ubuntu 24.04 (gcc 13+).
+They are in Clawtest-added code and should be fixed in a future version.
+
+| File | Line | Warning | Description | Status |
+|------|------|---------|-------------|--------|
+| src/client/client.cpp | 15 | `-Wunused-function` | `getSSCMMode()` is defined but never called — either remove it or add `[[maybe_unused]]` | Open |
+| src/unittest/test_crypto.cpp | 825 | `-Wsign-compare` | Loop variable `int i` compared with `const size_t GCM_NONCE_SIZE` — change `i` to `size_t` | Open |
+| src/unittest/test_crypto.cpp | 842 | `-Wsign-compare` | Same as line 825 in `testBuildNonceCounterMax()` — change `i` to `size_t` | Open |
+| src/unittest/test_encrypted_packet_format.cpp | 547 | `-Wunused-but-set-variable` | `bool decrypt_ok = true` is set but never read — either use it in an assertion or remove it | Open |
+| src/unittest/test_peer_encryption_state.cpp | 413 | `-Wunused-but-set-variable` | `auto n1 = dir.nextNonce()` is set but not used — add `[[maybe_unused]]` or assert on the value | Open |
+| src/unittest/test_peer_encryption_state.cpp | 416 | `-Wunused-but-set-variable` | `auto n2 = dir.nextNonce()` — same as n1 above | Open |
+| src/unittest/test_peer_encryption_state.cpp | 419 | `-Wunused-but-set-variable` | `auto n3 = dir.nextNonce()` — same as n1 above | Open |
+
+**Note:** `src/porting.cpp:107,111` also has `-Wunused-result` warnings on `write()` calls, but these exist in upstream Luanti and have `(void)` casts already — the compiler still warns despite the cast. Not a Clawtest issue.
 
 ## All Entries (Sorted by Priority: FIXME=1 > HACK=2 > TODO=3 > XXX=4)
 
