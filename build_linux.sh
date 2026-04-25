@@ -31,6 +31,7 @@
 #   --clean            Clean build directory before building
 #   --jobs N           Number of parallel jobs (default: nproc)
 #   --prefix PATH      Install prefix (default: /usr/local)
+#   --local-prefix PATH  Path to locally-built dependencies (auto-detected)
 #   --run-in-place     Run in place (no installation needed)
 #   --enable-lto       Enable Link-Time Optimization
 #   --enable-prometheus Enable Prometheus metrics (server only)
@@ -71,6 +72,7 @@ REMOVE_DEPS=0
 DO_CLEAN=0
 JOBS="$(nproc 2>/dev/null || echo 4)"
 PREFIX="/usr/local"
+LOCAL_PREFIX=""          # Path to locally-built dependencies (auto-detected if empty)
 RUN_IN_PLACE=0
 ENABLE_LTO=0
 ENABLE_PROMETHEUS=0
@@ -140,6 +142,7 @@ while [[ $# -gt 0 ]]; do
         --clean)           DO_CLEAN=1 ;;
         --jobs)            JOBS="$2"; shift ;;
         --prefix)          PREFIX="$2"; shift ;;
+        --local-prefix)    LOCAL_PREFIX="$2"; shift ;;
         --run-in-place)    RUN_IN_PLACE=1 ;;
         --enable-lto)      ENABLE_LTO=1 ;;
         --enable-prometheus) ENABLE_PROMETHEUS=1 ;;
@@ -1214,6 +1217,27 @@ configure_build() {
 
     if [[ "$ENABLE_PROMETHEUS" -eq 1 ]]; then
         cmake_args+=(-DENABLE_PROMETHEUS=TRUE)
+    fi
+
+    # ── Auto-detect and apply LOCAL_PREFIX ───────────────────────────
+    # If LOCAL_PREFIX is not set, try to find it next to the project
+    if [[ -z "$LOCAL_PREFIX" ]]; then
+        if [[ -d "${SCRIPT_DIR}/local-prefix" ]]; then
+            LOCAL_PREFIX="${SCRIPT_DIR}/local-prefix"
+        elif [[ -d "${SCRIPT_DIR}/../local-prefix" ]]; then
+            LOCAL_PREFIX="$(cd "${SCRIPT_DIR}/../local-prefix" && pwd)"
+        fi
+    fi
+
+    # If LOCAL_PREFIX exists, add it to CMake and runtime paths
+    if [[ -n "$LOCAL_PREFIX" ]] && [[ -d "$LOCAL_PREFIX" ]]; then
+        local _arch_suffix
+        _arch_suffix="$(dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null || echo 'x86_64-linux-gnu')"
+        cmake_args+=(-DCMAKE_PREFIX_PATH="${LOCAL_PREFIX}/usr;${LOCAL_PREFIX}/usr/lib/${_arch_suffix}/cmake")
+        info "Using local prefix: ${LOCAL_PREFIX}"
+        # Set runtime paths so binaries can find local libraries
+        export LD_LIBRARY_PATH="${LOCAL_PREFIX}/usr/lib/${_arch_suffix}:${LD_LIBRARY_PATH:-}"
+        export PKG_CONFIG_PATH="${LOCAL_PREFIX}/usr/lib/${_arch_suffix}/pkgconfig:${PKG_CONFIG_PATH:-}"
     fi
 
     if command -v ninja &>/dev/null; then

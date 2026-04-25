@@ -1,3 +1,6 @@
 build_test/
 build/
 project.zip
+debug.txt
+*.log
+.build_deps_installed

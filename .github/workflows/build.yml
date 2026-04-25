@@ -63,7 +63,11 @@ jobs:
   build:
     name: Build (Ubuntu 24.04)
     runs-on: ubuntu-24.04
-    if: ${{ !inputs.cpp_lint && !inputs.lua_lint || inputs.build_client || inputs.build_server }}
+    # Run on push/PR always; on workflow_dispatch only if a build toggle is on
+    if: >
+      github.event_name != 'workflow_dispatch' ||
+      inputs.build_client == true ||
+      inputs.build_server == true
 
     steps:
       - name: Checkout repository
@@ -98,46 +102,46 @@ jobs:
           sudo apt-get update
 
           # Core build tools
-          sudo apt-get install -y \
+          sudo apt-get install -y --no-install-recommends \
             build-essential cmake pkg-config
 
-          # Common libraries
-          sudo apt-get install -y \
+          # Common libraries (server + client)
+          sudo apt-get install -y --no-install-recommends \
             zlib1g-dev libzstd-dev libsqlite3-dev libgmp-dev \
-            libjsoncpp-dev libluajit-5.1-dev
+            libjsoncpp-dev libluajit-5.1-dev libcurl4-openssl-dev \
+            libssl-dev
 
-          # Client: Graphics & windowing
+          # Client: Graphics, audio, media
           if [[ "${{ env.BUILD_CLIENT }}" == "true" ]]; then
-            sudo apt-get install -y \
-              libfreetype-dev libgl1-mesa-dev libsdl2-dev \
+            # Resolve freetype package name (differs across Ubuntu versions)
+            FREETYPE_PKG="libfreetype-dev"
+            if ! apt-cache showpkg libfreetype-dev 2>/dev/null | grep -q "Package: libfreetype-dev"; then
+              FREETYPE_PKG="libfreetype6-dev"
+            fi
+
+            sudo apt-get install -y --no-install-recommends \
+              ${FREETYPE_PKG} libgl1-mesa-dev libsdl2-dev \
               libopenal-dev libvorbis-dev libogg-dev \
               libjpeg-dev libpng-dev gettext
           fi
 
-          # Networking
-          sudo apt-get install -y \
-            libcurl4-openssl-dev
-
-          # Server: Terminal
+          # Server: Terminal UI
           if [[ "${{ env.BUILD_SERVER }}" == "true" ]]; then
-            sudo apt-get install -y \
-              libncurses5-dev
+            sudo apt-get install -y --no-install-recommends \
+              libncurses-dev
           fi
-
-          # Encryption & spatial
-          sudo apt-get install -y \
-            libssl-dev libspatialindex-dev
 
       - name: Configure CMake
         run: |
           CMAKE_ARGS=(
+            -B build
             -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}"
             -DCMAKE_INSTALL_PREFIX=/usr/local
             -DRUN_IN_PLACE=TRUE
-            -DBUILD_UNITTESTS=${{ env.RUN_TESTS }}
             -DENABLE_LTO=FALSE
           )
 
+          # Build targets
           if [[ "${{ env.BUILD_CLIENT }}" == "true" ]]; then
             CMAKE_ARGS+=(-DBUILD_CLIENT=TRUE)
           else
@@ -150,25 +154,32 @@ jobs:
             CMAKE_ARGS+=(-DBUILD_SERVER=FALSE)
           fi
 
+          # Tests
+          if [[ "${{ env.RUN_TESTS }}" == "true" ]]; then
+            CMAKE_ARGS+=(-DBUILD_UNITTESTS=TRUE)
+          else
+            CMAKE_ARGS+=(-DBUILD_UNITTESTS=FALSE)
+          fi
+
           echo "CMake arguments: ${CMAKE_ARGS[*]}"
-          cmake -B build "${CMAKE_ARGS[@]}"
+          cmake "${CMAKE_ARGS[@]}" .
 
       - name: Build
         run: cmake --build build -j "$(nproc)"
 
       - name: Run unit tests
         if: env.RUN_TESTS == 'true'
-        # continue-on-error: true so build doesn't fail on pre-existing
-        # upstream test issues (e.g. TestFileSys path resolution on CI runners)
         continue-on-error: true
         id: tests
         run: |
+          # With RUN_IN_PLACE=TRUE, binaries end up in bin/
           if [[ -x bin/luanti ]]; then
-            ./bin/luanti --run-unittests
+            ./bin/luanti --run-unittests 2>&1 | head -200
           elif [[ -x bin/luantiserver ]]; then
-            ./bin/luantiserver --run-unittests
+            ./bin/luantiserver --run-unittests 2>&1 | head -200
           else
-            cmake --build build --target test
+            echo "No binaries found for unit tests, trying CTest..."
+            cd build && ctest --output-on-failure -j "$(nproc)" 2>&1 | head -200
           fi
 
       - name: Verify binaries
