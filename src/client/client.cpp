@@ -991,7 +991,7 @@ void Client::deletingPeer(con::IPeer *peer, bool timeout)
         g_settings->set("security_info_connected_since", "N/A");
         g_settings->set("security_info_server_fingerprint", "N/A");
         g_settings->set("security_info_tls_version", "N/A");
-        g_settings->set("security_info_security_score", "0/100 (Insecure)");
+        g_settings->set("security_info_security_score", "N/A");
 }
 
 void Client::request_media(const std::vector<std::string> &file_requests)

@@ -152,9 +152,14 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
 
                 // Connection info overlay — shows security state in debug line
                 // when show_connection_info is enabled (Settings → User Interfaces → HUD)
+                // In singleplayer, show "Local" instead of "Insecure" since
+                // localhost doesn't need network encryption.
                 if (m_flags.show_connection_info) {
-                        os << " | "
-                           << (m_security_info.isSecure() ? "Secure" : "Insecure");
+                        if (m_singleplayer_mode)
+                                os << " | Local";
+                        else
+                                os << " | "
+                                   << (m_security_info.isSecure() ? "Secure" : "Insecure");
                 }
 
                 m_guitext->setRelativePosition(core::rect<s32>(5, 5, screensize.X, screensize.Y));
@@ -478,17 +483,17 @@ void GameUI::toggleHud()
 
 void GameUI::toggleProfiler()
 {
-	m_profiler_current_page = (m_profiler_current_page + 1) % (m_profiler_max_page + 1);
+        m_profiler_current_page = (m_profiler_current_page + 1) % (m_profiler_max_page + 1);
 
-	// Only update profiler when it's being displayed, not when hiding
-	if (m_profiler_current_page != 0) {
-		updateProfiler();
-		std::wstring msg = fwgettext("Profiler shown (page %d of %d)",
-				m_profiler_current_page, m_profiler_max_page);
-		showStatusText(msg);
-	} else {
-		showTranslatedStatusText("Profiler hidden");
-	}
+        // Only update profiler when it's being displayed, not when hiding
+        if (m_profiler_current_page != 0) {
+                updateProfiler();
+                std::wstring msg = fwgettext("Profiler shown (page %d of %d)",
+                                m_profiler_current_page, m_profiler_max_page);
+                showStatusText(msg);
+        } else {
+                showTranslatedStatusText("Profiler hidden");
+        }
 }
 
 void GameUI::clearText()
