@@ -372,35 +372,18 @@ public:
         /// Time when encryption was activated (unix timestamp)
         u64 activated_at = 0;
 
-        /// v9.13: Transition grace period fields.
-        /// After encryption activates, we may still receive a few plaintext
-        /// packets from the peer that were already in the network pipeline.
-        /// These are expected during the transition and should NOT be treated
-        /// as security violations or spam the error log.
-
-        /// Number of plaintext packets received after encryption activated
-        std::atomic<u32> transition_plaintext_count{0};
-
-        /// Whether we have already logged the transition-period summary
-        std::atomic<bool> transition_logged{false};
-
-        /// Maximum number of plaintext packets to accept during transition.
-        /// v9.14: Increased from 50 to 500 — world loading generates hundreds
-        /// of map block packets that arrive over several seconds.
-        static constexpr u32 TRANSITION_MAX_PLAINTEXT = 500;
-
-        /// Duration of the transition grace period in milliseconds.
-        /// v9.14: Increased from 2000 to 10000 — world loading on a localhost
-        /// or LAN connection can take several seconds, and pipeline packets
-        /// from before the server activated encryption can arrive for much
-        /// longer than 2 seconds.
-        static constexpr u64 TRANSITION_GRACE_PERIOD_MS = 10000;
-
-        /// Whether we have already logged the one-time post-grace-period warning.
-        /// v9.14: Prevents repeated ERROR spam after the grace period expires.
-        /// Instead of logging every 100th violation as ERROR, we log a single
-        /// WARNING once and then accept plaintext packets silently.
-        std::atomic<bool> transition_warning_logged{false};
+        /// v9.15: Grace period fields REMOVED.
+        /// The 0x80 encrypted flag byte is the SOLE determinant of whether
+        /// a packet is encrypted. If a packet has the 0x80 flag, it's encrypted.
+        /// If not, it's plaintext — regardless of whether encryption is active.
+        /// This eliminates the need for grace periods, transition counters,
+        /// and all the error spam they caused.
+        ///
+        /// Previous versions (v9.13/v9.14) used grace periods because they
+        /// checked `encryption_active` before the 0x80 flag, causing plaintext
+        /// packets to be treated as security violations during the transition.
+        /// The correct approach is: check the 0x80 flag FIRST. If absent,
+        /// always process as plaintext (no error, no grace period needed).
 
         /// Time of last encryption audit log (to avoid log spam)
         u64 last_audit_time_ms = 0;
@@ -432,26 +415,19 @@ public:
         /// Activate encryption after keys have been set.
         /// This should be called only after ensuring that any necessary
         /// plaintext packets (like AUTH_ACCEPT) have been queued/sent.
-        /// v9.13: Also resets transition grace period counters.
-        /// v9.14: Also resets transition_warning_logged.
+        /// v9.15: Grace period fields removed — the 0x80 flag alone
+        /// determines if a packet is encrypted, so no transition tracking needed.
         void activate()
         {
                 active.store(true, std::memory_order_release);
-                transition_plaintext_count.store(0, std::memory_order_release);
-                transition_logged.store(false, std::memory_order_release);
-                transition_warning_logged.store(false, std::memory_order_release);
         }
 
         /// Disable encryption (e.g., on disconnect or auth failure)
-        /// v9.13: Also resets transition grace period counters.
-        /// v9.14: Also resets transition_warning_logged.
+        /// v9.15: Grace period fields removed.
         void disable()
         {
                 active.store(false, std::memory_order_release);
                 ecdh_completed.store(false, std::memory_order_release);
-                transition_plaintext_count.store(0, std::memory_order_release);
-                transition_logged.store(false, std::memory_order_release);
-                transition_warning_logged.store(false, std::memory_order_release);
                 std::lock_guard<std::mutex> lock(m_mutex);
                 // Zero out sensitive key material
                 c2s.key.fill(0);
