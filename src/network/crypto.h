@@ -173,6 +173,15 @@ struct DirectionalEncryptionState
         /// Number of replay attempts detected in this direction
         u64 replay_attempts = 0;
 
+        // --- v9.9: Exact replay bitmap ---
+        // Tracks which counters within the sliding window have been seen.
+        // Each bit represents one counter position within the window.
+        // This prevents replay attacks WITHIN the sliding window,
+        // not just outside it.
+        static constexpr size_t REPLAY_WINDOW_SIZE = 64;
+        static constexpr size_t REPLAY_BITMAP_WORDS = REPLAY_WINDOW_SIZE / (sizeof(u64) * 8);
+        std::array<u64, REPLAY_BITMAP_WORDS> replay_bitmap{};
+
         /// Build the next nonce for this direction.
         /// Increments the counter after building.
         /// @return The 12-byte nonce to use for the next packet
@@ -185,38 +194,114 @@ struct DirectionalEncryptionState
                 return nonce;
         }
 
+        /// Mark a received counter as seen in the replay bitmap.
+        /// Call this when a packet passes the initial isNotReplay check.
+        ///
+        /// @param received_counter  The counter from the received packet
+        void markReceived(u64 received_counter)
+        {
+                // Calculate the bit position within the window
+                if (nonce_counter == 0) return;
+                i64 offset = static_cast<i64>(nonce_counter) - static_cast<i64>(received_counter) - 1;
+                if (offset >= 0 && offset < static_cast<i64>(REPLAY_WINDOW_SIZE)) {
+                        size_t word = static_cast<size_t>(offset) / 64;
+                        size_t bit = static_cast<size_t>(offset) % 64;
+                        if (word < REPLAY_BITMAP_WORDS) {
+                                replay_bitmap[word] |= (1ULL << bit);
+                        }
+                }
+        }
+
+        /// Check if a specific counter has already been seen (within the window).
+        ///
+        /// @param received_counter  The counter to check
+        /// @return true if this counter was already seen (replay detected)
+        bool isAlreadySeen(u64 received_counter) const
+        {
+                if (nonce_counter == 0) return false;
+                i64 offset = static_cast<i64>(nonce_counter) - static_cast<i64>(received_counter) - 1;
+                if (offset >= 0 && offset < static_cast<i64>(REPLAY_WINDOW_SIZE)) {
+                        size_t word = static_cast<size_t>(offset) / 64;
+                        size_t bit = static_cast<size_t>(offset) % 64;
+                        if (word < REPLAY_BITMAP_WORDS) {
+                                return (replay_bitmap[word] & (1ULL << bit)) != 0;
+                        }
+                }
+                return false;
+        }
+
+        /// Shift the replay bitmap when the high-water mark advances.
+        /// Call this after updateCounter() moves the counter forward.
+        ///
+        /// @param old_counter  The counter value before the update
+        /// @param new_counter  The counter value after the update
+        void shiftBitmap(u64 old_counter, u64 new_counter)
+        {
+                u64 shift = new_counter - old_counter;
+                if (shift == 0) return;
+
+                // If shift is larger than the window, clear the bitmap
+                if (shift >= REPLAY_WINDOW_SIZE) {
+                        replay_bitmap.fill(0);
+                        return;
+                }
+
+                // Shift the bitmap by 'shift' positions to the right
+                // (older entries move further from the high-water mark)
+                for (size_t i = REPLAY_BITMAP_WORDS; i > 0; i--) {
+                        size_t idx = i - 1;
+                        size_t word_shift = static_cast<size_t>(shift);
+                        size_t big_shift = word_shift / 64;
+                        size_t small_shift = word_shift % 64;
+
+                        u64 val = 0;
+                        if (idx >= big_shift) {
+                                val = replay_bitmap[idx - big_shift] >> small_shift;
+                                if (small_shift > 0 && idx > big_shift) {
+                                        val |= replay_bitmap[idx - big_shift - 1] << (64 - small_shift);
+                                }
+                        }
+                        replay_bitmap[idx] = val;
+                }
+        }
+
         /// Check if a received nonce counter is valid (not a replay).
-        /// Implements a simple sliding window check.
+        /// v9.9: Uses exact bitmap tracking within the sliding window.
         ///
         /// @param received_counter  The counter from the received packet
         /// @return true if the packet is not a replay
         bool isNotReplay(u64 received_counter) const
         {
-                // Allow packets up to 64 positions behind the latest seen counter
-                // (handles legitimate reordering)
-                constexpr u64 REPLAY_WINDOW = 64;
-
+                // Allow packets up to REPLAY_WINDOW_SIZE positions behind the latest seen counter
                 if (received_counter > nonce_counter) {
                         // Future packet — always accept (counter will be updated by caller)
                         return true;
                 }
 
-                if (nonce_counter - received_counter > REPLAY_WINDOW) {
+                if (nonce_counter - received_counter > REPLAY_WINDOW_SIZE) {
                         // Too far behind — likely a replay attack
                         return false;
                 }
 
-                // Within the acceptable window
+                // Within the acceptable window — check if already seen (v9.9)
+                if (isAlreadySeen(received_counter)) {
+                        // This counter was already received — replay!
+                        return false;
+                }
+
                 return true;
         }
 
         /// Update the high-water mark counter after accepting a packet.
+        /// Also shifts the replay bitmap.
         ///
         /// @param received_counter  The counter from the received packet
         void updateCounter(u64 received_counter)
         {
                 if (received_counter >= nonce_counter) {
+                        u64 old_counter = nonce_counter;
                         nonce_counter = received_counter + 1;
+                        shiftBitmap(old_counter, nonce_counter);
                 }
         }
 };
@@ -275,6 +360,15 @@ public:
         /// v9.1: The ECDH shared secret (kept for rekeying, zeroed on disconnect)
         std::array<u8, X25519_SHARED_SECRET_SIZE> ecdh_shared_secret{};
 
+        /// v9.9: HKDF salt used in key derivation (generated once per session)
+        std::array<u8, 16> hkdf_salt{};
+
+        /// v9.9: Number of key rotations performed in this session
+        u32 key_rotation_count = 0;
+
+        /// v9.9: Whether key rotation is supported (always true in v9.9+)
+        static constexpr bool KEY_ROTATION_SUPPORTED = true;
+
         /// Time when encryption was activated (unix timestamp)
         u64 activated_at = 0;
 
@@ -328,9 +422,23 @@ public:
                 ecdh_private_key.fill(0);
                 ecdh_public_key.fill(0);
                 ecdh_shared_secret.fill(0);
+                hkdf_salt.fill(0);
                 session_id.clear();
                 server_fingerprint.clear();
         }
+
+        /// v9.9: Rotate session keys using fresh ECDH key exchange.
+        ///
+        /// Performs a new X25519 key exchange and re-derives all encryption
+        /// keys. The old keys are securely zeroed. This provides forward
+        /// secrecy within a long-lived session — if a key is compromised,
+        /// only the packets encrypted with that key are affected.
+        ///
+        /// This should be called periodically (e.g., every 10 minutes or
+        /// every 1 million packets) to limit the impact of key compromise.
+        ///
+        /// @return true on success, false on failure
+        bool rotateKeys();
 };
 
 /// Convert binary data to hexadecimal string
