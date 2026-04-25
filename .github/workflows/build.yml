@@ -1,28 +1,69 @@
-name: Build & Deploy
+name: Clawtest Build
 
+# Single consolidated workflow for Clawtest
+# - Build (client + server) runs by default on every push/PR
+# - All other jobs are toggleable via workflow_dispatch inputs
 on:
   push:
-    branches: [main, 'v*']
+    branches: [main, master, 'v*', 'clawtest-*']
+  pull_request:
+    branches: [main, master, 'v*', 'clawtest-*']
   workflow_dispatch:
     inputs:
       build_type:
         description: 'Build type (Release/Debug)'
         required: false
         default: 'Release'
-      run_tests:
-        description: 'Run unit tests'
+        type: choice
+        options:
+          - Release
+          - Debug
+      build_client:
+        description: 'Build client binary'
         required: false
         type: boolean
         default: true
+      build_server:
+        description: 'Build server binary'
+        required: false
+        type: boolean
+        default: true
+      run_tests:
+        description: 'Run unit tests after build'
+        required: false
+        type: boolean
+        default: true
+      package_artifacts:
+        description: 'Package and upload build artifacts as zip'
+        required: false
+        type: boolean
+        default: true
+      cpp_lint:
+        description: 'Run clang-tidy C++ lint'
+        required: false
+        type: boolean
+        default: false
+      lua_lint:
+        description: 'Run Luacheck and Lua unit tests'
+        required: false
+        type: boolean
+        default: false
 
 env:
   BUILD_TYPE: ${{ github.event.inputs.build_type || 'Release' }}
+  BUILD_CLIENT: ${{ github.event.inputs.build_client || 'true' }}
+  BUILD_SERVER: ${{ github.event.inputs.build_server || 'true' }}
   RUN_TESTS: ${{ github.event.inputs.run_tests || 'true' }}
+  PACKAGE_ARTIFACTS: ${{ github.event.inputs.package_artifacts || 'true' }}
 
 jobs:
+  # ============================================================
+  # MAIN BUILD JOB - Always runs, this is the most important one
+  # ============================================================
   build:
-    name: Build on Ubuntu 24.04
+    name: Build (Ubuntu 24.04)
     runs-on: ubuntu-24.04
+    if: ${{ !inputs.cpp_lint && !inputs.lua_lint || inputs.build_client || inputs.build_server }}
 
     steps:
       - name: Checkout repository
@@ -30,19 +71,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine version tag
+      - name: Determine version
         id: version
         run: |
-          # Try to extract version from branch name (e.g. v7-foo -> v7)
-          BRANCH="${GITHUB_REF_NAME}"
-          VERSION_TAG="$(echo "$BRANCH" | sed -n 's/^\(v[0-9]*\).*/\1/p')"
-
-          # Fall back to git tag or generate from commit count
-          if [[ -z "$VERSION_TAG" ]]; then
-            VERSION_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo "v$(git rev-list --count HEAD)")"
+          # Read version from VERSION file
+          if [[ -f VERSION ]]; then
+            VERSION_TAG="v$(cat VERSION)"
+          else
+            VERSION_TAG="v0.0"
           fi
 
-          # Add build number for uniqueness
+          BRANCH="${GITHUB_REF_NAME}"
           BUILD_NUM="${GITHUB_RUN_NUMBER}"
           FULL_VERSION="${VERSION_TAG}-build${BUILD_NUM}"
 
@@ -67,53 +106,72 @@ jobs:
             zlib1g-dev libzstd-dev libsqlite3-dev libgmp-dev \
             libjsoncpp-dev libluajit-5.1-dev
 
-          # Client: Graphics & windowing (Ubuntu 24.04 uses libfreetype-dev)
-          sudo apt-get install -y \
-            libfreetype-dev libgl1-mesa-dev libsdl2-dev
+          # Client: Graphics & windowing
+          if [[ "${{ env.BUILD_CLIENT }}" == "true" ]]; then
+            sudo apt-get install -y \
+              libfreetype-dev libgl1-mesa-dev libsdl2-dev \
+              libopenal-dev libvorbis-dev libogg-dev \
+              libjpeg-dev libpng-dev gettext
+          fi
 
-          # Client: Audio
-          sudo apt-get install -y \
-            libopenal-dev libvorbis-dev libogg-dev
-
-          # Client: Images & i18n
-          sudo apt-get install -y \
-            libjpeg-dev libpng-dev gettext
-
-          # Client & Server: Networking
+          # Networking
           sudo apt-get install -y \
             libcurl4-openssl-dev
 
           # Server: Terminal
-          sudo apt-get install -y \
-            libncurses5-dev
+          if [[ "${{ env.BUILD_SERVER }}" == "true" ]]; then
+            sudo apt-get install -y \
+              libncurses5-dev
+          fi
 
-          # Optional: Encryption & spatial (needed for security features)
+          # Encryption & spatial
           sudo apt-get install -y \
             libssl-dev libspatialindex-dev
 
-      - name: Configure CMake (client + server)
+      - name: Configure CMake
         run: |
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DBUILD_CLIENT=TRUE \
-            -DBUILD_SERVER=TRUE \
-            -DRUN_IN_PLACE=TRUE \
-            -DBUILD_UNITTESTS=${{ env.RUN_TESTS }} \
+          CMAKE_ARGS=(
+            -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}"
+            -DCMAKE_INSTALL_PREFIX=/usr/local
+            -DRUN_IN_PLACE=TRUE
+            -DBUILD_UNITTESTS=${{ env.RUN_TESTS }}
             -DENABLE_LTO=FALSE
+          )
+
+          if [[ "${{ env.BUILD_CLIENT }}" == "true" ]]; then
+            CMAKE_ARGS+=(-DBUILD_CLIENT=TRUE)
+          else
+            CMAKE_ARGS+=(-DBUILD_CLIENT=FALSE)
+          fi
+
+          if [[ "${{ env.BUILD_SERVER }}" == "true" ]]; then
+            CMAKE_ARGS+=(-DBUILD_SERVER=TRUE)
+          else
+            CMAKE_ARGS+=(-DBUILD_SERVER=FALSE)
+          fi
+
+          echo "CMake arguments: ${CMAKE_ARGS[*]}"
+          cmake -B build "${CMAKE_ARGS[@]}"
 
       - name: Build
         run: cmake --build build -j "$(nproc)"
 
       - name: Run unit tests
         if: env.RUN_TESTS == 'true'
-        run: cmake --build build --target test
+        run: |
+          if [[ -x bin/luanti ]]; then
+            ./bin/luanti --run-unittests
+          elif [[ -x bin/luantiserver ]]; then
+            ./bin/luantiserver --run-unittests
+          else
+            cmake --build build --target test
+          fi
 
       - name: Verify binaries
         id: verify
         run: |
           echo "=== Built binaries ==="
-          ls -lh bin/ 2>/dev/null || { echo "ERROR: No bin/ directory found"; exit 1; }
+          ls -lh bin/ 2>/dev/null || echo "WARNING: No bin/ directory found"
 
           CLIENT_OK=0
           SERVER_OK=0
@@ -121,15 +179,11 @@ jobs:
           if [[ -x bin/luanti ]]; then
             echo "Client binary: $(file bin/luanti)"
             CLIENT_OK=1
-          else
-            echo "WARNING: Client binary not found at bin/luanti"
           fi
 
           if [[ -x bin/luantiserver ]]; then
             echo "Server binary: $(file bin/luantiserver)"
             SERVER_OK=1
-          else
-            echo "WARNING: Server binary not found at bin/luantiserver"
           fi
 
           echo "client_ok=$CLIENT_OK" >> "$GITHUB_OUTPUT"
@@ -141,9 +195,10 @@ jobs:
           fi
 
       - name: Package build artifacts
+        if: env.PACKAGE_ARTIFACTS == 'true'
         run: |
           VERSION="${{ steps.version.outputs.full_version }}"
-          ARTIFACT_DIR="luanti-${VERSION}"
+          ARTIFACT_DIR="clawtest-${VERSION}"
           mkdir -p "$ARTIFACT_DIR/bin"
 
           # Copy binaries
@@ -151,41 +206,29 @@ jobs:
             cp -r bin/* "$ARTIFACT_DIR/bin/" 2>/dev/null || true
           fi
 
-          # Copy essential runtime files that binaries need
-          for dir in builtin client fonts textures po irr; do
+          # Copy essential runtime files
+          for dir in builtin client fonts textures po irr games mods; do
             if [[ -d "$dir" ]]; then
               cp -r "$dir" "$ARTIFACT_DIR/"
             fi
           done
 
-          # Copy config and docs
+          # Copy config, docs, and scripts
           cp minetest.conf.example "$ARTIFACT_DIR/" 2>/dev/null || true
           cp README.md "$ARTIFACT_DIR/" 2>/dev/null || true
           cp LICENSE.txt "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp CMakeLists.txt "$ARTIFACT_DIR/" 2>/dev/null || true
-
-          # Copy our custom scripts and mods
-          cp build_linux.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp VERSION "$ARTIFACT_DIR/" 2>/dev/null || true
           cp start_server.sh "$ARTIFACT_DIR/" 2>/dev/null || true
           cp start_client.sh "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp test_start_server.sh "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp test_start_client.sh "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp luanti-project-map.md "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp ai-codebase-reference.md "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp ai-agent-instructions.md "$ARTIFACT_DIR/" 2>/dev/null || true
-
-          # Copy source for reproducibility
-          cp -r src "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp -r lib "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp -r cmake "$ARTIFACT_DIR/" 2>/dev/null || true
-          cp -r misc "$ARTIFACT_DIR/" 2>/dev/null || true
-
-          # Copy any mods directory
-          cp -r mods "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp test_encryption_toggle.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp build_linux.sh "$ARTIFACT_DIR/" 2>/dev/null || true
+          cp build_env.sh "$ARTIFACT_DIR/" 2>/dev/null || true
 
           # Write build metadata
           cat > "$ARTIFACT_DIR/BUILD_INFO.txt" <<EOF
-          Build Version:    ${VERSION}
+          Clawtest Build Info
+          ==================
+          Version:          ${VERSION}
           Build Type:       ${{ env.BUILD_TYPE }}
           Build Date:       $(date -u '+%Y-%m-%d %H:%M:%S UTC')
           Git Commit:       $(git rev-parse HEAD)
@@ -195,70 +238,87 @@ jobs:
           Client Built:     ${{ steps.verify.outputs.client_ok }}
           Server Built:     ${{ steps.verify.outputs.server_ok }}
           Unit Tests:       ${{ env.RUN_TESTS }}
+          Encryption:       Modular (AES-256-GCM with SRP, toggleable via secure_connection)
           EOF
           sed -i 's/^          //' "$ARTIFACT_DIR/BUILD_INFO.txt"
 
           # Create zip
-          zip -r "luanti-${VERSION}.zip" "$ARTIFACT_DIR"
+          zip -r "clawtest-${VERSION}.zip" "$ARTIFACT_DIR"
 
           echo ""
           echo "=== Package contents ==="
-          unzip -l "luanti-${VERSION}.zip" | tail -5
+          unzip -l "clawtest-${VERSION}.zip" | tail -5
 
       - name: Upload build artifact
+        if: env.PACKAGE_ARTIFACTS == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: luanti-${{ steps.version.outputs.full_version }}
-          path: luanti-${{ steps.version.outputs.full_version }}.zip
+          name: clawtest-${{ steps.version.outputs.full_version }}
+          path: clawtest-${{ steps.version.outputs.full_version }}.zip
           retention-days: 90
-
-      - name: Push to versioned build branch
-        if: success()
-        run: |
-          VERSION="${{ steps.version.outputs.full_version }}"
-          BRANCH_NAME="build/${VERSION}"
-
-          echo "Pushing build artifacts to branch: ${BRANCH_NAME}"
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Create the build branch from current HEAD
-          git checkout -b "$BRANCH_NAME"
-
-          # Add build artifacts (binaries + build dir metadata)
-          git add -f bin/ BUILD_INFO.txt 2>/dev/null || true
-
-          # Also add the build directory compile_commands etc. for reference
-          # but NOT intermediate object files (too large, not useful)
-          git add -f build/compile_commands.json 2>/dev/null || true
-          git add -f build/CMakeCache.txt 2>/dev/null || true
-
-          # Commit
-          git commit -m "build: ${VERSION} (client=${{ steps.verify.outputs.client_ok }}, server=${{ steps.verify.outputs.server_ok }})
-
-          Built from commit $(git rev-parse HEAD~1)
-          Build type: ${{ env.BUILD_TYPE }}
-          Runner: ubuntu-24.04
-          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
-          # Push the build branch
-          git push origin "$BRANCH_NAME"
-
-          echo ""
-          echo "Build branch pushed: ${BRANCH_NAME}"
-          echo "You can clone it with: git clone --branch ${BRANCH_NAME} ..."
 
       - name: Build summary
         if: always()
         run: |
           echo ""
           echo "============================================"
-          echo "  Luanti Build Summary"
+          echo "  Clawtest Build Summary"
           echo "============================================"
           echo "  Version:  ${{ steps.version.outputs.full_version }}"
           echo "  Client:   ${{ steps.verify.outputs.client_ok }}"
           echo "  Server:   ${{ steps.verify.outputs.server_ok }}"
-          echo "  Branch:   build/${{ steps.version.outputs.full_version }}"
+          echo "  Tests:    ${{ env.RUN_TESTS }}"
+          echo "  Packaged: ${{ env.PACKAGE_ARTIFACTS }}"
           echo "============================================"
+
+  # ============================================================
+  # OPTIONAL: C++ Lint (toggleable, default OFF)
+  # ============================================================
+  cpp_lint:
+    name: C++ Lint (clang-tidy)
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.inputs.cpp_lint == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          source ./util/ci/common.sh
+          install_linux_deps clang-tidy-15
+
+      - name: Run clang-tidy
+        run: |
+          ./util/ci/clang-tidy.sh
+
+  # ============================================================
+  # OPTIONAL: Lua Lint (toggleable, default OFF)
+  # ============================================================
+  lua_lint:
+    name: Lua Lint & Tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.lua_lint == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v12
+        with:
+          luaVersion: "5.1.5"
+      - uses: leafo/gh-actions-luarocks@v6
+
+      - name: Install LuaJIT
+        run: ./util/ci/build_luajit.sh
+
+      - name: Install luarocks tools
+        run: |
+          luarocks install --local luacheck
+          luarocks install --local busted
+
+      - name: Run checks (builtin)
+        run: |
+          $HOME/.luarocks/bin/luacheck builtin
+          $HOME/.luarocks/bin/busted builtin
+          $HOME/.luarocks/bin/busted builtin --lua=$HOME/LuaJIT/src/luajit
+
+      - name: Run checks (devtest)
+        run: |
+          $HOME/.luarocks/bin/luacheck --config=games/devtest/.luacheckrc games/devtest
