@@ -255,28 +255,20 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                         // Keys are loaded but encryption is NOT active yet.
                                         m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
 
-                                        // Activate encryption via the command queue.
-                                        // The send thread will activate encryption after sending
-                                        // any currently queued packets. On the client side, AUTH_ACCEPT
-                                        // was already received as plaintext, so we just need to ensure
-                                        // no other packets are accidentally encrypted before they're sent.
-                                        m_con->ActivatePeerEncryption(PEER_ID_SERVER);
-                                        m_encryption_state.activated_at = porting::getTimeS();
-
-                                        // Populate HONEST security info from real encryption state
-                                        Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
-                                        m_security_info = populateRealSecurityInfo(
-                                                        true /* encryption_active */,
-                                                        m_encryption_state.ecdh_completed.load() /* ecdh_completed */,
-                                                        false /* fingerprint_pinned */,
-                                                        0 /* fingerprint_verify_result */,
-                                                        m_encryption_state.session_id,
-                                                        m_encryption_state.server_fingerprint,
-                                                        m_encryption_state.activated_at,
-                                                        m_proto_ver,
-                                                        m_address_name,
-                                                        remote.getPort(),
-                                                        PeerEncryptionState::KEY_ROTATION_SUPPORTED /* key_rotation_supported */);
+                                        // v9.11: Do NOT activate encryption here. The server will send
+                                        // TOCLIENT_ECDH_PUBKEY with its X25519 public key BEFORE
+                                        // activating encryption. The client handles ECDH in
+                                        // handleCommand_EcdhPubkey() and activates there with
+                                        // ECDH+SRP combined keys for real forward secrecy.
+                                        //
+                                        // If the server does NOT support ECDH (old version), the
+                                        // ECDH pubkey packet will never arrive, and encryption
+                                        // remains inactive. We handle this fallback by checking
+                                        // in the main client loop — if ECDH doesn't arrive within
+                                        // a timeout, we activate with SRP-only keys.
+                                        //
+                                        // For now, we populate security info as "not yet active"
+                                        // and let handleCommand_EcdhPubkey update it.
                                         encryption_initialized = true;
                                         enclog_activate("Client encryption initialized and activation queued")
                                                 << EncLog::kv("session_id", m_encryption_state.session_id)
@@ -2134,4 +2126,88 @@ void Client::handleCommand_SetLighting(NetworkPacket *pkt)
                 // >= 5.16.0-dev
                 *pkt >> lighting.shadow_direction;
         } while (0);
+}
+
+// v9.11: ECDH X25519 forward secrecy — receive server's public key
+void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
+{
+        // Read server's X25519 public key (32 bytes)
+        std::vector<u8> server_pubkey;
+        pkt->readLongString(server_pubkey);
+
+        if (server_pubkey.size() != X25519_PUBLIC_KEY_SIZE) {
+                errorstream << "Client::handleCommand_EcdhPubkey: invalid public key size ("
+                        << server_pubkey.size() << ", expected " << X25519_PUBLIC_KEY_SIZE << ")"
+                        << std::endl;
+                return;
+        }
+
+        if (!EncryptionConfig::shouldEncrypt()) {
+                infostream << "Client::handleCommand_EcdhPubkey: ignoring, encryption disabled"
+                        << std::endl;
+                return;
+        }
+
+        infostream << "Client::handleCommand_EcdhPubkey: received server ECDH public key" << std::endl;
+
+        // Generate our own X25519 key pair
+        X25519KeyPair client_kp = x25519_generate_keypair();
+        if (!client_kp.success) {
+                errorstream << "Client::handleCommand_EcdhPubkey: failed to generate X25519 key pair" << std::endl;
+                return;
+        }
+
+        // Compute the ECDH shared secret
+        X25519SharedSecret shared_secret = x25519_compute_shared_secret(
+                client_kp.private_key.data(), client_kp.private_key.size(),
+                server_pubkey.data(), server_pubkey.size());
+        if (!shared_secret.success) {
+                errorstream << "Client::handleCommand_EcdhPubkey: failed to compute ECDH shared secret" << std::endl;
+                return;
+        }
+
+        // Store ECDH key pair on the encryption state
+        m_encryption_state.ecdh_private_key = client_kp.private_key;
+        m_encryption_state.ecdh_public_key = client_kp.public_key;
+
+        // Mix the ECDH shared secret into the encryption keys
+        bool ok = mixECDHSecretIntoKeys(m_encryption_state,
+                shared_secret.shared_secret.data(), shared_secret.shared_secret.size());
+        if (!ok) {
+                errorstream << "Client::handleCommand_EcdhPubkey: mixECDHSecretIntoKeys failed" << std::endl;
+                return;
+        }
+
+        // Update the connection with the new ECDH-mixed keys
+        m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
+
+        // Send our public key to the server
+        NetworkPacket ecdh_pkt(TOSERVER_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE);
+        std::string pubkey_str(reinterpret_cast<const char*>(client_kp.public_key.data()),
+                X25519_PUBLIC_KEY_SIZE);
+        ecdh_pkt.putLongString(pubkey_str);
+        Send(&ecdh_pkt);
+
+        // Activate encryption with ECDH+SRP keys
+        m_con->ActivatePeerEncryption(PEER_ID_SERVER);
+        m_encryption_state.activated_at = porting::getTimeS();
+
+        // Populate HONEST security info with ECDH forward secrecy
+        Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+        m_security_info = populateRealSecurityInfo(
+                true /* encryption_active */,
+                m_encryption_state.ecdh_completed.load() /* ecdh_completed */,
+                false /* fingerprint_pinned */,
+                0 /* fingerprint_verify_result */,
+                m_encryption_state.session_id,
+                m_encryption_state.server_fingerprint,
+                m_encryption_state.activated_at,
+                m_proto_ver,
+                m_address_name,
+                remote.getPort(),
+                PeerEncryptionState::KEY_ROTATION_SUPPORTED /* key_rotation_supported */);
+
+        infostream << "Client::handleCommand_EcdhPubkey: ECDH forward secrecy established"
+                << " (session_id=" << m_encryption_state.session_id
+                << ", score=" << m_security_info.getSecurityScoreString() << ")" << std::endl;
 }

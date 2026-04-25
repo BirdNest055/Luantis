@@ -711,7 +711,16 @@ enum ToClientCommand : u16
                         u8[len] serialized ParticleParameters
         */
 
-        TOCLIENT_NUM_MSG_TYPES = 0x65,
+        TOCLIENT_ECDH_PUBKEY = 0x65,
+        /*
+                v9.11: Server sends its X25519 public key for forward secrecy.
+                This packet is sent after AUTH_ACCEPT, before encryption activation,
+                so it is in plaintext.
+
+                u8[32] server_x25519_public_key
+        */
+
+        TOCLIENT_NUM_MSG_TYPES = 0x66,
 };
 
 enum ToServerCommand : u16
@@ -918,7 +927,16 @@ enum ToServerCommand : u16
                 v2f32 max_fs_info
         */
 
-        TOSERVER_NUM_MSG_TYPES = 0x54,
+        TOSERVER_ECDH_PUBKEY = 0x54,
+        /*
+                v9.11: Client sends its X25519 public key for forward secrecy.
+                This packet is sent after receiving TOCLIENT_ECDH_PUBKEY,
+                before encryption activation, so it is in plaintext.
+
+                u8[32] client_x25519_public_key
+        */
+
+        TOSERVER_NUM_MSG_TYPES = 0x55,
 };
 
 enum AuthMechanism

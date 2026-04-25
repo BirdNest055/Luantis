@@ -216,6 +216,7 @@ public:
         void handleCommand_MinimapModes(NetworkPacket *pkt);
         void handleCommand_SetLighting(NetworkPacket *pkt);
         void handleCommand_Camera(NetworkPacket* pkt);
+        void handleCommand_EcdhPubkey(NetworkPacket *pkt); // v9.11 forward secrecy
 
         void ProcessData(NetworkPacket *pkt);
 
