@@ -5,6 +5,7 @@ set(common_network_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/address.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/connection.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/crypto.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/encryption_config.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mtp/impl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mtp/threads.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/networkpacket.cpp

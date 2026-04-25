@@ -23,6 +23,7 @@
 #include "network/networkpacket.h"
 #include "network/networkprotocol.h"
 #include "network/serveropcodes.h"
+#include "network/encryption_config.h"
 #include "server/player_sao.h"
 #include "server/serverinventorymgr.h"
 #include "util/auth.h"
@@ -258,28 +259,12 @@ void Server::handleCommand_Init(NetworkPacket* pkt)
 
         NetworkPacket resp_pkt(TOCLIENT_HELLO, 0, peer_id);
 
-        // v9: Compute security flags HONESTLY.
-        // At this point (TOCLIENT_HELLO), SRP auth hasn't happened yet,
-        // so we can't claim the connection is encrypted. We only set
-        // ENCRYPTION_SUPPORTED to indicate that we WILL encrypt after auth.
-        // The actual ENCRYPTED flag will be verified client-side after
-        // SRP key exchange succeeds and encryption is activated.
-        u8 security_flags = 0;
-        if (g_settings->getBool("secure_connection")) {
-                // We support encryption — it will be activated after SRP auth
-                security_flags |= ConnectionSecurityFlags::ENCRYPTION_SUPPORTED;
-                // We support authentication via SRP
-                security_flags |= ConnectionSecurityFlags::AUTHENTICATED;
-        }
-        // NOTE: We do NOT set ENCRYPTED, FORWARD_SECRECY, or REPLAY_PROTECTED
-        // here because:
-        // - ENCRYPTED: Not true yet — encryption activates after SRP auth
-        // - FORWARD_SECRECY: SRP-derived keys don't provide PFS (honest)
-        // - REPLAY_PROTECTED: True after encryption activates, not before
-        // These flags will be accurately reflected in the security info
-        // that's populated AFTER authentication succeeds.
-        if (g_settings->getBool("enable_ipv6"))
-                security_flags |= ConnectionSecurityFlags::ENCRYPTION_SUPPORTED;
+        // v9.3: Use modular encryption config for security flags.
+        // All encryption policy decisions go through EncryptionConfig.
+        // When secure_connection = false, no flags are advertised.
+        // When secure_connection = true, ENCRYPTION_SUPPORTED and AUTHENTICATED
+        // are set. The actual ENCRYPTED flag is set after SRP auth succeeds.
+        u8 security_flags = EncryptionConfig::getSecurityFlags();
 
         resp_pkt << serialization_ver << u16(0) /* unused */
                 << net_proto_version
@@ -1807,7 +1792,17 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
                         << EncLog::kv("expected", (u32)SRP_SESSION_KEY_SIZE)
                         << EncLog::kv("key_present", session_key ? "yes" : "no")
                         << std::endl;
-                if (session_key && key_len == SRP_SESSION_KEY_SIZE) {
+
+                // v9.3: Use modular encryption config for encryption policy.
+                // See encryption_config.h for the centralized toggle.
+
+                if (!EncryptionConfig::shouldEncrypt()) {
+                        // v9.3: Use modular encryption config.
+                        // In insecure mode, SRP still runs for password authentication,
+                        // but the session key is NOT used to activate AES-256-GCM encryption.
+                        EncryptionConfig::logEncryptionDecision(peer_id, true, false);
+                        client->encryption_state.disable();
+                } else if (session_key && key_len == SRP_SESSION_KEY_SIZE) {
                         bool ok = client->encryption_state.initFromSRPSessionKey(
                                 session_key, key_len, true /* is_server=true */);
                         if (ok) {

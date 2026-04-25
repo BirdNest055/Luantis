@@ -28,6 +28,7 @@
 #include "network/connection.h"
 #include "network/connection_security.h"
 #include "network/crypto.h"
+#include "network/encryption_config.h"
 #include "network/encryption_log.h"
 #include "network/networkpacket.h"
 #include "settings.h"
@@ -237,7 +238,16 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                 << EncLog::kv("expected", (u32)SRP_SESSION_KEY_SIZE)
                                 << EncLog::kv("key_present", session_key ? "yes" : "no")
                                 << std::endl;
-                        if (session_key && key_len == SRP_SESSION_KEY_SIZE) {
+
+                        // v9.3: Use modular encryption config for encryption policy.
+                        // See encryption_config.h for the centralized toggle.
+
+                        if (!EncryptionConfig::shouldEncrypt()) {
+                                // In insecure mode, SRP still runs for password authentication,
+                                // but the session key is NOT used to activate AES-256-GCM encryption.
+                                EncryptionConfig::logEncryptionDecision(0, false, false);
+                                m_encryption_state.disable();
+                        } else if (session_key && key_len == SRP_SESSION_KEY_SIZE) {
                                 bool ok = m_encryption_state.initFromSRPSessionKey(
                                         session_key, key_len, false /* is_server=false */);
                                 if (ok) {

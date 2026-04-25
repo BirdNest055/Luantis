@@ -987,10 +987,12 @@ update_information_url (Update information URL) string https://www.luanti.org/re
 [Security Info] [client]
 
 #    Enable secure (encrypted) connection for game traffic.
-#    When enabled, the server advertises to clients that the connection is
-#    encrypted, and clients will not show the "INSECURE CONNECTION" warning overlay.
-#    Currently this only sets a protocol flag; actual transport encryption
-#    will be added in a future release.
+#    When enabled (true), AES-256-GCM encryption is activated after SRP
+#    authentication, and all game traffic is encrypted.
+#    When disabled (false), SRP authentication still runs for password
+#    verification, but the session key is NOT used for encryption — all
+#    game traffic is sent as plaintext. Use false only for testing or
+#    development on trusted networks.
 secure_connection (Secure connection) [client] bool true
 
 #    Show the security overlay warning when the connection is insecure.
