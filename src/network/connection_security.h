@@ -5,6 +5,7 @@
 #pragma once
 
 #include "irrlichttypes.h"
+#include <ctime>
 #include <string>
 
 // Security flags sent in TOCLIENT_HELLO (bitfield in u8 security_flags)

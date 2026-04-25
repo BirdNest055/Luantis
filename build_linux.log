@@ -1,11 +1,10 @@
 === Luanti Build Script ===
-Started: Sat Apr 25 10:51:46 AM CEST 2026
-Distribution: ubuntu
-Build: CLIENT=1 SERVER=0 TYPE=Release
+Started: Sat Apr 25 10:20:40 UTC 2026
+Distribution: debian
+Build: CLIENT=1 SERVER=1 TYPE=Release
 
-[0;32m[BUILD][0m Selected: Both client and server
 [0;34m[INFO][0m Luanti Build Configuration:
-[0;34m[INFO][0m   Distribution:    ubuntu
+[0;34m[INFO][0m   Distribution:    debian
 [0;34m[INFO][0m   Build client:    yes
 [0;34m[INFO][0m   Build server:    yes
 [0;34m[INFO][0m   Build type:      Release
@@ -14,17 +13,17 @@ Build: CLIENT=1 SERVER=0 TYPE=Release
 [0;34m[INFO][0m   Run after build: no
 [0;34m[INFO][0m   Prefix:          /usr/local
 [0;34m[INFO][0m   Jobs:            4
-[0;34m[INFO][0m   Run in place:    no
+[0;34m[INFO][0m   Run in place:    yes
 [0;34m[INFO][0m   LTO:             no
 [0;34m[INFO][0m   Prometheus:      no
-[0;34m[INFO][0m   Interactive:     yes
-[0;36m[STEP][0m Preparing build dependencies...
-[0;34m[INFO][0m Skipping dependency installation.
+[0;34m[INFO][0m   Interactive:     no
+[0;34m[INFO][0m Skipping initial dependency menu (--no-deps).
+[0;34m[INFO][0m Dependencies will still be verified before build.
 [0;36m[STEP][0m Verifying build dependencies...
 [0;32m[BUILD][0m All required dependencies verified.
 [0;36m[STEP][0m Configuring build...
--- The C compiler identification is GNU 13.3.0
--- The CXX compiler identification is GNU 13.3.0
+-- The C compiler identification is GNU 14.2.0
+-- The CXX compiler identification is GNU 14.2.0
 -- Detecting C compiler ABI info
 -- Detecting C compiler ABI info - done
 -- Check for working C compiler: /usr/bin/cc - skipped
@@ -41,25 +40,25 @@ Build: CLIENT=1 SERVER=0 TYPE=Release
 -- BUILD_UNITTESTS: FALSE
 -- BUILD_BENCHMARKS: FALSE
 -- BUILD_DOCUMENTATION: TRUE
--- RUN_IN_PLACE: FALSE
+-- RUN_IN_PLACE: TRUE
 -- Performing Test SUPPORTS_W_MISMATCHED_TAGS
 -- Performing Test SUPPORTS_W_MISMATCHED_TAGS - Success
 -- OpenGL (legacy): ON
 -- OpenGL 3: ON
 -- OpenGL ES 2: OFF
--- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.3")  
--- Found JPEG: /usr/lib/x86_64-linux-gnu/libjpeg.so (found version "80") 
--- Found PNG: /usr/lib/x86_64-linux-gnu/libpng.so (found version "1.6.43") 
--- Found OpenGL: /usr/lib/x86_64-linux-gnu/libOpenGL.so   
+-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.3.1")
+-- Found JPEG: /usr/lib/x86_64-linux-gnu/libjpeg.so (found version "62")
+-- Found PNG: /usr/lib/x86_64-linux-gnu/libpng.so (found version "1.6.48")
+-- Found OpenGL: /home/z/my-project/local-prefix/usr/lib/x86_64-linux-gnu/libOpenGL.so
 -- Found SDL2: SDL2::SDL2
 -- Performing Test CHECK_SDL_VERSION
 -- Performing Test CHECK_SDL_VERSION - Success
 -- LTO/IPO is enabled
 -- Using GMP provided by system.
--- Found GMP: /usr/lib/x86_64-linux-gnu/libgmp.so  
+-- Found GMP: /usr/lib/x86_64-linux-gnu/libgmp.so
 -- Using JsonCpp provided by system.
--- Found Json: /usr/lib/x86_64-linux-gnu/libjsoncpp.so (Required is at least version "1.0.0") 
--- Found LuaJIT: /usr/lib/x86_64-linux-gnu/libluajit-5.1.so  
+-- Found Json: /home/z/my-project/local-prefix/usr/lib/x86_64-linux-gnu/libjsoncpp.so (Required is at least version "1.0.0")
+-- Found LuaJIT: /home/z/my-project/local-prefix/usr/lib/x86_64-linux-gnu/libluajit-5.1.so
 -- Using LuaJIT
 -- Looking for include file endian.h
 -- Looking for include file endian.h - found
@@ -73,35 +72,32 @@ Build: CLIENT=1 SERVER=0 TYPE=Release
 -- Looking for C++ include stddef.h - found
 -- Check size of size_t
 -- Check size of size_t - done
--- Found CURL: /usr/lib/x86_64-linux-gnu/libcurl.so (Required is at least version "7.28.0") 
+-- Found CURL: /usr/lib/x86_64-linux-gnu/libcurl.so (Required is at least version "7.28.0")
 -- cURL support enabled.
--- Found Intl: built in to C library  
--- Found GettextLib: /usr/bin/msgfmt  
--- GetText enabled; locales found: ar;az;bar;be;bg;br;ca;cs;cy;da;de;dv;el;eo;es;es_US;et;eu;fa;fi;fil;fr;ga;gd;gl;he;hi;hu;hy;id;io;isv;it;ja;jbo;jv;kab;kk;kmr;kn;ko;kv;ky;lt;lv;lzh;mi;mn;mr;ms;ms_Arab;nb;nl;nn;oc;pl;pt;pt_BR;ro;ru;sk;sl;sr;sr_Cyrl;sr_Latn;sv;sw;ta;th;tl;tok;tr;tt;uk;vi;zh_CN;zh_TW
--- Found OpenAL: /usr/lib/x86_64-linux-gnu/libopenal.so  
--- Found Vorbis: /usr/include  
+-- Found Intl: built in to C library
+-- Could NOT find GettextLib (missing: GETTEXT_MSGFMT) 
+-- Found OpenAL: /home/z/my-project/local-prefix/usr/lib/x86_64-linux-gnu/libopenal.so
+-- Found Vorbis: /usr/include
 -- Sound enabled.
--- Found Freetype: /usr/lib/x86_64-linux-gnu/libfreetype.so (found version "2.13.2") 
--- Looking for cbreak in /usr/lib/x86_64-linux-gnu/libncursesw.so
--- Looking for cbreak in /usr/lib/x86_64-linux-gnu/libncursesw.so - found
--- Found Ncursesw: /usr/lib/x86_64-linux-gnu/libncursesw.so  
--- ncurses console enabled.
--- Found PostgreSQL: /usr/lib/x86_64-linux-gnu/libpq.so (found version "16.13")  
+-- Found Freetype: /usr/lib/x86_64-linux-gnu/libfreetype.so (found version "2.13.3")
+-- Could NOT find Curses (missing: CURSES_LIBRARY CURSES_INCLUDE_PATH) 
+-- ncurses not found!
+-- Found PostgreSQL: /usr/lib/x86_64-linux-gnu/libpq.so (found version "17.9")
 -- PostgreSQL backend enabled
 -- PostgreSQL includes: /usr/include/postgresql
--- LevelDB backend enabled.
--- Redis backend enabled.
--- Found SQLite3: /usr/lib/x86_64-linux-gnu/libsqlite3.so  
+-- LevelDB not found!
+-- Redis not found!
+-- Found SQLite3: /usr/lib/x86_64-linux-gnu/libsqlite3.so
 -- Prometheus client disabled.
--- SpatialIndex AreaStore backend enabled.
--- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found suitable version "3.0.13", minimum required is "3.0")  
+-- SpatialIndex not found!
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found suitable version "3.5.5", minimum required is "3.0")
 -- OpenSSL enabled: SHA hashing + AES-256-GCM transport encryption.
 -- Looking for ZSTD_initCStream
 -- Looking for ZSTD_initCStream - found
--- Found Zstd: /usr/lib/x86_64-linux-gnu/libzstd.so  
+-- Found Zstd: /usr/lib/x86_64-linux-gnu/libzstd.so
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
 -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE  
+-- Found Threads: TRUE
 -- Looking for clock_gettime in rt
 -- Looking for clock_gettime in rt - found
 -- Performing Test HAVE_LINK_ATOMIC
@@ -110,620 +106,376 @@ Build: CLIENT=1 SERVER=0 TYPE=Release
 -- Looking for strlcpy - found
 -- Looking for malloc_trim
 -- Looking for malloc_trim - found
--- Locale blacklist applied; Locales used: az;bar;be;bg;br;ca;cs;cy;da;de;el;eo;es;es_US;et;eu;fa;fi;fil;fr;ga;gd;gl;hu;hy;id;io;isv;it;ja;jbo;jv;kab;kk;kmr;ko;kv;ky;lt;lv;lzh;mi;mn;mr;ms;nb;nl;nn;oc;pl;pt;pt_BR;ro;ru;sk;sl;sr;sr_Cyrl;sr_Latn;sv;sw;ta;tl;tok;tr;tt;uk;vi;zh_CN;zh_TW
 -- Looking for luaopen_string_buffer
 -- Looking for luaopen_string_buffer - found
 -- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
--- Configuring done (4.4s)
+-- Configuring done (2.3s)
 -- Generating done (0.1s)
--- Build files have been written to: /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/build
+-- Build files have been written to: /home/z/my-project/Clawtest/build
 [0;32m[BUILD][0m CMake configuration succeeded.
 [0;36m[STEP][0m Building Luanti (Release, jobs=4)...
+[  0%] Building C object lib/lstrpack/CMakeFiles/lstrpack.dir/lstrpack.c.o
+[  0%] Building C object lib/sha256/CMakeFiles/sha256.dir/sha256.c.o
 [  0%] Built target tiniergltf
-[  1%] Building C object lib/sha256/CMakeFiles/sha256.dir/sha256.c.o
-[  1%] Building C object lib/lstrpack/CMakeFiles/lstrpack.dir/lstrpack.c.o
-[  2%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CNullDriver.cpp.o
-[  2%] Built target GenerateVersion
-[  2%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CFileList.cpp.o
-[  2%] Linking C static library liblstrpack.a
-[  2%] Linking C static library libsha256.a
-[  2%] Built target sha256
-[  2%] Built target lstrpack
-[  2%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CFileSystem.cpp.o
-[  2%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CEGLManager.cpp.o
+[  0%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CNullDriver.cpp.o
+[  0%] Linking C static library liblstrpack.a
+[  1%] Linking C static library libsha256.a
+[  1%] Built target lstrpack
+[  1%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CFileList.cpp.o
+[  1%] Built target sha256
+-- *** Detected Git version 5.16.1-v9.2-fb6265e-dirty ***
+[  1%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CIrrDeviceSDL.cpp.o
+[  1%] Built target GenerateVersion
+[  1%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIButton.cpp.o
+[  1%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CFileSystem.cpp.o
 [  2%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CLimitReadFile.cpp.o
+[  2%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUICheckBox.cpp.o
 [  2%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CMemoryFile.cpp.o
-[  2%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CIrrDeviceSDL.cpp.o
-[  2%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CSDLManager.cpp.o
 [  2%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CReadFile.cpp.o
+[  2%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CIrrDeviceStub.cpp.o
+[  3%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CEGLManager.cpp.o
+[  3%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CSDLManager.cpp.o
 [  3%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CWriteFile.cpp.o
 [  3%] Building CXX object irr/src/CMakeFiles/IRRIOOBJ.dir/CZipReader.cpp.o
-[  3%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/mt_opengl_loader.cpp.o
-[  3%] Built target IRRIOOBJ
-[  4%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CIrrDeviceStub.cpp.o
-[  4%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/HWBuffer.cpp.o
-[  4%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIButton.cpp.o
-[  4%] mo-update [az]: Creating mo file
-[  4%] mo-update [bar]: Creating mo file
-[  4%] mo-update [be]: Creating mo file
-[  5%] mo-update [bg]: Creating mo file
-[  5%] mo-update [br]: Creating mo file
-[  5%] mo-update [ca]: Creating mo file
-[  5%] mo-update [cs]: Creating mo file
-[  5%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CLogger.cpp.o
-[  5%] mo-update [cy]: Creating mo file
-[  6%] mo-update [da]: Creating mo file
-[  6%] mo-update [de]: Creating mo file
-[  6%] mo-update [el]: Creating mo file
-[  6%] mo-update [eo]: Creating mo file
-[  6%] mo-update [es]: Creating mo file
-[  6%] mo-update [es_US]: Creating mo file
-[  7%] mo-update [et]: Creating mo file
-[  7%] mo-update [eu]: Creating mo file
-[  7%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/COSOperator.cpp.o
-[  7%] mo-update [fa]: Creating mo file
-[  7%] mo-update [fi]: Creating mo file
-[  7%] mo-update [fil]: Creating mo file
-[  7%] mo-update [fr]: Creating mo file
-[  8%] mo-update [ga]: Creating mo file
-[  8%] mo-update [gd]: Creating mo file
-[  8%] mo-update [gl]: Creating mo file
-[  8%] mo-update [hu]: Creating mo file
-[  8%] mo-update [hy]: Creating mo file
-[  9%] mo-update [id]: Creating mo file
-[  9%] mo-update [io]: Creating mo file
-[  9%] mo-update [isv]: Creating mo file
-[  9%] mo-update [it]: Creating mo file
-[  9%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/Irrlicht.cpp.o
-[  9%] mo-update [ja]: Creating mo file
-[  9%] mo-update [jbo]: Creating mo file
-[ 10%] mo-update [jv]: Creating mo file
-[ 10%] mo-update [kab]: Creating mo file
-[ 10%] mo-update [kk]: Creating mo file
-[ 10%] mo-update [kmr]: Creating mo file
-[ 10%] mo-update [ko]: Creating mo file
-[ 11%] mo-update [kv]: Creating mo file
-[ 11%] mo-update [ky]: Creating mo file
-[ 11%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUICheckBox.cpp.o
-[ 11%] mo-update [lt]: Creating mo file
-[ 11%] mo-update [lv]: Creating mo file
-[ 11%] mo-update [lzh]: Creating mo file
-[ 11%] mo-update [mi]: Creating mo file
-[ 12%] mo-update [mn]: Creating mo file
-[ 12%] mo-update [mr]: Creating mo file
-[ 12%] mo-update [ms]: Creating mo file
-[ 12%] mo-update [nb]: Creating mo file
-[ 12%] mo-update [nl]: Creating mo file
-[ 13%] mo-update [nn]: Creating mo file
-[ 13%] mo-update [oc]: Creating mo file
-[ 13%] mo-update [pl]: Creating mo file
-[ 13%] mo-update [pt]: Creating mo file
-[ 13%] mo-update [pt_BR]: Creating mo file
-[ 13%] mo-update [ro]: Creating mo file
-[ 14%] mo-update [ru]: Creating mo file
-[ 14%] mo-update [sk]: Creating mo file
-[ 14%] mo-update [sl]: Creating mo file
-[ 14%] mo-update [sr]: Creating mo file
-[ 14%] mo-update [sr_Cyrl]: Creating mo file
-[ 15%] mo-update [sr_Latn]: Creating mo file
-[ 15%] mo-update [sv]: Creating mo file
-[ 15%] mo-update [sw]: Creating mo file
-[ 15%] mo-update [ta]: Creating mo file
-[ 15%] mo-update [tl]: Creating mo file
-[ 15%] mo-update [tok]: Creating mo file
-[ 15%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/os.cpp.o
-[ 16%] mo-update [tr]: Creating mo file
-[ 16%] mo-update [tt]: Creating mo file
-[ 16%] mo-update [uk]: Creating mo file
-[ 16%] mo-update [vi]: Creating mo file
-[ 16%] mo-update [zh_CN]: Creating mo file
-[ 17%] mo-update [zh_TW]: Creating mo file
-[ 17%] mo-update
-[ 17%] Built target translations
-[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/chat.cpp.o
-[ 17%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIComboBox.cpp.o
-[ 17%] Built target IRROTHEROBJ
-[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/content_nodemeta.cpp.o
-[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/convert_json.cpp.o
-[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/craftdef.cpp.o
-[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/debug.cpp.o
-[ 18%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIEditBox.cpp.o
-[ 18%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIEnvironment.cpp.o
-[ 19%] Building CXX object src/CMakeFiles/EngineCommon.dir/face_position_cache.cpp.o
-[ 19%] Building CXX object src/CMakeFiles/EngineCommon.dir/gettext_plural_form.cpp.o
-[ 19%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLCacheHandler.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLDriver.cpp.o
-[ 20%] Building CXX object src/CMakeFiles/EngineCommon.dir/httpfetch.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLSLMaterialRenderer.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIFileOpenDialog.cpp.o
-[ 20%] Building CXX object src/CMakeFiles/EngineCommon.dir/hud_element.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLExtensionHandler.cpp.o
-[ 20%] Building CXX object src/CMakeFiles/EngineCommon.dir/inventory.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIFont.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/WeightBuffer.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIImage.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/Driver.cpp.o
-[ 20%] Building CXX object src/CMakeFiles/EngineCommon.dir/itemstackmetadata.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/SkinnedMesh.cpp.o
-[ 20%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIListBox.cpp.o
-[ 21%] Building CXX object src/CMakeFiles/EngineCommon.dir/log.cpp.o
-[ 21%] Building CXX object src/CMakeFiles/EngineCommon.dir/metadata.cpp.o
-[ 21%] Building CXX object src/CMakeFiles/EngineCommon.dir/modchannels.cpp.o
-[ 22%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIScrollBar.cpp.o
-[ 22%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CMeshSceneNode.cpp.o
-[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/nameidmapping.cpp.o
-[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/nodemetadata.cpp.o
-[ 22%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/ExtensionHandler.cpp.o
-[ 22%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUISkin.cpp.o
-[ 23%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/AnimatedMeshSceneNode.cpp.o
-[ 23%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/FixedPipelineRenderer.cpp.o
-[ 24%] Building CXX object src/CMakeFiles/EngineCommon.dir/nodetimer.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/MaterialRenderer.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIStaticText.cpp.o
-[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/noise.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/Renderer2D.cpp.o
-[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/objdef.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/CLogger.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/COSOperator.cpp.o
+[  4%] Built target IRRIOOBJ
+[  4%] Building CXX object src/CMakeFiles/EngineCommon.dir/chat.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/mt_opengl_loader.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIComboBox.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/Irrlicht.cpp.o
+[  4%] Building CXX object src/CMakeFiles/EngineCommon.dir/content_nodemeta.cpp.o
+[  4%] Building CXX object irr/src/CMakeFiles/IRROTHEROBJ.dir/os.cpp.o
+[  4%] Built target IRROTHEROBJ
+[  4%] Building CXX object src/CMakeFiles/EngineCommon.dir/convert_json.cpp.o
+[  5%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIEditBox.cpp.o
+[  5%] Building CXX object src/CMakeFiles/EngineCommon.dir/craftdef.cpp.o
+[  6%] Building CXX object src/CMakeFiles/EngineCommon.dir/debug.cpp.o
+[  6%] Building CXX object src/CMakeFiles/EngineCommon.dir/face_position_cache.cpp.o
+[  6%] Building CXX object src/CMakeFiles/EngineCommon.dir/gettext_plural_form.cpp.o
+[  6%] Building CXX object src/CMakeFiles/EngineCommon.dir/httpfetch.cpp.o
+[  6%] Building CXX object src/CMakeFiles/EngineCommon.dir/hud_element.cpp.o
+[  6%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIEnvironment.cpp.o
+[  7%] Building CXX object src/CMakeFiles/EngineCommon.dir/inventory.cpp.o
+[  7%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/HWBuffer.cpp.o
+[  7%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLCacheHandler.cpp.o
+[  7%] Building CXX object src/CMakeFiles/EngineCommon.dir/itemstackmetadata.cpp.o
+[  8%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLDriver.cpp.o
+[  8%] Building CXX object src/CMakeFiles/EngineCommon.dir/log.cpp.o
+[  8%] Building CXX object src/CMakeFiles/EngineCommon.dir/metadata.cpp.o
+[  8%] Building CXX object src/CMakeFiles/EngineCommon.dir/modchannels.cpp.o
+[  9%] Building CXX object src/CMakeFiles/EngineCommon.dir/nameidmapping.cpp.o
+[  9%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIFileOpenDialog.cpp.o
+[  9%] Building CXX object src/CMakeFiles/EngineCommon.dir/nodemetadata.cpp.o
+[  9%] Building CXX object src/CMakeFiles/EngineCommon.dir/nodetimer.cpp.o
+[  9%] Building CXX object src/CMakeFiles/EngineCommon.dir/noise.cpp.o
+[  9%] Building CXX object src/CMakeFiles/EngineCommon.dir/objdef.cpp.o
+[ 10%] Building CXX object src/CMakeFiles/EngineCommon.dir/object_properties.cpp.o
+[ 10%] Building CXX object src/CMakeFiles/EngineCommon.dir/particles.cpp.o
+[ 10%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIFont.cpp.o
+[ 10%] Building CXX object src/CMakeFiles/EngineCommon.dir/profiler.cpp.o
+[ 10%] Building CXX object src/CMakeFiles/EngineCommon.dir/serialization.cpp.o
+[ 10%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLSLMaterialRenderer.cpp.o
+[ 10%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIImage.cpp.o
+[ 10%] Building CXX object src/CMakeFiles/EngineCommon.dir/settings.cpp.o
+[ 11%] Building CXX object src/CMakeFiles/EngineCommon.dir/sound_spec.cpp.o
+[ 11%] Building CXX object src/CMakeFiles/EngineCommon.dir/staticobject.cpp.o
+[ 11%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/COpenGLExtensionHandler.cpp.o
+[ 12%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIListBox.cpp.o
+[ 12%] Building CXX object src/CMakeFiles/EngineCommon.dir/terminal_chat_console.cpp.o
+[ 12%] Building CXX object src/CMakeFiles/EngineCommon.dir/texture_override.cpp.o
+[ 12%] Building CXX object src/CMakeFiles/EngineCommon.dir/tileanimation.cpp.o
+[ 12%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/Driver.cpp.o
+[ 13%] Building CXX object src/CMakeFiles/EngineCommon.dir/tool.cpp.o
+[ 13%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/address.cpp.o
+[ 13%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/connection.cpp.o
+[ 13%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/crypto.cpp.o
+[ 13%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIScrollBar.cpp.o
+[ 14%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/mtp/impl.cpp.o
+[ 14%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/mtp/threads.cpp.o
+[ 14%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUISkin.cpp.o
+[ 15%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/ExtensionHandler.cpp.o
+[ 15%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/networkpacket.cpp.o
+[ 15%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/networkprotocol.cpp.o
+[ 15%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/socket.cpp.o
+[ 15%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/FixedPipelineRenderer.cpp.o
+[ 16%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/content.cpp.o
+[ 16%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/mod_configuration.cpp.o
+[ 16%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIStaticText.cpp.o
+[ 16%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/MaterialRenderer.cpp.o
+[ 16%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/mods.cpp.o
+[ 16%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/subgames.cpp.o
+[ 16%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/Renderer2D.cpp.o
+[ 16%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUITabControl.cpp.o
+[ 16%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database.cpp.o
+[ 16%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/BufferObject.cpp.o
+[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-dummy.cpp.o
+[ 17%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-files.cpp.o
+[ 18%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL3/DriverGL3.cpp.o
+[ 18%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-leveldb.cpp.o
+[ 18%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-postgresql.cpp.o
+[ 19%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUISpriteBank.cpp.o
+[ 19%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CColorConverter.cpp.o
+[ 19%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImage.cpp.o
+[ 19%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderJPG.cpp.o
+[ 19%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIImageList.cpp.o
+[ 19%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-redis.cpp.o
+[ 20%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-sqlite3.cpp.o
+[ 20%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderPNG.cpp.o
+[ 21%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderTGA.cpp.o
+[ 21%] Built target IRRGUIOBJ
+[ 22%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/WeightBuffer.cpp.o
+[ 22%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageWriterJPG.cpp.o
+[ 22%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageWriterPNG.cpp.o
+[ 22%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/SkinnedMesh.cpp.o
+[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/event.cpp.o
+[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/thread.cpp.o
+[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/semaphore.cpp.o
+[ 22%] Built target IRRVIDEOOBJ
+[ 22%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/areastore.cpp.o
+[ 23%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/auth.cpp.o
+[ 23%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/base64.cpp.o
+[ 23%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/colorize.cpp.o
+[ 23%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/directiontables.cpp.o
+[ 23%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CMeshSceneNode.cpp.o
+[ 23%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/enriched_string.cpp.o
+[ 24%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/guid.cpp.o
+[ 24%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/hashing.cpp.o
+[ 24%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/ieee_float.cpp.o
+[ 24%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/AnimatedMeshSceneNode.cpp.o
+[ 24%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/metricsbackend.cpp.o
+[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/numeric.cpp.o
 [ 25%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CB3DMeshFileLoader.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUITabControl.cpp.o
-[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/object_properties.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL/BufferObject.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/OpenGL3/DriverGL3.cpp.o
-[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/particles.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUISpriteBank.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CColorConverter.cpp.o
-[ 25%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CGLTFMeshFileLoader.cpp.o
-[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/profiler.cpp.o
-[ 26%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImage.cpp.o
-[ 27%] Building CXX object irr/src/CMakeFiles/IRRGUIOBJ.dir/CGUIImageList.cpp.o
-[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/serialization.cpp.o
-[ 28%] Built target IRRGUIOBJ
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderJPG.cpp.o
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/COBJMeshFileLoader.cpp.o
-[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/settings.cpp.o
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderPNG.cpp.o
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageLoaderTGA.cpp.o
-[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/sound_spec.cpp.o
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageWriterJPG.cpp.o
-[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/staticobject.cpp.o
-[ 28%] Building CXX object irr/src/CMakeFiles/IRRVIDEOOBJ.dir/CImageWriterPNG.cpp.o
-[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/terminal_chat_console.cpp.o
+[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/pointedthing.cpp.o
+[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/pointabilities.cpp.o
+[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/quicktune.cpp.o
+[ 25%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/serialize.cpp.o
+[ 26%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/screenshot.cpp.o
+[ 26%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/sha1.cpp.o
+[ 26%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/string.cpp.o
+[ 27%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CGLTFMeshFileLoader.cpp.o
+[ 27%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/COBJMeshFileLoader.cpp.o
+[ 27%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/srp.cpp.o
+[ 27%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/timetaker.cpp.o
+[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/png.cpp.o
+[ 28%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/enum_string.cpp.o
 [ 28%] Building CXX object irr/src/CMakeFiles/IRRMESHOBJ.dir/CXMeshFileLoader.cpp.o
-[ 28%] Built target IRRVIDEOOBJ
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/texture_override.cpp.o
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/tileanimation.cpp.o
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/tool.cpp.o
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/address.cpp.o
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/connection.cpp.o
-[ 29%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/crypto.cpp.o
-[ 30%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/mtp/impl.cpp.o
-[ 30%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/mtp/threads.cpp.o
-[ 30%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/networkpacket.cpp.o
-[ 30%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/networkprotocol.cpp.o
-[ 30%] Building CXX object src/CMakeFiles/EngineCommon.dir/network/socket.cpp.o
-[ 31%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/content.cpp.o
-[ 31%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/mod_configuration.cpp.o
-[ 31%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/mods.cpp.o
-[ 31%] Building CXX object src/CMakeFiles/EngineCommon.dir/content/subgames.cpp.o
-[ 31%] Built target IRRMESHOBJ
+[ 28%] Built target EngineCommon
+[ 28%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/cavegen.cpp.o
+[ 28%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/dungeongen.cpp.o
+[ 28%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen.cpp.o
+[ 28%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_carpathian.cpp.o
+[ 29%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_flat.cpp.o
+[ 29%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_fractal.cpp.o
+[ 29%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_singlenode.cpp.o
+[ 29%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v5.cpp.o
+[ 29%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v6.cpp.o
+[ 30%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v7.cpp.o
+[ 30%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_valleys.cpp.o
+[ 30%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_biome.cpp.o
+[ 30%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_decoration.cpp.o
+[ 30%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_ore.cpp.o
+[ 31%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_schematic.cpp.o
+[ 31%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/treegen.cpp.o
+[ 31%] Building CXX object src/CMakeFiles/luantiserver.dir/network/serveropcodes.cpp.o
+[ 31%] Building CXX object src/CMakeFiles/luantiserver.dir/network/serverpackethandler.cpp.o
+[ 31%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_content.cpp.o
+[ 32%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_converter.cpp.o
+[ 32%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_internal.cpp.o
+[ 32%] Built target IRRMESHOBJ
 [ 32%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CBillboardSceneNode.cpp.o
-[ 32%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CCameraSceneNode.cpp.o
-[ 32%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CDummyTransformationSceneNode.cpp.o
-[ 32%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database.cpp.o
-[ 32%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CEmptySceneNode.cpp.o
-[ 32%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-dummy.cpp.o
-[ 33%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-files.cpp.o
-[ 33%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-leveldb.cpp.o
-[ 33%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CMeshManipulator.cpp.o
-[ 33%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-postgresql.cpp.o
-[ 33%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-redis.cpp.o
-[ 33%] Building CXX object src/CMakeFiles/EngineCommon.dir/database/database-sqlite3.cpp.o
-[ 34%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CSceneCollisionManager.cpp.o
-[ 34%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CSceneManager.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/event.cpp.o
-[ 35%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CMeshCache.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/thread.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/threading/semaphore.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/areastore.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/auth.cpp.o
-[ 35%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/base64.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/colorize.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/directiontables.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/enriched_string.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/guid.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/hashing.cpp.o
-[ 36%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/ieee_float.cpp.o
-[ 37%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/metricsbackend.cpp.o
-[ 37%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/numeric.cpp.o
-[ 37%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/pointedthing.cpp.o
-[ 37%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/pointabilities.cpp.o
-[ 37%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/quicktune.cpp.o
-[ 37%] Linking CXX static library libIrrlichtMt.a
-[ 37%] Built target IrrlichtMt
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/serialize.cpp.o
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/screenshot.cpp.o
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/sha1.cpp.o
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/string.cpp.o
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/timetaker.cpp.o
-[ 38%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/srp.cpp.o
-[ 39%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/png.cpp.o
-[ 39%] Building CXX object src/CMakeFiles/EngineCommon.dir/util/enum_string.cpp.o
-[ 39%] Built target EngineCommon
-[ 39%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/cavegen.cpp.o
-[ 39%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/dungeongen.cpp.o
-[ 39%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen.cpp.o
+[ 32%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_packer.cpp.o
+[ 32%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/helper.cpp.o
+[ 33%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_async.cpp.o
+[ 33%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_base.cpp.o
+[ 33%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_entity.cpp.o
+[ 33%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CCameraSceneNode.cpp.o
+[ 33%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_env.cpp.o
+[ 33%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_inventory.cpp.o
+[ 34%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_item.cpp.o
+[ 35%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CDummyTransformationSceneNode.cpp.o
+[ 35%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_mapgen.cpp.o
+[ 35%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CEmptySceneNode.cpp.o
+[ 35%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_modchannels.cpp.o
+[ 35%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_node.cpp.o
+[ 35%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_nodemeta.cpp.o
+[ 36%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_player.cpp.o
+[ 36%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CMeshManipulator.cpp.o
+[ 36%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_security.cpp.o
+[ 36%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_server.cpp.o
+[ 36%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_areastore.cpp.o
+[ 36%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_async.cpp.o
+[ 37%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_auth.cpp.o
+[ 37%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_base.cpp.o
+[ 37%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_craft.cpp.o
+[ 37%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CSceneCollisionManager.cpp.o
+[ 37%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CSceneManager.cpp.o
+[ 37%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_env.cpp.o
+[ 37%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_http.cpp.o
+[ 38%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_inventory.cpp.o
+[ 38%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_ipc.cpp.o
+[ 38%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_item.cpp.o
+[ 38%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_itemstackmeta.cpp.o
+[ 38%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_mapgen.cpp.o
+[ 39%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_metadata.cpp.o
+[ 40%] Building CXX object irr/src/CMakeFiles/IrrlichtMt.dir/CMeshCache.cpp.o
+[ 40%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_modchannels.cpp.o
+[ 40%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_nodemeta.cpp.o
+[ 40%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_nodetimer.cpp.o
+[ 40%] Linking CXX static library libIrrlichtMt.a
+[ 40%] Built target IrrlichtMt
 [ 40%] Building CXX object src/CMakeFiles/luanti.dir/client/activeobjectmgr.cpp.o
-[ 40%] Building CXX object src/CMakeFiles/luanti.dir/client/camera.cpp.o
-[ 40%] Building CXX object src/CMakeFiles/luanti.dir/client/client.cpp.o
-[ 40%] Building CXX object src/CMakeFiles/luanti.dir/client/clientenvironment.cpp.o
-[ 40%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_carpathian.cpp.o
-[ 41%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_flat.cpp.o
-[ 41%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_fractal.cpp.o
-[ 41%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_singlenode.cpp.o
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/client/client.cpp:15:17: warning: ‘SSCMMode getSSCMMode(const std::string&)’ defined but not used [-Wunused-function]
+[ 41%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_noise.cpp.o
+[ 42%] Building CXX object src/CMakeFiles/luanti.dir/client/camera.cpp.o
+[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_object.cpp.o
+[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_particles.cpp.o
+[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_playermeta.cpp.o
+[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_rollback.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_server.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luanti.dir/client/client.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_settings.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_storage.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_util.cpp.o
+[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_vmanip.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/script/scripting_emerge.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/script/scripting_server.cpp.o
+/home/z/my-project/Clawtest/src/client/client.cpp:15:17: warning: ‘SSCMMode getSSCMMode(const std::string&)’ defined but not used [-Wunused-function]
    15 | static SSCMMode getSSCMMode(const std::string &setting)
       |                 ^~~~~~~~~~~
-[ 41%] Building CXX object src/CMakeFiles/luanti.dir/client/clientlauncher.cpp.o
-[ 42%] Building CXX object src/CMakeFiles/luanti.dir/client/clientmap.cpp.o
-[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v5.cpp.o
-[ 42%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v6.cpp.o
-[ 42%] Building CXX object src/CMakeFiles/luanti.dir/client/clientmedia.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_v7.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luanti.dir/client/clientobject.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luanti.dir/client/clouds.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mapgen_valleys.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_biome.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_decoration.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luanti.dir/client/content_cao.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_ore.cpp.o
-[ 43%] Building CXX object src/CMakeFiles/luanti.dir/client/content_cso.cpp.o
-[ 44%] Building CXX object src/CMakeFiles/luanti.dir/client/content_mapblock.cpp.o
-[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/mg_schematic.cpp.o
-[ 44%] Building CXX object src/CMakeFiles/luanti.dir/client/filecache.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/mapgen/treegen.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luanti.dir/client/fontengine.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/network/serveropcodes.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luanti.dir/client/game.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/network/serverpackethandler.cpp.o
-[ 45%] Building CXX object src/CMakeFiles/luanti.dir/client/game_formspec.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/gameui.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_content.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_converter.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/guiscalingfilter.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/hud.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_internal.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/imagefilters.cpp.o
-[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/imagesource.cpp.o
-[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/c_packer.cpp.o
-[ 47%] Building CXX object src/CMakeFiles/luanti.dir/client/inputhandler.cpp.o
-[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/script/common/helper.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/item_visuals_manager.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/joystick_controller.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_async.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/keycode.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/localplayer.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/mapblock_mesh.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_base.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_entity.cpp.o
-[ 48%] Building CXX object src/CMakeFiles/luanti.dir/client/mesh.cpp.o
-[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_env.cpp.o
-[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_inventory.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/mesh_generator_thread.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/meshgen/collector.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_item.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/minimap.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_mapgen.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/mod_vfs.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/node_visuals.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_modchannels.cpp.o
-[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_node.cpp.o
-[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_nodemeta.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luanti.dir/client/particles.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_player.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_security.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luanti.dir/client/render/anaglyph.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/script/cpp_api/s_server.cpp.o
-[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_areastore.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_async.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_auth.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luanti.dir/client/render/core.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_base.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_craft.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luanti.dir/client/render/factory.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luanti.dir/client/render/pipeline.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_env.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luanti.dir/client/render/plain.cpp.o
-[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_http.cpp.o
-[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_inventory.cpp.o
-[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_ipc.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luanti.dir/client/render/secondstage.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_item.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_itemstackmeta.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luanti.dir/client/render/sidebyside.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luanti.dir/client/render/stereo.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luanti.dir/client/renderingengine.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_mapgen.cpp.o
-[ 55%] Building CXX object src/CMakeFiles/luanti.dir/client/shader.cpp.o
-[ 56%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_metadata.cpp.o
-[ 56%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_modchannels.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/dynamicshadows.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_nodemeta.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/dynamicshadowsrender.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_nodetimer.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/shadowsScreenQuad.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/shadowsshadercallbacks.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_noise.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/sky.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/sound.cpp.o
-[ 57%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_object.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/al_extensions.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/al_helpers.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/ogg_file.cpp.o
-[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/playing_sound.cpp.o
-[ 59%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_particles.cpp.o
-[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/proxy_sound_manager.cpp.o
-[ 59%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_playermeta.cpp.o
-[ 59%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_rollback.cpp.o
-[ 59%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_server.cpp.o
-[ 60%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/sound_data.cpp.o
-[ 60%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_settings.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_storage.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/sound_manager.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/sound_openal.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_util.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/script/lua_api/l_vmanip.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/sound_singleton.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/script/scripting_emerge.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/sound_maker.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/script/scripting_server.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luantiserver.dir/server/activeobjectmgr.cpp.o
-[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/texturepaths.cpp.o
-[ 62%] Building CXX object src/CMakeFiles/luantiserver.dir/server/ban.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luanti.dir/client/texturesource.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luanti.dir/client/tile.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luantiserver.dir/server/blockmodifier.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luantiserver.dir/server/clientiface.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luantiserver.dir/server/luaentity_sao.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luanti.dir/client/wieldmesh.cpp.o
-[ 63%] Building CXX object src/CMakeFiles/luantiserver.dir/server/mods.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luantiserver.dir/server/player_sao.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luantiserver.dir/server/rollback.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luanti.dir/gui/drawItemStack.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiAnimatedImage.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serveractiveobject.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serverinventorymgr.cpp.o
-[ 64%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serverlist.cpp.o
-[ 65%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiBackgroundImage.cpp.o
-[ 65%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiBox.cpp.o
-[ 65%] Building CXX object src/CMakeFiles/luantiserver.dir/server/unit_sao.cpp.o
-[ 65%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiButton.cpp.o
-[ 65%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiButtonImage.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/luantiserver.dir/clientdynamicinfo.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiButtonItemImage.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/luantiserver.dir/collision.cpp.o
-[ 66%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiButtonKey.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiChatConsole.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luantiserver.dir/content_mapnode.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luantiserver.dir/defaultsettings.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luantiserver.dir/emerge.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luantiserver.dir/environment.cpp.o
-[ 67%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiEditBoxWithScrollbar.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luantiserver.dir/filesys.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiEngine.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiFormSpecMenu.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiHyperText.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luantiserver.dir/gettext.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luantiserver.dir/inventorymanager.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luantiserver.dir/itemdef.cpp.o
-[ 68%] Building CXX object src/CMakeFiles/luantiserver.dir/light.cpp.o
-[ 69%] Building CXX object src/CMakeFiles/luantiserver.dir/main.cpp.o
-[ 69%] Building CXX object src/CMakeFiles/luantiserver.dir/map.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiInventoryList.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiItemImage.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiOpenURL.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luantiserver.dir/map_settings_manager.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luantiserver.dir/mapblock.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luantiserver.dir/mapnode.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiPasswordChange.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiPathSelectMenu.cpp.o
-[ 70%] Building CXX object src/CMakeFiles/luantiserver.dir/mapsector.cpp.o
-[ 71%] Building CXX object src/CMakeFiles/luantiserver.dir/nodedef.cpp.o
-[ 71%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiScene.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiScrollBar.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiScrollContainer.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luantiserver.dir/pathfinder.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luantiserver.dir/player.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiTable.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luantiserver.dir/porting.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luanti.dir/gui/guiVolumeChange.cpp.o
-[ 72%] Building CXX object src/CMakeFiles/luantiserver.dir/raycast.cpp.o
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp: In function ‘void porting::signal_handler(int)’:
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp:107:36: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  107 |                         (void)write(STDERR_FILENO, dbg_text, strlen(dbg_text));
-      |                               ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp:111:36: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  111 |                         (void)write(STDERR_FILENO, dbg_text, strlen(dbg_text));
-      |                               ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[ 72%] Building CXX object src/CMakeFiles/luanti.dir/gui/modalMenu.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luantiserver.dir/reflowscan.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luantiserver.dir/remoteplayer.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luantiserver.dir/rollback_interface.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luanti.dir/gui/profilergraph.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luantiserver.dir/server.cpp.o
-[ 73%] Building CXX object src/CMakeFiles/luantiserver.dir/serverenvironment.cpp.o
-[ 74%] Building CXX object src/CMakeFiles/luanti.dir/gui/statusTextHelper.cpp.o
-[ 74%] Building CXX object src/CMakeFiles/luanti.dir/gui/touchcontrols.cpp.o
-[ 74%] Building CXX object src/CMakeFiles/luantiserver.dir/servermap.cpp.o
-[ 74%] Building CXX object src/CMakeFiles/luanti.dir/gui/touchscreeneditor.cpp.o
-[ 75%] Building CXX object src/CMakeFiles/luantiserver.dir/translation.cpp.o
-[ 75%] Building CXX object src/CMakeFiles/luanti.dir/gui/touchscreenlayout.cpp.o
-[ 75%] Building CXX object src/CMakeFiles/luanti.dir/irrlicht_changes/CGUITTFont.cpp.o
-[ 75%] Building CXX object src/CMakeFiles/luantiserver.dir/version.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/irrlicht_changes/static_text.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luantiserver.dir/voxel.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luantiserver.dir/voxelalgorithms.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/cavegen.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/dungeongen.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen.cpp.o
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_carpathian.cpp.o
-[ 76%] Linking CXX executable /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/bin/luantiserver
-[ 76%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_flat.cpp.o
-[ 77%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_fractal.cpp.o
-[ 77%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_singlenode.cpp.o
-[ 77%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_v5.cpp.o
-[ 77%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_v6.cpp.o
-[ 77%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_v7.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mapgen_valleys.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mg_biome.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mg_decoration.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mg_ore.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/mg_schematic.cpp.o
-[ 78%] Building CXX object src/CMakeFiles/luanti.dir/mapgen/treegen.cpp.o
-[ 79%] Building CXX object src/CMakeFiles/luanti.dir/network/clientopcodes.cpp.o
-[ 79%] Building CXX object src/CMakeFiles/luanti.dir/network/clientpackethandler.cpp.o
-[ 79%] Building CXX object src/CMakeFiles/luanti.dir/network/serveropcodes.cpp.o
-[ 79%] Building CXX object src/CMakeFiles/luanti.dir/network/serverpackethandler.cpp.o
-[ 79%] Building CXX object src/CMakeFiles/luanti.dir/script/common/c_content.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/common/c_converter.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/common/c_internal.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/common/c_packer.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/common/helper.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_async.cpp.o
-[ 80%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_base.cpp.o
-[ 81%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_client.cpp.o
-[ 81%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_client_common.cpp.o
-[ 81%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_entity.cpp.o
-[ 81%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_env.cpp.o
-[ 81%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_inventory.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_item.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_mainmenu.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_mapgen.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_modchannels.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_node.cpp.o
-[ 82%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_nodemeta.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_pause_menu.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_player.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_security.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_server.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/cpp_api/s_sscsm.cpp.o
-[ 83%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_areastore.cpp.o
-[ 84%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_async.cpp.o
-[ 84%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_auth.cpp.o
-[ 84%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_base.cpp.o
-[ 84%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_camera.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/server/activeobjectmgr.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/server/ban.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luanti.dir/client/clientenvironment.cpp.o
+[ 44%] Building CXX object src/CMakeFiles/luantiserver.dir/server/blockmodifier.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/server/clientiface.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/server/luaentity_sao.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luanti.dir/client/clientlauncher.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/server/mods.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/server/player_sao.cpp.o
+[ 45%] Building CXX object src/CMakeFiles/luantiserver.dir/server/rollback.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serveractiveobject.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serverinventorymgr.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luanti.dir/client/clientmap.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/server/serverlist.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/server/unit_sao.cpp.o
+[ 46%] Building CXX object src/CMakeFiles/luantiserver.dir/clientdynamicinfo.cpp.o
+[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/collision.cpp.o
+[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/content_mapnode.cpp.o
+[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/defaultsettings.cpp.o
+[ 47%] Building CXX object src/CMakeFiles/luantiserver.dir/emerge.cpp.o
+[ 48%] Building CXX object src/CMakeFiles/luantiserver.dir/environment.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luanti.dir/client/clientmedia.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/filesys.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/gettext.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/inventorymanager.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luanti.dir/client/clientobject.cpp.o
+[ 49%] Building CXX object src/CMakeFiles/luantiserver.dir/itemdef.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/light.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/clouds.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/main.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/map.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/map_settings_manager.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luanti.dir/client/content_cao.cpp.o
+[ 50%] Building CXX object src/CMakeFiles/luantiserver.dir/mapblock.cpp.o
+[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/mapnode.cpp.o
+[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/mapsector.cpp.o
+[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/nodedef.cpp.o
+[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/pathfinder.cpp.o
+[ 51%] Building CXX object src/CMakeFiles/luantiserver.dir/player.cpp.o
+[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/porting.cpp.o
+[ 52%] Building CXX object src/CMakeFiles/luantiserver.dir/raycast.cpp.o
+[ 53%] Building CXX object src/CMakeFiles/luanti.dir/client/content_cso.cpp.o
+[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/reflowscan.cpp.o
+[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/remoteplayer.cpp.o
+[ 53%] Building CXX object src/CMakeFiles/luantiserver.dir/rollback_interface.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/server.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luanti.dir/client/content_mapblock.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/serverenvironment.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/servermap.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luanti.dir/client/filecache.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luanti.dir/client/fontengine.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/translation.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luanti.dir/client/game.cpp.o
+[ 54%] Building CXX object src/CMakeFiles/luantiserver.dir/version.cpp.o
+[ 55%] Building CXX object src/CMakeFiles/luantiserver.dir/voxel.cpp.o
+[ 55%] Building CXX object src/CMakeFiles/luantiserver.dir/voxelalgorithms.cpp.o
+[ 56%] Building CXX object src/CMakeFiles/luanti.dir/client/game_formspec.cpp.o
+[ 56%] Building CXX object src/CMakeFiles/luanti.dir/client/gameui.cpp.o
+[ 56%] Linking CXX executable /home/z/my-project/Clawtest/bin/luantiserver
+[ 56%] Building CXX object src/CMakeFiles/luanti.dir/client/guiscalingfilter.cpp.o
+[ 56%] Building CXX object src/CMakeFiles/luanti.dir/client/hud.cpp.o
+[ 56%] Building CXX object src/CMakeFiles/luanti.dir/client/imagefilters.cpp.o
+[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/imagesource.cpp.o
+[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/inputhandler.cpp.o
+[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/item_visuals_manager.cpp.o
+[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/joystick_controller.cpp.o
+[ 57%] Building CXX object src/CMakeFiles/luanti.dir/client/keycode.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/localplayer.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/mapblock_mesh.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/mesh.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/mesh_generator_thread.cpp.o
+[ 58%] Building CXX object src/CMakeFiles/luanti.dir/client/meshgen/collector.cpp.o
+[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/minimap.cpp.o
+[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/mod_vfs.cpp.o
+[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/node_visuals.cpp.o
+[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/particles.cpp.o
+[ 59%] Building CXX object src/CMakeFiles/luanti.dir/client/render/anaglyph.cpp.o
+[ 60%] Building CXX object src/CMakeFiles/luanti.dir/client/render/core.cpp.o
+[ 60%] Building CXX object src/CMakeFiles/luanti.dir/client/render/factory.cpp.o
+[ 60%] Building CXX object src/CMakeFiles/luanti.dir/client/render/pipeline.cpp.o
+[ 60%] Building CXX object src/CMakeFiles/luanti.dir/client/render/plain.cpp.o
+[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/render/secondstage.cpp.o
+[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/render/sidebyside.cpp.o
+[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/render/stereo.cpp.o
+[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/renderingengine.cpp.o
+[ 61%] Building CXX object src/CMakeFiles/luanti.dir/client/shader.cpp.o
+[ 62%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/dynamicshadows.cpp.o
+[ 62%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/dynamicshadowsrender.cpp.o
+[ 62%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/shadowsScreenQuad.cpp.o
+[ 62%] Building CXX object src/CMakeFiles/luanti.dir/client/shadows/shadowsshadercallbacks.cpp.o
+[ 62%] Building CXX object src/CMakeFiles/luanti.dir/client/sky.cpp.o
+[ 63%] Building CXX object src/CMakeFiles/luanti.dir/client/sound.cpp.o
+[ 63%] Building CXX object src/CMakeFiles/luanti.dir/client/sound/al_extensions.cpp.o
+In file included from /home/z/my-project/Clawtest/src/client/sound/al_extensions.h:7,
+                 from /home/z/my-project/Clawtest/src/client/sound/al_extensions.cpp:5:
+/home/z/my-project/Clawtest/src/client/sound/al_helpers.h:25:18: fatal error: AL/al.h: No such file or directory
+   25 |         #include <AL/al.h>
+      |                  ^~~~~~~~~
+compilation terminated.
+gmake[2]: *** [src/CMakeFiles/luanti.dir/build.make:779: src/CMakeFiles/luanti.dir/client/sound/al_extensions.cpp.o] Error 1
+gmake[2]: *** Waiting for unfinished jobs....
+gmake[1]: *** [CMakeFiles/Makefile2:944: src/CMakeFiles/luanti.dir/all] Error 2
+gmake[1]: *** Waiting for unfinished jobs....
 In function ‘string_to_enum’,
-    inlined from ‘read_hud_change’ at /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/script/common/c_content.cpp:2510:21,
-    inlined from ‘l_hud_change’ at /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/script/lua_api/l_object.cpp:1871:27:
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/util/enum_string.h:21:13: warning: ‘stat’ may be used uninitialized [-Wmaybe-uninitialized]
+    inlined from ‘read_hud_change’ at /home/z/my-project/Clawtest/src/script/common/c_content.cpp:2510:21,
+    inlined from ‘l_hud_change’ at /home/z/my-project/Clawtest/src/script/lua_api/l_object.cpp:1871:27:
+/home/z/my-project/Clawtest/src/util/enum_string.h:21:13: warning: ‘stat’ may be used uninitialized [-Wmaybe-uninitialized]
    21 |         int result_int = result;
       |             ^
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/script/lua_api/l_object.cpp: In function ‘l_hud_change’:
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/script/lua_api/l_object.cpp:1869:24: note: ‘stat’ was declared here
+/home/z/my-project/Clawtest/src/script/lua_api/l_object.cpp: In function ‘l_hud_change’:
+/home/z/my-project/Clawtest/src/script/lua_api/l_object.cpp:1869:24: note: ‘stat’ was declared here
  1869 |         HudElementStat stat;
       |                        ^
-[ 84%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_client.cpp.o
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_client_common.cpp.o
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_client_sound.cpp.o
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_craft.cpp.o
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_env.cpp.o
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_http.cpp.o
-[ 85%] Built target luantiserver
-[ 85%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_inventory.cpp.o
-[ 85%] Built target minetestserver_alias
-[ 86%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_ipc.cpp.o
-[ 86%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_item.cpp.o
-[ 86%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_itemstackmeta.cpp.o
-[ 86%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_localplayer.cpp.o
-[ 86%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_mainmenu.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_mainmenu_sound.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_mapgen.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_menu_common.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_metadata.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_minimap.cpp.o
-[ 87%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_modchannels.cpp.o
-[ 88%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_nodemeta.cpp.o
-[ 88%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_nodetimer.cpp.o
-[ 88%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_noise.cpp.o
-[ 88%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_object.cpp.o
-[ 88%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_particles.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_particles_local.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_pause_menu.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_playermeta.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_rollback.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_server.cpp.o
-[ 89%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_settings.cpp.o
-[ 90%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_sscsm.cpp.o
-[ 90%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_storage.cpp.o
-[ 90%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_util.cpp.o
-[ 90%] Building CXX object src/CMakeFiles/luanti.dir/script/lua_api/l_vmanip.cpp.o
-[ 90%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_client.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_emerge.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_mainmenu.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_pause_menu.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_server.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/scripting_sscsm.cpp.o
-[ 91%] Building CXX object src/CMakeFiles/luanti.dir/script/sscsm/sscsm_controller.cpp.o
-[ 92%] Building CXX object src/CMakeFiles/luanti.dir/script/sscsm/sscsm_environment.cpp.o
-[ 92%] Building CXX object src/CMakeFiles/luanti.dir/server/activeobjectmgr.cpp.o
-[ 92%] Building CXX object src/CMakeFiles/luanti.dir/server/ban.cpp.o
-[ 92%] Building CXX object src/CMakeFiles/luanti.dir/server/blockmodifier.cpp.o
-[ 92%] Building CXX object src/CMakeFiles/luanti.dir/server/clientiface.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/luaentity_sao.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/mods.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/player_sao.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/rollback.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/serveractiveobject.cpp.o
-[ 93%] Building CXX object src/CMakeFiles/luanti.dir/server/serverinventorymgr.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/server/serverlist.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/server/unit_sao.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/clientdynamicinfo.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/collision.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/content_mapnode.cpp.o
-[ 94%] Building CXX object src/CMakeFiles/luanti.dir/defaultsettings.cpp.o
-[ 95%] Building CXX object src/CMakeFiles/luanti.dir/emerge.cpp.o
-[ 95%] Building CXX object src/CMakeFiles/luanti.dir/environment.cpp.o
-[ 95%] Building CXX object src/CMakeFiles/luanti.dir/filesys.cpp.o
-[ 95%] Building CXX object src/CMakeFiles/luanti.dir/gettext.cpp.o
-[ 95%] Building CXX object src/CMakeFiles/luanti.dir/inventorymanager.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/itemdef.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/light.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/main.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/map.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/map_settings_manager.cpp.o
-[ 96%] Building CXX object src/CMakeFiles/luanti.dir/mapblock.cpp.o
-[ 97%] Building CXX object src/CMakeFiles/luanti.dir/mapnode.cpp.o
-[ 97%] Building CXX object src/CMakeFiles/luanti.dir/mapsector.cpp.o
-[ 97%] Building CXX object src/CMakeFiles/luanti.dir/nodedef.cpp.o
-[ 97%] Building CXX object src/CMakeFiles/luanti.dir/pathfinder.cpp.o
-[ 97%] Building CXX object src/CMakeFiles/luanti.dir/player.cpp.o
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/porting.cpp.o
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/raycast.cpp.o
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/reflowscan.cpp.o
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp: In function ‘void porting::signal_handler(int)’:
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp:107:36: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  107 |                         (void)write(STDERR_FILENO, dbg_text, strlen(dbg_text));
-      |                               ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/sunlight/Downloads/Clawtest_v9.2/Clawtest/src/porting.cpp:111:36: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  111 |                         (void)write(STDERR_FILENO, dbg_text, strlen(dbg_text));
-      |                               ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/remoteplayer.cpp.o
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/rollback_interface.cpp.o
-[ 98%] Building CXX object src/CMakeFiles/luanti.dir/server.cpp.o
-[ 99%] Building CXX object src/CMakeFiles/luanti.dir/serverenvironment.cpp.o
-[ 99%] Building CXX object src/CMakeFiles/luanti.dir/servermap.cpp.o
-[ 99%] Building CXX object src/CMakeFiles/luanti.dir/translation.cpp.o
-[ 99%] Building CXX object src/CMakeFiles/luanti.dir/version.cpp.o
-[ 99%] Building CXX object src/CMakeFiles/luanti.dir/voxel.cpp.o
-[100%] Building CXX object src/CMakeFiles/luanti.dir/voxelalgorithms.cpp.o
-[100%] Linking CXX executable /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/bin/luanti
-[100%] Built target luanti
-[100%] Built target minetest_alias
-[0;32m[BUILD][0m Compilation succeeded.
-[0;32m[BUILD][0m Build completed successfully!
-[0;34m[INFO][0m Build directory: /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/build
-[0;34m[INFO][0m Client binary:  /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/bin/luanti
-[0;34m[INFO][0m Server binary:  /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/bin/luantiserver
-[0;34m[INFO][0m To run the game:
-[0;34m[INFO][0m   ./build_linux.sh --run --no-deps
-[0;34m[INFO][0m   # or directly:
-[0;34m[INFO][0m   /home/sunlight/Downloads/Clawtest_v9.2/Clawtest/bin/luanti
-Finished: Sat Apr 25 11:05:44 AM CEST 2026
+In member function ‘deallocate’,
+    inlined from ‘deallocate’ at /usr/include/c++/14/bits/alloc_traits.h:550:23,
+    inlined from ‘_M_deallocate’ at /usr/include/c++/14/bits/stl_vector.h:389:19,
+    inlined from ‘__dt_base ’ at /usr/include/c++/14/bits/stl_vector.h:368:15,
+    inlined from ‘__dt_base ’ at /usr/include/c++/14/bits/stl_vector.h:738:7,
+    inlined from ‘runTimeouts’ at /home/z/my-project/Clawtest/src/network/mtp/threads.cpp:322:1:
+/usr/include/c++/14/bits/new_allocator.h:172:33: warning: ‘operator delete’ called on pointer ‘_614’ with nonzero offset [3, 9223372036854775806] [-Wfree-nonheap-object]
+  172 |         _GLIBCXX_OPERATOR_DELETE(_GLIBCXX_SIZED_DEALLOC(__p, __n));
+      |                                 ^
+In member function ‘allocate’,
+    inlined from ‘allocate’ at /usr/include/c++/14/bits/alloc_traits.h:515:28,
+    inlined from ‘_M_allocate’ at /usr/include/c++/14/bits/stl_vector.h:380:33,
+    inlined from ‘_M_create_storage’ at /usr/include/c++/14/bits/stl_vector.h:398:44,
+    inlined from ‘__ct ’ at /usr/include/c++/14/bits/stl_vector.h:334:26,
+    inlined from ‘__ct ’ at /usr/include/c++/14/bits/stl_vector.h:603:61,
+    inlined from ‘getPeerIDs’ at /home/z/my-project/Clawtest/src/network/mtp/impl.h:277:24,
+    inlined from ‘runTimeouts’ at /home/z/my-project/Clawtest/src/network/mtp/threads.cpp:219:67:
+/usr/include/c++/14/bits/new_allocator.h:151:55: note: returned from ‘operator new’
+  151 |         return static_cast<_Tp*>(_GLIBCXX_OPERATOR_NEW(__n * sizeof(_Tp)));
+      |                                                       ^
+[ 63%] Built target luantiserver
+gmake: *** [Makefile:156: all] Error 2
+[0;31m[ERROR][0m Build failed!
+[0;31m[ERROR][0m Check the log at: /home/z/my-project/Clawtest/build_linux.log
