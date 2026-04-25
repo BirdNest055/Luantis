@@ -272,10 +272,10 @@ test_08_version_string_correct() {
     local version_output
     version_output="$("$SERVER_BIN" --version 2>&1 || true)"
 
-    if echo "$version_output" | grep -q "v9.3"; then
-        pass "$test_name: version includes v9.3"
+    if echo "$version_output" | grep -q "v9.4"; then
+        pass "$test_name: version includes v9.4"
     else
-        fail "$test_name: version does not include v9.3: $(echo "$version_output" | head -1)"
+        fail "$test_name: version does not include v9.4: $(echo "$version_output" | head -1)"
     fi
 }
 
@@ -286,10 +286,10 @@ test_09_version_file_exists() {
     if [[ -f "$SCRIPT_DIR/VERSION" ]]; then
         local version_content
         version_content="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
-        if [[ "$version_content" == "9.3" ]]; then
-            pass "$test_name: VERSION file contains 9.3"
+        if [[ "$version_content" == "9.4" ]]; then
+            pass "$test_name: VERSION file contains 9.4"
         else
-            fail "$test_name: VERSION file contains '$version_content', expected '9.3'"
+            fail "$test_name: VERSION file contains '$version_content', expected '9.4'"
         fi
     else
         fail "$test_name: VERSION file not found"
@@ -388,7 +388,7 @@ test_14_settingtypes_documented() {
 main() {
     echo ""
     echo -e "${BOLD}+==================================================+${RESET}"
-    echo -e "${BOLD}|   Clawtest Encryption Toggle Test Suite v9.3      |${RESET}"
+    echo -e "${BOLD}|   Clawtest Encryption Toggle Test Suite v9.4      |${RESET}"
     echo -e "${BOLD}+==================================================+${RESET}"
     echo ""
 

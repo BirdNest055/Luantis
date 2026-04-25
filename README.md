@@ -1,13 +1,15 @@
 <div align="center">
     <img src="textures/base/pack/logo.png" width="32%">
-    <h1>Luanti (formerly Minetest)</h1>
-    <img src="https://github.com/luanti-org/luanti/workflows/build/badge.svg" alt="Build Status">
-    <a href="https://hosted.weblate.org/engage/minetest/?utm_source=widget"><img src="https://hosted.weblate.org/widgets/minetest/-/svg-badge.svg" alt="Translation status"></a>
+    <h1>Clawtest</h1>
+    <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
+    <img src="https://img.shields.io/badge/version-v9.3-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
+    <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
+    <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
 </div>
 <br>
 
-Luanti is a free open-source voxel game engine with easy modding and game creation.
+Clawtest is a fork of the [Luanti](https://github.com/luanti-org/luanti) voxel game engine with **real, verifiable encrypted communications** between server and client. Unlike the upstream Luanti, where `secure_connection` was security theater (flags without actual encryption), Clawtest implements **AES-256-GCM packet encryption** derived from the SRP authentication session key, with honest UI that accurately reports what protection exists and what does not.
 
 Copyright (C) 2010-2026 Perttu Ahola <celeron55@gmail.com>
 and contributors (see source file comments and the version control log)
@@ -15,24 +17,104 @@ and contributors (see source file comments and the version control log)
 Table of Contents
 ------------------
 
-1. [Further Documentation](#further-documentation)
-2. [Default Controls](#default-controls)
-3. [Paths](#paths)
-4. [Configuration File](#configuration-file)
-5. [Command-line Options](#command-line-options)
-6. [Compiling](#compiling)
-7. [Docker](#docker)
-8. [Version Scheme](#version-scheme)
+1. [What's Different from Luanti](#whats-different-from-luanti)
+2. [Encryption Architecture](#encryption-architecture)
+3. [Quick Start](#quick-start)
+4. [Default Controls](#default-controls)
+5. [Paths](#paths)
+6. [Configuration File](#configuration-file)
+7. [Command-line Options](#command-line-options)
+8. [Compiling](#compiling)
+9. [Docker](#docker)
+10. [Version Scheme](#version-scheme)
 
 
-Further documentation
-----------------------
-- Website: https://www.luanti.org/
-- Luanti Documentation: https://docs.luanti.org/
-- Forum: https://forum.luanti.org/
-- GitHub: https://github.com/luanti-org/luanti/
-- [Developer documentation](doc/developing/)
-- [doc/](doc/) directory of source distribution
+What's Different from Luanti
+-----------------------------
+
+Clawtest extends Luanti v5.16.0-dev with these major features:
+
+| Feature | Version | Description |
+|---------|---------|-------------|
+| Real AES-256-GCM encryption | v9.0+ | SRP session key derives AES-256-GCM keys via HKDF; all post-auth traffic is encrypted |
+| Modular encryption toggle | v9.3+ | `encryption_config.h/cpp` — centralized policy manager, single point of truth for encryption decisions |
+| Interactive start scripts | v9.3+ | `start_server.sh` and `start_client.sh` with menus for secure/insecure mode, player name, port, etc. |
+| Honest security UI | v7+ | Security overlay accurately reports connection state; score of 70/100 honestly (no forward secrecy, no PKI) |
+| Security info settings tab | v8+ | Dedicated tab showing cipher, key exchange, auth method, replay protection, and limitations |
+| Insecure mode actually works | v9.2+ | When `secure_connection = false`, encryption is genuinely disabled (SRP still runs for auth, but no AES-GCM) |
+| Version numbering | v9.3+ | `VERSION` file, `VERSION_EXTRA` in CMake, versioned zip filenames |
+
+Encryption Architecture
+-----------------------
+
+### How It Works
+
+1. **SRP Authentication**: Client and server authenticate via SRP (Secure Remote Password) protocol. SRP produces a 32-byte shared session key on both sides.
+2. **Key Derivation**: When `secure_connection = true`, the SRP session key is fed through HKDF-SHA256 to derive separate C2S and S2C AES-256-GCM keys, plus nonce bases.
+3. **Packet Encryption**: After auth, all game traffic is encrypted with AES-256-GCM. Each packet includes a 12-byte nonce and 16-byte GCM authentication tag.
+4. **Replay Protection**: Monotonic nonce counters with sliding window prevent replay attacks.
+5. **Insecure Mode**: When `secure_connection = false`, SRP still runs (for password verification) but the session key is NOT used for encryption. All traffic is plaintext. This is useful for LAN testing or debugging.
+
+### What This Gives Us (REAL)
+
+- Packet encryption: AES-256-GCM encrypts all post-auth game traffic
+- Authentication: SRP proves both sides know the password
+- Integrity: GCM authentication tag detects tampering
+- Replay protection: Monotonic nonce counters with sliding window
+- Key separation: HKDF derives separate C2S and S2C keys
+- Wireshark-proof: Captured packets show ciphertext, not game data
+
+### Honest Limitations
+
+- No forward secrecy: Key is derived from password, not ephemeral ECDH. If the password is compromised, past sessions can be decrypted.
+- No certificate-based trust: Uses "Trust On First Use" (TOFU) model with SRP verifier hash.
+- No quantum resistance: AES-256 is believed quantum-resistant, but SRP is not.
+
+### Security Score: 70/100 (Honest)
+
+| Property | Points | Status |
+|----------|--------|--------|
+| Encryption active | +30 | AES-256-GCM |
+| Strong cipher suite | +15 | AES-256-GCM |
+| Forward secrecy | +0 | Not available (SRP-derived) |
+| Authentication | +15 | SRP password auth |
+| Replay protection | +10 | Nonce counters + sliding window |
+| Certificate verification | +0 | TOFU only |
+| TLS version | +0 | Custom protocol |
+| **Total** | **70** | **Good (honestly)** |
+
+
+Quick Start
+-----------
+
+### Server
+
+```bash
+./start_server.sh
+```
+
+Interactive menu lets you choose: secure/insecure mode, port, game, world, admin player, max players, MOTD, and run mode (foreground/background/screen).
+
+Or use CLI flags:
+```bash
+./start_server.sh --insecure --port 30001 --game devtest --go
+./start_server.sh --secure --port 30000 --game minetest --go
+```
+
+### Client
+
+```bash
+./start_client.sh
+```
+
+Interactive menu lets you choose: server address, port, player name, password, secure/insecure mode, display mode, and resolution.
+
+Or use CLI flags:
+```bash
+./start_client.sh --insecure --name player1 --address localhost --go
+./start_client.sh --secure --name admin --address 192.168.1.100 --go
+```
+
 
 Default controls
 ----------------
@@ -114,6 +196,11 @@ Configuration file
 - A run-in-place build will look for the configuration file in
     `location_of_exe/../minetest.conf` and also `location_of_exe/../../minetest.conf`
 
+Key Clawtest settings:
+- `secure_connection` (default: `true`) — When true, AES-256-GCM encryption is activated after SRP auth. When false, SRP still runs for authentication but traffic is plaintext.
+- `show_security_overlay` (default: `true`) — Show security status overlay in-game.
+- `show_connection_info` (default: `false`) — Show detailed connection info in settings tab.
+
 Command-line options
 --------------------
 - Use `--help`
@@ -126,6 +213,11 @@ Compiling
 - [Compiling on Windows](doc/compiling/windows.md)
 - [Compiling on MacOS](doc/compiling/macos.md)
 
+Quick build (Linux, run-in-place):
+```bash
+./build_linux.sh --non-interactive --no-deps --client --run-in-place
+```
+
 Docker
 ------
 
@@ -134,15 +226,19 @@ Docker
 
 Version scheme
 --------------
-We use `major.minor.patch` since 5.0.0-dev. Prior to that we used `0.major.minor`.
 
-- Major is incremented when the release contains breaking changes, all other
-numbers are set to 0.
-- Minor is incremented when the release contains new non-breaking features,
-patch is set to 0.
-- Patch is incremented when the release only contains bugfixes and very
-minor/trivial features considered necessary.
+Clawtest uses a dual version scheme:
 
-Since 5.0.0-dev and 0.4.17-dev, the dev notation refers to the next release,
-i.e.: 5.0.0-dev is the development version leading to 5.0.0.
-Prior to that we used `previous_version-dev`.
+1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.3)
+
+The full version string is `5.16.1-v9.3-dev`, displayed via `--version` and in the UI.
+
+The Clawtest version tracks encryption feature development:
+- v7: Secure connection overlay + settings toggle
+- v8: Security Info settings tab with technical connection details
+- v9.0: Real AES-256-GCM encryption implemented and integrated
+- v9.2: Insecure mode actually disables encryption (not just UI flags)
+- v9.3: Modular encryption architecture, interactive start scripts, version numbering
+
+Git tags follow the pattern `clawtest-v9.3`, `clawtest-v9.4`, etc.

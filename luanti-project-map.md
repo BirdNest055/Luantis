@@ -1,9 +1,9 @@
-# Luanti Project — Complete File & Dependency Map
+# Clawtest Project — Complete File & Dependency Map
 
-> **Repository:** [BirdNest055/luanti-v7-overlay-settings](https://github.com/BirdNest055/luanti-v7-overlay-settings.git) (fork with security overlay)
-> **Version:** 5.16.0-dev | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
-> **Total Source Files:** ~330 C++ (.h/.cpp) + ~120 Lua (.lua) + 79 IrrlichtMt C++ + GLSL Shaders + 10 Crypto layer (WIP)
-> **Last Updated:** 2026-04-22 | **Map Version:** v3
+> **Repository:** [BirdNest055/Clawtest](https://github.com/BirdNest055/Clawtest) (fork of Luanti with real encrypted communications)
+> **Version:** 5.16.1-v9.3 | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
+> **Total Source Files:** ~330 C++ (.h/.cpp) + ~120 Lua (.lua) + 79 IrrlichtMt C++ + GLSL Shaders + 12 Crypto layer (integrated)
+> **Last Updated:** 2026-04-25 | **Map Version:** v4
 
 ---
 
@@ -51,7 +51,7 @@ Luanti is a **voxel-based game engine** with a **client-server architecture**. T
 | Map System | `src/map.h`, `src/servermap.h`, `src/client/clientmap.h` | Voxel world storage (16³ blocks) |
 | Map Generation | `src/mapgen/` | Procedural terrain (8 biome algorithms) |
 | Networking | `src/network/` | MTProtocol over UDP, packet serialization |
-| Encryption | `src/network/crypto/`, `src/network/crypto.h/cpp`, `src/network/encrypted_connection.h/cpp` | Verifiable encrypted comms (WIP): X25519/P-256 ECDH, AES-256-GCM, ECDSA, HKDF |
+| Encryption | `src/network/encryption_config.h/cpp`, `src/network/crypto.h/cpp`, `src/network/encrypted_connection.h/cpp`, `src/network/crypto/` | Real AES-256-GCM encryption via SRP session key + modular toggle (v9.3) |
 | Scripting | `src/script/` | C++ ↔ Lua bridge (42 Lua API modules) |
 | GUI | `src/gui/` | Formspec-based UI, dialogs, main menu |
 | Database | `src/database/` | Map/player storage (SQLite3, PostgreSQL, LevelDB, Redis) |
@@ -122,16 +122,26 @@ These headers form the backbone of the codebase — included by the most other f
 
 | File | Purpose | Connects To |
 |------|---------|-------------|
-| `CMakeLists.txt` | Master build file. Version 5.16.0-dev, C++17. Options: BUILD_CLIENT, BUILD_SERVER, BUILD_UNITTESTS, ENABLE_LTO, RUN_IN_PLACE, BUILD_WITH_TRACY | All subdirectories |
+| `CMakeLists.txt` | Master build file. Version 5.16.1-v9.3, C++17. Options: BUILD_CLIENT, BUILD_SERVER, BUILD_UNITTESTS, ENABLE_LTO, RUN_IN_PLACE, BUILD_WITH_TRACY. OpenSSL REQUIRED. | All subdirectories |
 | `CMakePresets.json` | CMake preset configurations | `CMakeLists.txt` |
 | `vcpkg.json` | vcpkg dependency manifest: zlib, zstd, openssl, curl, openal-soft, libvorbis, libogg, libjpeg-turbo, sqlite3, freetype, luajit, gmp, jsoncpp, gettext, sdl2 | `CMakeLists.txt` |
+| `VERSION` | Clawtest version file (currently "9.3") | `CMakeLists.txt` |
 | `minetest.conf.example` | Example configuration with all settings documented | `src/defaultsettings.cpp`, `builtin/settingtypes.txt` |
-| `README.md` | Project readme | — |
+| `README.md` | Project readme — Clawtest fork with encrypted comms | — |
 | `LICENSE.txt` / `COPYING.LESSER` | LGPL 2.1 license | — |
 | `Dockerfile` | Docker container for server deployment | `CMakeLists.txt` (build), `src/main.cpp` (run) |
 | `shell.nix` | Nix shell for reproducible development | — |
 | `build_linux.sh` | Fully automated Linux build script (Debian/Fedora/Arch/Alpine/openSUSE) | `CMakeLists.txt`, `vcpkg.json` |
+| `build_env.sh` | Build environment setup (local prefix, CMake flags) | `build_linux.sh` |
+| `start_server.sh` | Interactive server start script with secure/insecure mode selection | `bin/luantiserver` |
+| `start_client.sh` | Interactive client start script with secure/insecure mode selection | `bin/luanti` |
 | `test_build_linux.sh` | TDD test suite for build_linux.sh (53 tests) | `build_linux.sh`, `CMakeLists.txt` |
+| `test_encryption_toggle.sh` | TDD test suite for encryption toggle (14 tests) | `bin/luantiserver`, `bin/luanti` |
+| `V9_PLAN.md` | v9 encryption implementation plan with progress tracker | — |
+| `ai-agent-instructions.md` | Conventions and rules for AI agents | — |
+| `ai-codebase-reference.md` | Current codebase state summary | — |
+| `TODO_FIXME_LIST.md` | Auto-generated list of TODO/FIXME/HACK comments | — |
+| `OPENCLAW_GUIDE.md` | OpenClaw CLI guide | — |
 
 ---
 
@@ -440,13 +450,13 @@ Custom UDP-based protocol (MTProtocol) with reliable delivery.
 | `internal.h` | Internal protocol types (packet flags, channel config) | `impl.h`, `util/numeric.h` |
 | `threads.h/cpp` | MTProtocol send/receive threads | `threading/thread.h`, `internal.h` |
 
-### 8.4 Encrypted Communications Layer (WIP — crypto-wip branch)
+### 8.4 Encrypted Communications Layer (Integrated — v9.3)
 
-> **Status:** Work in progress. Two parallel crypto API layers exist; they need to be reconciled before integration.
-> **Branch:** `crypto-wip`
-> **Depends on:** OpenSSL (already in `vcpkg.json`)
+> **Status:** Integrated and working. AES-256-GCM encryption is active when `secure_connection = true`. Modular toggle via `EncryptionConfig` namespace.
+> **Branch:** `clawtest-v9.3`
+> **Depends on:** OpenSSL (required, in `vcpkg.json`)
 
-This layer adds verifiable encrypted communications between server and client using X25519/P-256 ECDH key exchange, AES-256-GCM authenticated encryption, ECDSA signatures for identity verification, and HKDF-SHA256 for key derivation.
+This layer provides real, verifiable encrypted communications between server and client using SRP-derived AES-256-GCM authenticated encryption with HKDF-SHA256 key derivation. The `EncryptionConfig` module provides centralized policy management. Two parallel crypto API layers exist for future reconciliation; the top-level API is currently used for the integrated encryption.
 
 #### 8.4.1 Top-Level Crypto API (src/network/)
 
