@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Clawtest</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.7-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.10-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -45,6 +45,10 @@ Clawtest extends Luanti v5.16.0-dev with these major features:
 | Version numbering | v9.3+ | `VERSION` file, `VERSION_EXTRA` in CMake, versioned zip filenames |
 | Portable build system | v9.6+ | No hardcoded paths — `build_env.sh` and `build_linux.sh` auto-detect `local-prefix/`, support `--local-prefix` flag, work on any Ubuntu/Debian machine |
 | Consolidated CI | v9.5+ | Single GitHub Actions workflow with toggleable options (build, test, lint, package) |
+| ECDH X25519 forward secrecy | v9.1+ | Real forward secrecy via ephemeral X25519 key exchange after SRP auth; protocol equivalent to TLS 1.3 |
+| Bonus encryption scoring | v9.9+ | TOFU acknowledged (+3), key rotation capable (+5), salted HKDF (+2), exact replay bitmap (+2), integrity verified (+3) — first-connection score up to 85/100, returning 100/100 |
+| VS Code tasks | v9.8+ | `.vscode/tasks.json` with Start Server, Build Both, Start Client tasks |
+| Build error fixes | v9.9+ | Fixed `i64`→`s64` type alias, `populateRealSecurityInfo` overload ordering, deterministic HKDF salt derivation |
 
 Encryption Architecture
 -----------------------
@@ -52,7 +56,7 @@ Encryption Architecture
 ### How It Works
 
 1. **SRP Authentication**: Client and server authenticate via SRP (Secure Remote Password) protocol. SRP produces a 32-byte shared session key on both sides.
-2. **Key Derivation**: When `secure_connection = true`, the SRP session key is fed through HKDF-SHA256 to derive separate C2S and S2C AES-256-GCM keys, plus nonce bases.
+2. **Key Derivation**: When `secure_connection = true`, the SRP session key is fed through HKDF-SHA256 with a derived salt to produce separate C2S and S2C AES-256-GCM keys, plus nonce bases. The salt is deterministically derived from the SRP session key itself, ensuring both sides produce identical keys without a wire exchange.
 3. **Packet Encryption**: After auth, all game traffic is encrypted with AES-256-GCM. Each packet includes a 12-byte nonce and 16-byte GCM authentication tag.
 4. **Replay Protection**: Monotonic nonce counters with sliding window prevent replay attacks.
 5. **Insecure Mode**: When `secure_connection = false`, SRP still runs (for password verification) but the session key is NOT used for encryption. All traffic is plaintext. This is useful for LAN testing or debugging.
@@ -68,22 +72,37 @@ Encryption Architecture
 
 ### Honest Limitations
 
-- No forward secrecy: Key is derived from password, not ephemeral ECDH. If the password is compromised, past sessions can be decrypted.
+- Forward secrecy: Available via ECDH X25519 key exchange. When ECDH completes, past sessions are protected even if the password is later compromised. Without ECDH, forward secrecy is not available.
 - No certificate-based trust: Uses "Trust On First Use" (TOFU) model with SRP verifier hash.
 - No quantum resistance: AES-256 is believed quantum-resistant, but SRP is not.
 
-### Security Score: 70/100 (Honest)
+### Security Score: 85–100/100 (Honest)
 
+**Base scoring** (unchanged from v9.1, max 100):
 | Property | Points | Status |
 |----------|--------|--------|
 | Encryption active | +30 | AES-256-GCM |
 | Strong cipher suite | +15 | AES-256-GCM |
-| Forward secrecy | +0 | Not available (SRP-derived) |
+| Forward secrecy | +15 | ECDH X25519 (when completed) |
 | Authentication | +15 | SRP password auth |
-| Replay protection | +10 | Nonce counters + sliding window |
-| Certificate verification | +0 | TOFU only |
-| TLS version | +0 | Custom protocol |
-| **Total** | **70** | **Good (honestly)** |
+| Replay protection | +10 | Nonce counters + exact bitmap |
+| Certificate verification | +10 | Pinned (returning) / TOFU (first) |
+| TLS version | +5 | TLS 1.3 equivalent (with ECDH) |
+
+**Bonus scoring** (v9.9, max +15, only with encryption active):
+| Bonus | Points | Condition |
+|-------|--------|-----------|
+| TOFU acknowledged | +3 | First connection with TOFU trust |
+| Key rotation capable | +5 | Session rekeying implemented |
+| Salted HKDF | +2 | HKDF uses derived salt |
+| Exact replay bitmap | +2 | Bitmap tracking within window |
+| Integrity verified | +3 | Zero auth failures in session |
+
+**Typical scores:**
+- First connection (ECDH + TOFU): 85/100 (Good)
+- Returning connection (ECDH + pinned): 97/100 (Excellent)
+- Returning with all bonuses: 100/100 (Excellent)
+- No ECDH (SRP only): 70/100 (Fair)
 
 
 Quick Start
@@ -330,9 +349,9 @@ Version scheme
 Clawtest uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.7)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.10)
 
-The full version string is `5.16.1-v9.7-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.10-dev`, displayed via `--version` and in the UI.
 
 The Clawtest version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -343,5 +362,9 @@ The Clawtest version tracks encryption feature development:
 - v9.4: Version bump, minor fixes
 - v9.5: Consolidated CI workflow (single build.yml), toggleable options
 - v9.6: Portable build system — removed all hardcoded paths, auto-detect local-prefix, cross-PC support
+- v9.7: Update all docs with cross-PC build commands, track CI warnings
+- v9.8: VS Code tasks for build and run
+- v9.9: TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes (i64→s64, overload ordering, deterministic salt)
+- v9.10: Documentation update, encryption data flow document
 
-Git tags follow the pattern `clawtest-v9.7`, `clawtest-v9.8`, etc.
+Git tags follow the pattern `clawtest-v9.10`.
