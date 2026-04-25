@@ -2132,15 +2132,15 @@ void Client::handleCommand_SetLighting(NetworkPacket *pkt)
 void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 {
         // Read server's X25519 public key (32 bytes)
-        std::vector<u8> server_pubkey;
-        pkt->readLongString(server_pubkey);
+        std::string pubkey_str = pkt->readLongString();
 
-        if (server_pubkey.size() != X25519_PUBLIC_KEY_SIZE) {
+        if (pubkey_str.size() != X25519_PUBLIC_KEY_SIZE) {
                 errorstream << "Client::handleCommand_EcdhPubkey: invalid public key size ("
-                        << server_pubkey.size() << ", expected " << X25519_PUBLIC_KEY_SIZE << ")"
+                        << pubkey_str.size() << ", expected " << X25519_PUBLIC_KEY_SIZE << ")"
                         << std::endl;
                 return;
         }
+        const u8* server_pubkey = reinterpret_cast<const u8*>(pubkey_str.data());
 
         if (!EncryptionConfig::shouldEncrypt()) {
                 infostream << "Client::handleCommand_EcdhPubkey: ignoring, encryption disabled"
@@ -2160,7 +2160,7 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         // Compute the ECDH shared secret
         X25519SharedSecret shared_secret = x25519_compute_shared_secret(
                 client_kp.private_key.data(), client_kp.private_key.size(),
-                server_pubkey.data(), server_pubkey.size());
+                server_pubkey, X25519_PUBLIC_KEY_SIZE);
         if (!shared_secret.success) {
                 errorstream << "Client::handleCommand_EcdhPubkey: failed to compute ECDH shared secret" << std::endl;
                 return;
