@@ -292,6 +292,23 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                         // For now, we populate security info as "not yet active"
                                         // and let the auto-activation in the receive path update it.
                                         encryption_initialized = true;
+                                        // Populate honest security info now that encryption keys are derived.
+                                        // Forward secrecy (ECDH) will be added later if the server supports it.
+                                        {
+                                                Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+                                                m_security_info = populateRealSecurityInfo(
+                                                        true,   // encryption_active (keys derived, activation pending)
+                                                        false,  // ecdh_completed - not yet
+                                                        false,  // fingerprint_pinned
+                                                        0,     // fingerprint_verify_result
+                                                        m_encryption_state.session_id,
+                                                        m_encryption_state.server_fingerprint,
+                                                        m_encryption_state.activated_at, // 0 until activation
+                                                        m_proto_ver,
+                                                        m_address_name,
+                                                        remote.getPort(),
+                                                        PeerEncryptionState::KEY_ROTATION_SUPPORTED);
+                                        }
                                         enclog_activate("Client encryption initialized and activation queued")
                                                 << EncLog::kv("session_id", m_encryption_state.session_id)
                                                 << EncLog::kv("fingerprint", m_encryption_state.server_fingerprint)
