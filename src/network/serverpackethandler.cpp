@@ -1874,6 +1874,17 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
                         // Update the connection state with the stored keypair
                         m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
 
+                        // v9.19-trace: Log the state we just pushed (SRP-only keys + ECDH keypair stored)
+                        enclog_trace("Server ECDH: pushed SRP-only keys + ECDH keypair to connection layer")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("server_pubkey_hex", EncLog::hexDump(server_kp.public_key.data(), X25519_PUBLIC_KEY_SIZE))
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << EncLog::kv("active", client->encryption_state.active.load())
+                                << EncLog::kv("ecdh_completed", client->encryption_state.ecdh_completed.load())
+                                << EncLog::kv("s2c_key_fp", keyToFingerprint(client->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
+                                << EncLog::kv("c2s_key_fp", keyToFingerprint(client->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
+                                << std::endl;
+
                         // Send the ECDH public key to the client (plaintext, before activation)
                         NetworkPacket ecdh_pkt(TOCLIENT_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE, peer_id);
                         std::string pubkey_str(reinterpret_cast<const char*>(server_kp.public_key.data()),
@@ -2086,6 +2097,12 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         infostream << "Server::handleCommand_EcdhPubkey: received client ECDH public key from peer "
                 << peer_id << std::endl;
 
+        // v9.19-trace: Log the client's public key we received
+        enclog_trace("Server ECDH: received client public key")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("client_pubkey_hex", EncLog::hexDump(client_pubkey, X25519_PUBLIC_KEY_SIZE))
+                << std::endl;
+
         // Compute the ECDH shared secret using our stored private key and client's public key
         X25519SharedSecret shared_secret = x25519_compute_shared_secret(
                 client->encryption_state.ecdh_private_key.data(),
@@ -2108,6 +2125,15 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 
         // Update the connection with the new ECDH-mixed keys
         m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+
+        // v9.19-trace: Log server state BEFORE activation
+        enclog_trace("Server ECDH: about to ACTIVATE encryption")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("shared_secret_fp", keyToFingerprint(shared_secret.shared_secret.data(), X25519_SHARED_SECRET_SIZE))
+                << EncLog::kv("session_id", client->encryption_state.session_id)
+                << EncLog::kv("ecdh_completed", client->encryption_state.ecdh_completed.load())
+                << EncLog::kv("active_before", client->encryption_state.active.load())
+                << std::endl;
 
         // Activate encryption with ECDH+SRP keys
         m_con->ActivatePeerEncryption(peer_id);

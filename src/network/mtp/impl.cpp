@@ -6,6 +6,7 @@
 #include <cmath>
 #include "network/mtp/internal.h"
 #include "network/encryption_log.h"
+#include "network/crypto.h"
 #include "log.h"
 #include "porting.h"
 #include "network/mtp/threads.h"
@@ -1684,6 +1685,21 @@ void Connection::SetPeerEncryptionState(session_t peer_id, const PeerEncryptionS
                 << EncLog::kv("peer", peer_id)
                 << EncLog::kv("active", state.active.load())
                 << EncLog::kv("session_id", state.session_id)
+                << std::endl;
+
+        // v9.19-trace: Full key material trace when pushing to connection layer
+        enclog_trace("SetPeerEncryptionState: KEYS PUSHED TO CONNECTION LAYER")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("active", state.active.load())
+                << EncLog::kv("ecdh_completed", state.ecdh_completed.load())
+                << EncLog::kv("session_id", state.session_id)
+                << EncLog::kv("c2s_key_fp", keyToFingerprint(state.c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("s2c_key_fp", keyToFingerprint(state.s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_nonce_base_hex", EncLog::hexDump(state.c2s.nonce_base.data(), state.c2s.nonce_base.size()))
+                << EncLog::kv("s2c_nonce_base_hex", EncLog::hexDump(state.s2c.nonce_base.data(), state.s2c.nonce_base.size()))
+                << EncLog::kv("hkdf_salt_hex", EncLog::hexDump(state.hkdf_salt.data(), state.hkdf_salt.size()))
+                << EncLog::kv("c2s_counter", state.c2s.nonce_counter)
+                << EncLog::kv("s2c_counter", state.s2c.nonce_counter)
                 << std::endl;
 }
 

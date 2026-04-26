@@ -2222,6 +2222,11 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 
         infostream << "Client::handleCommand_EcdhPubkey: received server ECDH public key" << std::endl;
 
+        // v9.19-trace: Log the server's public key we received
+        enclog_trace("Client ECDH: received server public key")
+                << EncLog::kv("server_pubkey_hex", EncLog::hexDump(server_pubkey, X25519_PUBLIC_KEY_SIZE))
+                << std::endl;
+
         // Generate our own X25519 key pair
         X25519KeyPair client_kp = x25519_generate_keypair();
         if (!client_kp.success) {
@@ -2252,6 +2257,15 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 
         // Update the connection with the new ECDH-mixed keys
         m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
+
+        // v9.19-trace: Log the client's ECDH public key we're about to send
+        enclog_trace("Client ECDH: sending client public key")
+                << EncLog::kv("client_pubkey_hex", EncLog::hexDump(client_kp.public_key.data(), X25519_PUBLIC_KEY_SIZE))
+                << EncLog::kv("shared_secret_fp", keyToFingerprint(shared_secret.shared_secret.data(), X25519_SHARED_SECRET_SIZE))
+                << EncLog::kv("session_id", m_encryption_state.session_id)
+                << EncLog::kv("ecdh_completed", m_encryption_state.ecdh_completed.load())
+                << EncLog::kv("active", m_encryption_state.active.load())
+                << std::endl;
 
         // Send our public key to the server
         NetworkPacket ecdh_pkt(TOSERVER_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE);

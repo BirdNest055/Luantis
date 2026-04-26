@@ -55,6 +55,7 @@
 #define ENC_TAG_ERROR    "[ENC:ERROR] "
 #define ENC_TAG_DISABLE  "[ENC:DISABLE] "
 #define ENC_TAG_AUDIT    "[ENC:AUDIT] "
+#define ENC_TAG_TRACE    "[ENC:TRACE] "
 
 // ---- Convenience macros for structured encryption logging ----
 // Each macro streams to `actionstream` (always logged) or `infostream`
@@ -84,6 +85,11 @@
 
 // AUDIT: Periodic statistics — info level
 #define enclog_audit(msg) infostream << ENC_TAG_AUDIT << msg
+
+// TRACE: Detailed per-packet diagnostic tracing — info level
+// Use for logging every packet routing decision, key state at decision
+// points, hex dumps of packet headers, etc. This is the firehose.
+#define enclog_trace(msg) infostream << ENC_TAG_TRACE << msg
 
 // ---- Security status banner helpers ----
 
@@ -119,6 +125,34 @@ namespace EncLog {
 inline std::string kv(const char* key, const std::string& value)
 {
         return std::string(" | ") + key + "=" + value;
+}
+
+/// Hex-dump a byte array as a compact string (no spaces, lowercase hex).
+/// For tracing packet contents and key material at decision points.
+/// @param data  Pointer to the byte array
+/// @param len   Number of bytes to dump
+/// @param max_bytes  Maximum bytes to include (0 = no limit, default 32)
+/// @return Hex string, with "..." appended if truncated
+inline std::string hexDump(const u8* data, size_t len, size_t max_bytes = 32)
+{
+        if (!data || len == 0) return "<empty>";
+        size_t show = (max_bytes > 0 && len > max_bytes) ? max_bytes : len;
+        std::string result;
+        result.reserve(show * 2);
+        static const char hex[] = "0123456789abcdef";
+        for (size_t i = 0; i < show; i++) {
+                result += hex[(data[i] >> 4) & 0x0f];
+                result += hex[data[i] & 0x0f];
+        }
+        if (show < len) result += "...";
+        return result;
+}
+
+/// Format a u8 byte value as "0xXX"
+inline std::string hexByte(u8 b)
+{
+        static const char hex[] = "0123456789abcdef";
+        return std::string("0x") + hex[(b >> 4) & 0x0f] + hex[b & 0x0f];
 }
 
 inline std::string kv(const char* key, int value)

@@ -148,6 +148,20 @@ void *ConnectionSendThread::run()
                         PeerHelper peer = m_connection->getPeerNoEx(pid);
                         auto *udpPeer = dynamic_cast<UDPPeer *>(&peer);
                         if (udpPeer) {
+                                // v9.19-trace: Log full key state at activation time
+                                enclog_trace("sendThread: ACTIVATING encryption for peer")
+                                        << EncLog::kv("peer", pid)
+                                        << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
+                                        << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
+                                        << EncLog::kv("c2s_nonce_base_hex", EncLog::hexDump(udpPeer->encryption_state.c2s.nonce_base.data(), udpPeer->encryption_state.c2s.nonce_base.size()))
+                                        << EncLog::kv("s2c_nonce_base_hex", EncLog::hexDump(udpPeer->encryption_state.s2c.nonce_base.data(), udpPeer->encryption_state.s2c.nonce_base.size()))
+                                        << EncLog::kv("hkdf_salt_hex", EncLog::hexDump(udpPeer->encryption_state.hkdf_salt.data(), udpPeer->encryption_state.hkdf_salt.size()))
+                                        << EncLog::kv("ecdh_completed", udpPeer->encryption_state.ecdh_completed.load())
+                                        << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                                        << EncLog::kv("c2s_counter", udpPeer->encryption_state.c2s.nonce_counter)
+                                        << EncLog::kv("s2c_counter", udpPeer->encryption_state.s2c.nonce_counter)
+                                        << std::endl;
+
                                 udpPeer->encryption_state.activate();
                                 udpPeer->encryption_state.activated_at = porting::getTimeS();
 
@@ -370,6 +384,15 @@ void ConnectionSendThread::rawSend(const BufferedPacket *p)
                         const u8 *plaintext = &p->data[PACKET_BASE_HEADER_SIZE];
                         size_t plaintext_len = p->size() - PACKET_BASE_HEADER_SIZE;
 
+                        // v9.19-trace: Log that we're about to encrypt
+                        enclog_trace("rawSend: ENCRYPTION ACTIVE, encrypting packet")
+                                << EncLog::kv("peer", dest_peer_id)
+                                << EncLog::kv("we_are_server", we_are_server)
+                                << EncLog::kv("plaintext_len", (u32)plaintext_len)
+                                << EncLog::kv("ecdh_completed", udpPeer->encryption_state.ecdh_completed.load())
+                                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                                << std::endl;
+
                         EncryptResult result = CryptoHandler::encrypt(
                                 plaintext, plaintext_len,
                                 udpPeer->encryption_state,
@@ -400,6 +423,10 @@ void ConnectionSendThread::rawSend(const BufferedPacket *p)
                         }
                 } else {
                         // No encryption — send plaintext
+                        enclog_trace("rawSend: sending PLAINTEXT (encryption not active)")
+                                << EncLog::kv("peer", dest_peer_id ? dest_peer_id : 0)
+                                << EncLog::kv("size", (u32)p->size())
+                                << std::endl;
                         m_connection->m_udpSocket.Send(p->address, p->data, p->size());
                 }
         } catch (SendFailedException &e) {
@@ -1163,7 +1190,28 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                 // No inline crypto code, no pointer arithmetic, no grace periods.
                 SharedBuffer<u8> strippeddata;
 
+                // v9.19-trace: Log encryption state BEFORE routing decision
+                enclog_trace("receive: packet arrived, checking routing")
+                        << EncLog::kv("peer", peer_id)
+                        << EncLog::kv("size", (u32)received_size)
+                        << EncLog::kv("active", udpPeer->encryption_state.active.load())
+                        << EncLog::kv("ecdh_completed", udpPeer->encryption_state.ecdh_completed.load())
+                        << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                        << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 16))
+                        << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 16))
+                        << EncLog::kv("s2c_counter", udpPeer->encryption_state.s2c.nonce_counter)
+                        << EncLog::kv("c2s_counter", udpPeer->encryption_state.c2s.nonce_counter)
+                        << EncLog::kv("s2c_auth_fail", udpPeer->encryption_state.s2c.auth_failures)
+                        << EncLog::kv("c2s_auth_fail", udpPeer->encryption_state.c2s.auth_failures)
+                        << std::endl;
+
                 PacketRoute route = routePacket(*packetdata, received_size);
+
+                enclog_trace("receive: routing decision made")
+                        << EncLog::kv("peer", peer_id)
+                        << EncLog::kv("route", route == PacketRoute::Plaintext ? "PLAINTEXT" :
+                                      (route == PacketRoute::Encrypted ? "ENCRYPTED" : "INVALID"))
+                        << std::endl;
 
                 switch (route) {
                 case PacketRoute::Plaintext: {

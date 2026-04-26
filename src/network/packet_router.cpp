@@ -4,128 +4,160 @@
 
 #include "network/packet_router.h"
 #include "network/crypto.h"
+#include "network/encryption_log.h"
 #include <cstring>
 
 /// Encrypted packet overhead after the base header:
 /// flag(1) + nonce(12) + tag(16) = 29 bytes
 /// A valid encrypted packet must have at least this many bytes after the header.
 static constexpr size_t ENCRYPTED_OVERHEAD_AFTER_HEADER =
-	1 + GCM_NONCE_SIZE + GCM_TAG_SIZE;  // 29
+        1 + GCM_NONCE_SIZE + GCM_TAG_SIZE;  // 29
 
 PacketRoute routePacket(const u8* data, size_t size)
 {
-	// Too short to even have a flag byte after the base header
-	if (size <= PACKET_BASE_HEADER_SIZE)
-		return PacketRoute::Invalid;
+        // Too short to even have a flag byte after the base header
+        if (size <= PACKET_BASE_HEADER_SIZE) {
+                enclog_trace("routePacket: PACKET TOO SHORT")
+                        << EncLog::kv("size", (u32)size)
+                        << EncLog::kv("min_required", (u32)(PACKET_BASE_HEADER_SIZE + 1))
+                        << EncLog::kv("route", "INVALID")
+                        << std::endl;
+                return PacketRoute::Invalid;
+        }
 
-	u8 flag = data[PACKET_BASE_HEADER_SIZE];
+        u8 flag = data[PACKET_BASE_HEADER_SIZE];
 
-	// 0x80 = encrypted packet
-	if (isEncryptedFlag(flag)) {
-		// Must have enough bytes after the header for the encrypted format:
-		// flag(1) + nonce(12) + tag(16) = 29 bytes minimum (empty ciphertext OK)
-		size_t after_header = size - PACKET_BASE_HEADER_SIZE;
-		if (after_header < ENCRYPTED_OVERHEAD_AFTER_HEADER)
-			return PacketRoute::Invalid;
-		return PacketRoute::Encrypted;
-	}
+        // v9.19-trace: Log the flag byte and first bytes of every packet for diagnostics
+        enclog_trace("routePacket: packet received")
+                << EncLog::kv("size", (u32)size)
+                << EncLog::kv("flag_byte", EncLog::hexByte(flag))
+                << EncLog::kv("header_hex", EncLog::hexDump(data, std::min((size_t)20, size)))
+                << std::endl;
 
-	// 0x00-0x03 = valid MTP packet types (plaintext)
-	if (isValidPacketType(flag))
-		return PacketRoute::Plaintext;
+        // 0x80 = encrypted packet
+        if (isEncryptedFlag(flag)) {
+                // Must have enough bytes after the header for the encrypted format:
+                // flag(1) + nonce(12) + tag(16) = 29 bytes minimum (empty ciphertext OK)
+                size_t after_header = size - PACKET_BASE_HEADER_SIZE;
+                if (after_header < ENCRYPTED_OVERHEAD_AFTER_HEADER) {
+                        enclog_trace("routePacket: 0x80 flag but TOO SHORT for encrypted format")
+                                << EncLog::kv("after_header", (u32)after_header)
+                                << EncLog::kv("min_required", (u32)ENCRYPTED_OVERHEAD_AFTER_HEADER)
+                                << EncLog::kv("route", "INVALID")
+                                << std::endl;
+                        return PacketRoute::Invalid;
+                }
+                enclog_trace("routePacket: ENCRYPTED packet (0x80 flag)")
+                        << EncLog::kv("after_header", (u32)after_header)
+                        << EncLog::kv("ciphertext_len", (u32)(after_header - ENCRYPTED_OVERHEAD_AFTER_HEADER))
+                        << std::endl;
+                return PacketRoute::Encrypted;
+        }
 
-	// Unknown flag byte — neither a valid packet type nor the encrypted flag
-	return PacketRoute::Invalid;
+        // 0x00-0x03 = valid MTP packet types (plaintext)
+        if (isValidPacketType(flag)) {
+                enclog_trace("routePacket: PLAINTEXT packet")
+                        << EncLog::kv("packet_type", (u32)flag)
+                        << std::endl;
+                return PacketRoute::Plaintext;
+        }
+
+        // Unknown flag byte — neither a valid packet type nor the encrypted flag
+        enclog_trace("routePacket: UNKNOWN flag byte — dropping")
+                << EncLog::kv("flag", EncLog::hexByte(flag))
+                << EncLog::kv("route", "INVALID")
+                << std::endl;
+        return PacketRoute::Invalid;
 }
 
 PlaintextPacket parsePlaintext(const u8* data, size_t size)
 {
-	PlaintextPacket result;
-	size_t data_size = size - PACKET_BASE_HEADER_SIZE;
-	result.data = SharedBuffer<u8>(data_size);
-	memcpy(*result.data, data + PACKET_BASE_HEADER_SIZE, data_size);
-	return result;
+        PlaintextPacket result;
+        size_t data_size = size - PACKET_BASE_HEADER_SIZE;
+        result.data = SharedBuffer<u8>(data_size);
+        memcpy(*result.data, data + PACKET_BASE_HEADER_SIZE, data_size);
+        return result;
 }
 
 std::optional<EncryptedPacket> parseEncrypted(const u8* data, size_t size)
 {
-	// Validate size
-	if (size <= PACKET_BASE_HEADER_SIZE)
-		return std::nullopt;
+        // Validate size
+        if (size <= PACKET_BASE_HEADER_SIZE)
+                return std::nullopt;
 
-	size_t after_header = size - PACKET_BASE_HEADER_SIZE;
-	if (after_header < ENCRYPTED_OVERHEAD_AFTER_HEADER)
-		return std::nullopt;
+        size_t after_header = size - PACKET_BASE_HEADER_SIZE;
+        if (after_header < ENCRYPTED_OVERHEAD_AFTER_HEADER)
+                return std::nullopt;
 
-	// Verify the flag byte
-	u8 flag = data[PACKET_BASE_HEADER_SIZE];
-	if (!isEncryptedFlag(flag))
-		return std::nullopt;
+        // Verify the flag byte
+        u8 flag = data[PACKET_BASE_HEADER_SIZE];
+        if (!isEncryptedFlag(flag))
+                return std::nullopt;
 
-	EncryptedPacket result;
+        EncryptedPacket result;
 
-	// Extract nonce (12 bytes after the flag byte)
-	const u8* nonce_ptr = data + PACKET_BASE_HEADER_SIZE + 1;
-	memcpy(result.nonce.data(), nonce_ptr, GCM_NONCE_SIZE);
+        // Extract nonce (12 bytes after the flag byte)
+        const u8* nonce_ptr = data + PACKET_BASE_HEADER_SIZE + 1;
+        memcpy(result.nonce.data(), nonce_ptr, GCM_NONCE_SIZE);
 
-	// Extract nonce counter from nonce bytes [4..11] (big-endian)
-	result.nonce_counter = 0;
-	for (int i = 0; i < 8; i++) {
-		result.nonce_counter = (result.nonce_counter << 8) |
-			result.nonce[NONCE_BASE_SIZE + i];
-	}
+        // Extract nonce counter from nonce bytes [4..11] (big-endian)
+        result.nonce_counter = 0;
+        for (int i = 0; i < 8; i++) {
+                result.nonce_counter = (result.nonce_counter << 8) |
+                        result.nonce[NONCE_BASE_SIZE + i];
+        }
 
-	// Extract ciphertext (between nonce and tag)
-	// after_header layout: flag(1) + nonce(12) + ciphertext(N) + tag(16)
-	size_t ciphertext_len = after_header - 1 - GCM_NONCE_SIZE - GCM_TAG_SIZE;
-	if (ciphertext_len > 0) {
-		result.ciphertext.resize(ciphertext_len);
-		const u8* ciphertext_ptr = nonce_ptr + GCM_NONCE_SIZE;
-		memcpy(result.ciphertext.data(), ciphertext_ptr, ciphertext_len);
-	}
+        // Extract ciphertext (between nonce and tag)
+        // after_header layout: flag(1) + nonce(12) + ciphertext(N) + tag(16)
+        size_t ciphertext_len = after_header - 1 - GCM_NONCE_SIZE - GCM_TAG_SIZE;
+        if (ciphertext_len > 0) {
+                result.ciphertext.resize(ciphertext_len);
+                const u8* ciphertext_ptr = nonce_ptr + GCM_NONCE_SIZE;
+                memcpy(result.ciphertext.data(), ciphertext_ptr, ciphertext_len);
+        }
 
-	// Extract tag (last 16 bytes of the packet)
-	const u8* tag_ptr = data + size - GCM_TAG_SIZE;
-	memcpy(result.tag.data(), tag_ptr, GCM_TAG_SIZE);
+        // Extract tag (last 16 bytes of the packet)
+        const u8* tag_ptr = data + size - GCM_TAG_SIZE;
+        memcpy(result.tag.data(), tag_ptr, GCM_TAG_SIZE);
 
-	// Store raw data for diagnostics
-	result.raw_data = SharedBuffer<u8>(size);
-	memcpy(*result.raw_data, data, size);
+        // Store raw data for diagnostics
+        result.raw_data = SharedBuffer<u8>(size);
+        memcpy(*result.raw_data, data, size);
 
-	return result;
+        return result;
 }
 
 std::vector<u8> buildEncryptedPacket(
-	const u8* base_header,
-	const std::array<u8, 12>& nonce,
-	const std::vector<u8>& ciphertext,
-	const std::array<u8, 16>& tag)
+        const u8* base_header,
+        const std::array<u8, 12>& nonce,
+        const std::vector<u8>& ciphertext,
+        const std::array<u8, 16>& tag)
 {
-	// Wire format: [base_header(7B)][0x80][nonce(12B)][ciphertext(NB)][tag(16B)]
-	size_t total_size = PACKET_BASE_HEADER_SIZE + 1 + GCM_NONCE_SIZE +
-		ciphertext.size() + GCM_TAG_SIZE;
+        // Wire format: [base_header(7B)][0x80][nonce(12B)][ciphertext(NB)][tag(16B)]
+        size_t total_size = PACKET_BASE_HEADER_SIZE + 1 + GCM_NONCE_SIZE +
+                ciphertext.size() + GCM_TAG_SIZE;
 
-	std::vector<u8> packet(total_size);
+        std::vector<u8> packet(total_size);
 
-	// Copy base header (unencrypted)
-	memcpy(packet.data(), base_header, PACKET_BASE_HEADER_SIZE);
+        // Copy base header (unencrypted)
+        memcpy(packet.data(), base_header, PACKET_BASE_HEADER_SIZE);
 
-	// Write encrypted flag
-	packet[PACKET_BASE_HEADER_SIZE] = 0x80;
+        // Write encrypted flag
+        packet[PACKET_BASE_HEADER_SIZE] = 0x80;
 
-	// Write nonce
-	memcpy(packet.data() + PACKET_BASE_HEADER_SIZE + 1,
-		nonce.data(), GCM_NONCE_SIZE);
+        // Write nonce
+        memcpy(packet.data() + PACKET_BASE_HEADER_SIZE + 1,
+                nonce.data(), GCM_NONCE_SIZE);
 
-	// Write ciphertext
-	if (!ciphertext.empty()) {
-		memcpy(packet.data() + PACKET_BASE_HEADER_SIZE + 1 + GCM_NONCE_SIZE,
-			ciphertext.data(), ciphertext.size());
-	}
+        // Write ciphertext
+        if (!ciphertext.empty()) {
+                memcpy(packet.data() + PACKET_BASE_HEADER_SIZE + 1 + GCM_NONCE_SIZE,
+                        ciphertext.data(), ciphertext.size());
+        }
 
-	// Write GCM tag
-	memcpy(packet.data() + total_size - GCM_TAG_SIZE,
-		tag.data(), GCM_TAG_SIZE);
+        // Write GCM tag
+        memcpy(packet.data() + total_size - GCM_TAG_SIZE,
+                tag.data(), GCM_TAG_SIZE);
 
-	return packet;
+        return packet;
 }
