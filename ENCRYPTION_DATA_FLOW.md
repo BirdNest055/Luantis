@@ -1,4 +1,4 @@
-# Encryption Data Flow — Clawtest v9.11
+# Encryption Data Flow — Clawtest v9.24
 
 > A comprehensive guide to how encryption works between the Clawtest server and client, what happens to data at each stage, and what protections exist (and don't exist) at every point.
 
@@ -13,7 +13,8 @@
 7. [Security Score Explained](#security-score-explained)
 8. [What Encryption Does NOT Protect](#what-encryption-does-not-protect)
 9. [Insecure Mode: What Happens](#insecure-mode-what-happens)
-10. [Threat Model](#threat-model)
+10. [Encryption Log Control](#encryption-log-control)
+11. [Threat Model](#threat-model)
 
 ## Overview
 
@@ -537,6 +538,78 @@ Insecure mode exists for:
   │  Score: 70-100                │          │  Score: 0                     │
   │  Label: Good / Excellent      │          │  Label: INSECURE              │
   └───────────────────────────────┘          └───────────────────────────────┘
+```
+
+## Encryption Log Control
+
+### The Problem: Log Spam
+
+During development, verbose per-packet encryption trace messages (`[ENC:TRACE]`) were logged for every encrypted and decrypted packet. In a typical game session, this generated a **180MB debug.txt** log file that caused noticeable game slowdown due to the I/O overhead of writing massive amounts of log data. This was acceptable during initial debugging but became a serious problem for normal gameplay.
+
+### Solution: Two-Layer Log Control (v9.23 + v9.24)
+
+**Layer 1: Start Script Toggle**
+
+The `start_client.sh` and `start_server.sh` scripts accept `--no-log` (default) and `--log` flags that control logging BEFORE the game even starts:
+
+- **`--no-log` (default)**: Sets `debug_log_level = none` in the temp config file. This prevents the game from creating `debug.txt` or writing any log data at all. Zero I/O overhead from logging. When logging is OFF, no extra data is generated — this is not about hiding or redirecting output, but about preventing its creation entirely.
+- **`--log`**: Enables normal logging with `debug_log_level = action`.
+
+The key design principle: **when logging is OFF, no extra data is generated at all**. The toggle works through the temp config file that the startup script generates before launching the game binary, so the suppression is in place before any log output could be produced.
+
+**Layer 2: Encryption Log Level Setting**
+
+The `encryption_log_level` setting controls the verbosity of `[ENC:...]` log messages independently of the general log level. This is useful when general logging is enabled but encryption-specific noise is unwanted:
+
+| Level | What Gets Logged | Use Case |
+|-------|-----------------|----------|
+| `none` | No encryption messages at all | Production servers, normal gameplay |
+| `error` | Only `[ENC:ERROR]` — encryption failures (GCM auth tag mismatch, decrypt failure) | Monitoring for issues without noise |
+| `action` | Activation, security state changes, disable events, and errors (default) | Development, first-time setup |
+| `trace` | Everything including per-packet encrypt/decrypt diagnostics | Debugging specific encryption issues — **WARNING: generates large log files!** |
+
+The `encryption_log_level` setting applies to both server and client (context: `[common]`). It is defined in `builtin/settingtypes.txt` and can be set in `minetest.conf` or through the in-game settings dialog.
+
+**Bug note (v9.24)**: The initial v9.23 implementation used `[server,client]` as the context annotation in `settingtypes.txt`. The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua`, line 30) only accepts single context values: `common`, `client`, `server`, `world_creation`. The comma-separated value was parsed as the literal string `"server,client"` which is not a valid context, producing `ERROR[Main]: Unknown context in settingtypes.txt`. This was fixed in v9.24 by changing to `[common]`.
+
+### Recommended Configurations
+
+```bash
+# Normal gameplay — no logs at all (default)
+./start_client.sh --name player1 --address localhost --go
+
+# Development — general logs, but suppress encryption noise
+./start_client.sh --name player1 --address localhost --log --go
+# And in minetest.conf:
+encryption_log_level = none
+
+# Debugging encryption — full trace logging (caution: large files!)
+./start_client.sh --name player1 --address localhost --log --go
+# And in minetest.conf:
+encryption_log_level = trace
+```
+
+```
+  Encryption Log Control Flow
+  ═══════════════════════════
+
+  Start Script
+  ┌─────────────────────────────────┐
+  │  --no-log (default)             │     --log
+  │  debug_log_level = none         │     debug_log_level = action
+  │  No debug.txt created           │     Normal logging enabled
+  │  Zero I/O overhead              │     Standard log output
+  └─────────────────────────────────┘
+          │                                │
+          ▼                                ▼
+  No log data at all               encryption_log_level controls
+  (completely silent)              [ENC:...] message verbosity:
+                                   ┌────────────────────────────────┐
+                                   │  none   = Zero ENC messages    │
+                                   │  error  = Only failures        │
+                                   │  action = Key events (default) │
+                                   │  trace  = Per-packet (SLOW!)   │
+                                   └────────────────────────────────┘
 ```
 
 ## Threat Model

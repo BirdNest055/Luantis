@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Clawtest</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.11-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.24-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -49,6 +49,9 @@ Clawtest extends Luanti v5.16.0-dev with these major features:
 | Bonus encryption scoring | v9.9+ | TOFU acknowledged (+3), key rotation capable (+5), salted HKDF (+2), exact replay bitmap (+2), integrity verified (+3) — first-connection score up to 85/100, returning 100/100 |
 | VS Code tasks | v9.8+ | `.vscode/tasks.json` with Start Server, Build Both, Start Client tasks |
 | Build error fixes | v9.9+ | Fixed `i64`→`s64` type alias, `populateRealSecurityInfo` overload ordering, deterministic HKDF salt derivation |
+| Settings panel fix | v9.22+ | All 16 g_settings keys written, activated_at synced from connection layer, both secure and insecure modes work |
+| Log toggle | v9.23+ | `--no-log`/`--log` flags in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem |
+| Settingtypes context fix | v9.24+ | Fixed `encryption_log_level` context from `[server,client]` to `[common]` (parser only accepts single context values) |
 
 Encryption Architecture
 -----------------------
@@ -349,9 +352,9 @@ Version scheme
 Clawtest uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.11)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.24)
 
-The full version string is `5.16.1-v9.11-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.24-dev`, displayed via `--version` and in the UI.
 
 The Clawtest version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -367,5 +370,12 @@ The Clawtest version tracks encryption feature development:
 - v9.9: TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes (i64→s64, overload ordering, deterministic salt)
 - v9.10: Documentation update, encryption data flow document
 - v9.11: ECDH X25519 forward secrecy with TDD — wire protocol (TOCLIENT/TOSERVER_ECDH_PUBKEY), salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes (TOFU bonus, concurrent nonce, tamper flag, security score)
+- v9.12: Encryption activation race condition fix — client defers until server's first encrypted packet, receive path auto-activates
+- v9.19: GCM auth spam fix — prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes
+- v9.20: Fake encryption score fix — use real connection state instead of hardcoded encryption_active=true
+- v9.21: Build error fix — move isEncryptionActive() out of header (incomplete type error)
+- v9.22: Settings panel fix — write all 16 g_settings keys, sync activated_at from connection, both secure/insecure modes work
+- v9.23: Log toggle feature — `--no-log`/`--log` in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem
+- v9.24: Settingtypes context fix — `encryption_log_level` context `[server,client]` → `[common]` (Luanti parser only accepts single context values)
 
-Git tags follow the pattern `clawtest-v9.11`.
+Git tags follow the pattern `clawtest-v9.24`.

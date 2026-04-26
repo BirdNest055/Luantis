@@ -1,7 +1,7 @@
 # AI Codebase Reference — Clawtest Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-04-26 | **Project Version:** v9.11
+> **Last Updated:** 2026-04-27 | **Project Version:** v9.24
 
 ---
 
@@ -22,7 +22,7 @@ This is **Clawtest** — a fork of the **Luanti** (formerly Minetest) voxel game
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
 
 **Repository:** https://github.com/BirdNest055/Clawtest
-**Current branch:** `clawtest-v9.11`
+**Current branch:** `clawtest-v9.24-fix-settingtypes-context`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -32,11 +32,14 @@ This is **Clawtest** — a fork of the **Luanti** (formerly Minetest) voxel game
 - **`main` branch:** Upstream Luanti 5.16.0-dev
 - **`clawtest-upload` branch:** Previous development branch (v9.0-v9.2 work)
 - **`clawtest-v9.3` branch:** Previous development branch (v9.3 work)
-- **`clawtest-v9.11` branch:** Current branch with all v9.11 changes (ECDH forward secrecy, test fixes)
+- **`clawtest-v9.11` branch:** ECDH forward secrecy, test fixes
+- **`clawtest-v9.22-settings-panel-fix` branch:** Settings panel fix, both secure/insecure modes work
+- **`clawtest-v9.23-log-toggle` branch:** Log toggle feature, encryption_log_level setting
+- **`clawtest-v9.24-fix-settingtypes-context` branch:** Current — fixes encryption_log_level settingtypes context
 
-**Commit on clawtest-v9.11:**
+**Commit on clawtest-v9.24:**
 ```
-v9.11: fix test failures (TOFU bonus, concurrent nonce, tamper flag, security score), update VERSION and docs
+v9.24: Fix encryption_log_level settingtypes context [server,client] → [common]
 ```
 
 ---
@@ -313,6 +316,13 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.9 | `clawtest-v9.9` | TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes |
 | v9.10 | `clawtest-v9.10` | Documentation update, ENCRYPTION_DATA_FLOW.md, all MDs updated |
 | v9.11 | `clawtest-v9.11` | ECDH X25519 forward secrecy with TDD — wire protocol, salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes |
+| v9.12 | `clawtest-v9.12` | Encryption activation race condition fix — client defers until server's first encrypted packet |
+| v9.19 | `clawtest-v9.19` | GCM auth spam fix — prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes |
+| v9.20 | `clawtest-v9.20` | Fake encryption score fix — use real connection state instead of hardcoded encryption_active=true |
+| v9.21 | `clawtest-v9.21-build-fix` | Build error fix — move isEncryptionActive() out of header (incomplete type error) |
+| v9.22 | `clawtest-v9.22-settings-panel-fix` | Settings panel fix — write all 16 g_settings keys, sync activated_at, both secure/insecure modes work |
+| v9.23 | `clawtest-v9.23-log-toggle` | Log toggle feature — --no-log/--log in start scripts, encryption_log_level setting |
+| v9.24 | `clawtest-v9.24-fix-settingtypes-context` | Settingtypes context fix — encryption_log_level [server,client] → [common] |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
@@ -440,3 +450,4 @@ When bumping the version number, update ALL of these:
 5. **Crypto layer reconciliation** — X25519 ECDH is now fully integrated; two parallel crypto APIs remain in `src/network/crypto/` (P-256/ECDSA) not yet integrated
 6. **Key rotation wire protocol** — `rotateKeys()` exists but requires a protocol exchange to coordinate with the peer; no TOSERVER_KEY_ROTATION / TOCLIENT_KEY_ROTATION packet types yet
 7. **Compiler warnings in test files** (sign compare, unused variables) — see TODO_FIXME_LIST.md
+8. **Encryption log spam (SOLVED in v9.23+v9.24)** — Verbose per-packet `[ENC:TRACE]` logging previously generated 180MB log files and caused game slowdown. Fixed with `--no-log`/`--log` toggle in start scripts (prevents any log data generation when off) and `encryption_log_level` setting (none/error/action/trace). The `encryption_log_level` setting's context annotation was also fixed from `[server,client]` to `[common]` in v9.24 because the Luanti settingtypes parser only accepts single context values (`common`, `client`, `server`, `world_creation`).

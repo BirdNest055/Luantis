@@ -1,7 +1,7 @@
 # AI Agent Instructions — Clawtest Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-26 | **Applicable Versions:** v7, v8, v9.x, v9.11, and all future development
+> **Last Updated:** 2026-04-27 | **Applicable Versions:** v7, v8, v9.x, v9.24, and all future development
 
 ---
 
@@ -108,13 +108,14 @@
 | `clawtest-upload` | Clawtest development (previous) | `main` |
 | `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
 | `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
+| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development (current) | `clawtest-v9.23-log-toggle` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.11`
+- The current branch is `clawtest-v9.24-fix-settingtypes-context`
 
 ### 3.2 Commit Conventions
 
@@ -278,6 +279,8 @@ For passing data from C++ to the Lua settings dialog:
 | `i64` type not declared in crypto.h | Use `s64` instead — the project uses `s64` (from irrTypes.h), not `i64` |
 | `populateRealSecurityInfo` too many arguments | 11-param overload MUST be defined BEFORE the 10-param overload (C++ forward declaration issue) |
 | Random HKDF salt causes key mismatch | Salt MUST be derived deterministically from SRP session key, not generated with `secure_random()` — both sides need the same salt |
+| `[server,client]` context in settingtypes.txt | Luanti's settingtypes parser (`builtin/common/settings/settingtypes.lua`) only accepts SINGLE context values: `common`, `client`, `server`, `world_creation`. Use `[common]` for settings that apply to both server and client — NEVER use comma-separated contexts like `[server,client]` |
+| Encryption log spam generates 180MB files | Use `--no-log` (default) in start scripts to prevent debug.txt creation. Use `encryption_log_level = none` to suppress all encryption log messages. Never set `encryption_log_level = trace` for normal gameplay — it generates per-packet diagnostics |
 
 ---
 
@@ -307,8 +310,8 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.11`
-- **Previous branch:** `clawtest-v9.10`
+- **Current branch:** `clawtest-v9.24-fix-settingtypes-context`
+- **Previous branch:** `clawtest-v9.23-log-toggle`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.11
+- **Current version:** v9.24
