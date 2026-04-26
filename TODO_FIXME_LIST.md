@@ -12,13 +12,13 @@ Generated automatically from code comments.
 | FIXME | 149 |
 | HACK | 22 |
 | TODO | 294 |
-| WARNING | 7 (Clawtest-specific compiler warnings from CI) |
+| WARNING | 7 (Luanti-Secure-specific compiler warnings from CI) |
 | BUG FIX | 2 (v9.9 build and runtime bugs — FIXED) |
 | BUG FIX | 2 (v9.11 ECDH salt bugs — FIXED) |
 | BUG FIX | 1 (v9.24 settingtypes context bug — FIXED) |
 | BUG FIX | 1 (v9.25 encryption log autocreate bug — FIXED) |
 
-## Clawtest v9.9 Bug Fixes
+## Luanti-Secure v9.9 Bug Fixes
 
 These bugs were discovered and fixed during v9.9 development:
 
@@ -28,7 +28,7 @@ These bugs were discovered and fixed during v9.9 development:
 | `src/network/connection_security.h:610` | Too many arguments to `populateRealSecurityInfo` | 10-param overload was defined before 11-param overload, causing recursive call with wrong arity | Moved 11-param overload before 10-param wrapper | Fixed |
 | `src/network/crypto.cpp:362` | S2C decryption failures (GCM auth tag mismatch) | `initFromSRPSessionKey()` used `secure_random()` for HKDF salt — each side generated different salts → different keys | Changed to deterministic HKDF salt derivation from SRP session key | Fixed |
 
-## Clawtest v9.11 Bug Fixes
+## Luanti-Secure v9.11 Bug Fixes
 
 These bugs were discovered and fixed during v9.11 ECDH forward secrecy development:
 
@@ -37,7 +37,7 @@ These bugs were discovered and fixed during v9.11 ECDH forward secrecy developme
 | `src/network/crypto.cpp` | `mixECDHSecretIntoKeys()` used unsalted HKDF | HKDF was called with `nullptr, 0` for salt, causing key mismatch between client and server | Derive salt deterministically from combined IKM (SRP + ECDH), matching `initFromSRPSessionKey()` pattern | Fixed |
 | `src/network/crypto.cpp` | `rotateKeys()` used random HKDF salt | `secure_random()` for HKDF salt caused KEY MISMATCH between client and server (same bug pattern as v9.9 salt bug) | Derive salt deterministically from rotation IKM | Fixed |
 
-## Clawtest v9.24 Bug Fix
+## Luanti-Secure v9.24 Bug Fix
 
 This bug was discovered and fixed during v9.24 development:
 
@@ -45,7 +45,7 @@ This bug was discovered and fixed during v9.24 development:
 |------|-----|-----------|-----|--------|
 | `builtin/settingtypes.txt` | `ERROR[Main]: Unknown context in settingtypes.txt "encryption_log_level (Encryption log level) [server,client] enum action none,error,action,trace"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:30`) only accepts single context values: `common`, `client`, `server`, `world_creation`. The comma-separated `[server,client]` was treated as the literal string `"server,client"` which is not a valid context. | Changed `[server,client]` to `[common]` — the correct context for settings that apply to both server and client | Fixed |
 
-## Clawtest v9.25 Bug Fix
+## Luanti-Secure v9.25 Bug Fix
 
 This bug was discovered and fixed during v9.25 development:
 
@@ -53,10 +53,10 @@ This bug was discovered and fixed during v9.25 development:
 |------|-----|-----------|-----|--------|
 | `src/network/encryption_trace.cpp` | `encryption_trace.log` not created when logging is toggled ON with `--log` (default "action" level). Manually deleting the file and restarting does not recreate it. | `ensureTraceFileOpen()` only opened the file when `shouldLog(ENC_LOG_TRACE)` was true (i.e., level >= trace). At the default "action" level, the file was never opened. Additionally, `g_trace_disabled` permanently prevented reopening even if conditions changed. | (1) Changed guard from `shouldLog(ENC_LOG_TRACE)` to `shouldLog(ENC_LOG_ERROR)` — file is created at any non-none level. (2) Removed `g_trace_disabled` — file can be opened on subsequent calls. (3) All `enclog_*` macros now write to trace file via `EncLogLine` class, making it the single destination for all encryption events. | Fixed |
 
-## Clawtest Compiler Warnings (from GitHub Actions CI)
+## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 
-These warnings appear when building Clawtest with `-Wall` on Ubuntu 24.04 (gcc 13+).
-They are in Clawtest-added code and should be fixed in a future version.
+These warnings appear when building Luanti-Secure with `-Wall` on Ubuntu 24.04 (gcc 13+).
+They are in Luanti-Secure-added code and should be fixed in a future version.
 
 | File | Line | Warning | Description | Status |
 |------|------|---------|-------------|--------|
@@ -68,7 +68,7 @@ They are in Clawtest-added code and should be fixed in a future version.
 | src/unittest/test_peer_encryption_state.cpp | 416 | `-Wunused-but-set-variable` | `auto n2 = dir.nextNonce()` — same as n1 above | Open |
 | src/unittest/test_peer_encryption_state.cpp | 419 | `-Wunused-but-set-variable` | `auto n3 = dir.nextNonce()` — same as n1 above | Open |
 
-**Note:** `src/porting.cpp:107,111` also has `-Wunused-result` warnings on `write()` calls, but these exist in upstream Luanti and have `(void)` casts already — the compiler still warns despite the cast. Not a Clawtest issue.
+**Note:** `src/porting.cpp:107,111` also has `-Wunused-result` warnings on `write()` calls, but these exist in upstream Luanti and have `(void)` casts already — the compiler still warns despite the cast. Not a Luanti-Secure issue.
 
 ## All Entries (Sorted by Priority: FIXME=1 > HACK=2 > TODO=3 > XXX=4)
 

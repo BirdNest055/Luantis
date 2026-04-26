@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# test_encryption_toggle.sh — Test-driven tests for Clawtest encryption toggle v9.3
+# test_encryption_toggle.sh — Test-driven tests for Luanti-Secure encryption toggle v9.3
 #
 # Tests that the secure_connection config setting properly controls
 # whether encryption is activated or disabled on both server and client.
@@ -34,7 +34,7 @@ string_exists() {
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVER_BIN="$SCRIPT_DIR/bin/luantiserver"
 CLIENT_BIN="$SCRIPT_DIR/bin/luanti"
-TEST_DIR="/tmp/clawtest-enc-test-$$"
+TEST_DIR="/tmp/luanti-secure-enc-test-$$"
 WORLD_DIR="$TEST_DIR/world"
 PASS=0
 FAIL=0
@@ -86,7 +86,7 @@ cleanup() {
     pkill -f "luantiserver.*--port 3[0-9][0-9][0-9][0-9].*test_world" 2>/dev/null || true
     sleep 1
     rm -rf "$TEST_DIR"
-    rm -f /tmp/clawtest-secure-*.conf /tmp/clawtest-insecure-*.conf
+    rm -f /tmp/luanti-secure-secure-*.conf /tmp/luanti-secure-insecure-*.conf
 }
 
 # --- Test helpers ---
@@ -388,7 +388,7 @@ test_14_settingtypes_documented() {
 main() {
     echo ""
     echo -e "${BOLD}+==================================================+${RESET}"
-    echo -e "${BOLD}|   Clawtest Encryption Toggle Test Suite v9.4      |${RESET}"
+    echo -e "${BOLD}|   Luanti-Secure Encryption Toggle Test Suite v9.4  |${RESET}"
     echo -e "${BOLD}+==================================================+${RESET}"
     echo ""
 

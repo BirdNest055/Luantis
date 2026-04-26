@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# test_log_toggle.sh — TDD tests for Clawtest encryption log toggle v9.23
+# test_log_toggle.sh — TDD tests for Luanti-Secure encryption log toggle v9.23
 #
 # Tests that the encryption_log_level config setting properly controls
 # which [ENC:...] log lines are emitted by the server and client.
@@ -18,7 +18,7 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SERVER_BIN="$SCRIPT_DIR/bin/luantiserver"
 CLIENT_BIN="$SCRIPT_DIR/bin/luanti"
-TEST_DIR="/tmp/clawtest-log-toggle-test-$$"
+TEST_DIR="/tmp/luanti-secure-log-toggle-test-$$"
 WORLD_DIR="$TEST_DIR/world"
 PASS=0
 FAIL=0
@@ -68,7 +68,7 @@ cleanup() {
     pkill -f "luantiserver.*--port 3[0-9][0-9][0-9][0-9].*test_world" 2>/dev/null || true
     sleep 1
     rm -rf "$TEST_DIR"
-    rm -f /tmp/clawtest-log-toggle-*.conf
+    rm -f /tmp/luanti-secure-log-toggle-*.conf
 }
 
 # --- Test helpers ---
@@ -550,7 +550,7 @@ test_32_interactive_logging_menu_client() {
 main() {
     echo ""
     echo -e "${BOLD}+==================================================+${RESET}"
-    echo -e "${BOLD}|   Clawtest Log Toggle Test Suite v9.23             |${RESET}"
+    echo -e "${BOLD}|   Luanti-Secure Log Toggle Test Suite v9.23        |${RESET}"
     echo -e "${BOLD}+==================================================+${RESET}"
     echo ""
 

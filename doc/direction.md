@@ -1,10 +1,10 @@
-# Clawtest Direction Document
+# Luanti-Secure Direction Document
 
-> **Note:** This document extends the Luanti direction with Clawtest-specific goals. The upstream Luanti goals below are preserved for reference.
+> **Note:** This document extends the Luanti direction with Luanti-Secure-specific goals. The upstream Luanti goals below are preserved for reference.
 
-## 0. Clawtest-Specific Roadmap
+## 0. Luanti-Secure-Specific Roadmap
 
-Clawtest is a fork of Luanti focused on **real, verifiable encrypted communications**. The following are the medium-term goals specific to Clawtest, tracked as version milestones.
+Luanti-Secure is a fork of Luanti focused on **real, verifiable encrypted communications**. The following are the medium-term goals specific to Luanti-Secure, tracked as version milestones.
 
 ### 0.1 Encryption Completeness (v9.x)
 

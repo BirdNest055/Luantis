@@ -1,6 +1,6 @@
 <div align="center">
     <img src="textures/base/pack/logo.png" width="32%">
-    <h1>Clawtest</h1>
+    <h1>Luanti-Secure</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
     <img src="https://img.shields.io/badge/version-v9.25-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
@@ -9,7 +9,7 @@
 </div>
 <br>
 
-Clawtest is a fork of the [Luanti](https://github.com/luanti-org/luanti) voxel game engine with **real, verifiable encrypted communications** between server and client. Unlike the upstream Luanti, where `secure_connection` was security theater (flags without actual encryption), Clawtest implements **AES-256-GCM packet encryption** derived from the SRP authentication session key, with honest UI that accurately reports what protection exists and what does not.
+Luanti-Secure is a fork of the [Luanti](https://github.com/luanti-org/luanti) voxel game engine with **real, verifiable encrypted communications** between server and client. Unlike the upstream Luanti, where `secure_connection` was security theater (flags without actual encryption), Luanti-Secure implements **AES-256-GCM packet encryption** derived from the SRP authentication session key, with honest UI that accurately reports what protection exists and what does not.
 
 Copyright (C) 2010-2026 Perttu Ahola <celeron55@gmail.com>
 and contributors (see source file comments and the version control log)
@@ -32,7 +32,7 @@ Table of Contents
 What's Different from Luanti
 -----------------------------
 
-Clawtest extends Luanti v5.16.0-dev with these major features:
+Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 
 | Feature | Version | Description |
 |---------|---------|-------------|
@@ -225,7 +225,7 @@ Configuration file
 - A run-in-place build will look for the configuration file in
     `location_of_exe/../minetest.conf` and also `location_of_exe/../../minetest.conf`
 
-Key Clawtest settings:
+Key Luanti-Secure settings:
 - `secure_connection` (default: `true`) — When true, AES-256-GCM encryption is activated after SRP auth. When false, SRP still runs for authentication but traffic is plaintext.
 - `show_security_overlay` (default: `true`) — Show security status overlay in-game.
 - `show_connection_info` (default: `false`) — Show detailed connection info in settings tab.
@@ -350,14 +350,14 @@ Docker
 Version scheme
 --------------
 
-Clawtest uses a dual version scheme:
+Luanti-Secure uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.25)
+2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.25)
 
 The full version string is `5.16.1-v9.25-dev`, displayed via `--version` and in the UI.
 
-The Clawtest version tracks encryption feature development:
+The Luanti-Secure version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
 - v8: Security Info settings tab with technical connection details
 - v9.0: Real AES-256-GCM encryption implemented and integrated

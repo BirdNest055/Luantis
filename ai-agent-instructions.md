@@ -1,4 +1,4 @@
-# AI Agent Instructions — Clawtest Project
+# AI Agent Instructions — Luanti-Secure Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
 > **Last Updated:** 2026-04-27 | **Applicable Versions:** v7, v8, v9.x, v9.24, and all future development
@@ -105,7 +105,7 @@
 | Branch | Purpose | Base |
 |--------|---------|------|
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
-| `clawtest-upload` | Clawtest development (previous) | `main` |
+| `clawtest-upload` | Luanti-Secure development (previous) | `main` |
 | `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
 | `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
 | `clawtest-v9.24-fix-settingtypes-context` | v9.24 development (current) | `clawtest-v9.23-log-toggle` |
@@ -122,7 +122,7 @@
 - Write clear, descriptive commit messages
 - Group related changes together
 - Reference the version/feature in the commit message
-- Example: `Clawtest v9.3 - Modular encryption toggle, interactive start scripts, version numbering`
+- Example: `Luanti-Secure v9.3 - Modular encryption toggle, interactive start scripts, version numbering`
 
 ### 3.3 Tags
 
@@ -133,7 +133,7 @@
 
 - `VERSION` file in project root contains just the number (e.g., "9.3")
 - `CMakeLists.txt` sets `VERSION_EXTRA` to "v9.3" (used in `--version` output)
-- Zip filenames use the pattern: `Clawtest-v9.3.zip`
+- Zip filenames use the pattern: `Luanti-Secure-v9.3.zip`
 - When bumping version: update BOTH `VERSION` file AND `CMakeLists.txt` `VERSION_EXTRA`
 
 ---
@@ -275,7 +275,7 @@ For passing data from C++ to the Lua settings dialog:
 | False build success after failure | Add `|| exit 1` at every step |
 | Server start script closes at end | Add `read -rp "Press Enter to close"` at end of script |
 | Insecure mode still encrypts | Use `EncryptionConfig::shouldEncrypt()` — don't read settings directly |
-| No version numbers in zips | Use `Clawtest-v9.X.zip` naming pattern |
+| No version numbers in zips | Use `Luanti-Secure-v9.X.zip` naming pattern |
 | `i64` type not declared in crypto.h | Use `s64` instead — the project uses `s64` (from irrTypes.h), not `i64` |
 | `populateRealSecurityInfo` too many arguments | 11-param overload MUST be defined BEFORE the 10-param overload (C++ forward declaration issue) |
 | Random HKDF salt causes key mismatch | Salt MUST be derived deterministically from SRP session key, not generated with `secure_random()` — both sides need the same salt |

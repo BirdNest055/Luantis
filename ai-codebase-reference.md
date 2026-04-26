@@ -1,4 +1,4 @@
-# AI Codebase Reference — Clawtest Project
+# AI Codebase Reference — Luanti-Secure Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
 > **Last Updated:** 2026-04-27 | **Project Version:** v9.24
@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-This is **Clawtest** — a fork of the **Luanti** (formerly Minetest) voxel game engine (version 5.16.0-dev) with **real, verifiable encrypted communications** between server and client. The project modifies both C++ engine code and Lua scripts to:
+This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel game engine (version 5.16.0-dev) with **real, verifiable encrypted communications** between server and client. The project modifies both C++ engine code and Lua scripts to:
 
 1. Display a persistent in-game warning overlay when the connection is insecure (v7)
 2. Add a dedicated "Security Info" settings tab showing technical details of the connection's security (v8)
@@ -337,10 +337,10 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 ## 7. File Tree — Modified/Created Files (v9.3)
 
 ```
-Clawtest/
+Luanti-Secure/
 +-- VERSION                                    <- "9.3"
 +-- CMakeLists.txt                             <- VERSION_EXTRA = "v9.3"
-+-- README.md                                  <- Updated for Clawtest
++-- README.md                                  <- Updated for Luanti-Secure
 +-- V9_PLAN.md                                 <- Updated progress tracker
 +-- ai-agent-instructions.md                   <- Updated conventions
 +-- ai-codebase-reference.md                   <- THIS FILE
@@ -437,7 +437,7 @@ When bumping the version number, update ALL of these:
 2. `CMakeLists.txt` — `VERSION_EXTRA` string (e.g., "v9.4")
 3. `test_encryption_toggle.sh` — version check in test_08 and test_09
 4. Commit message references the version
-5. Branch name includes the version (e.g., `clawtest-v9.4`)
+5. Branch name includes the version (e.g., `luanti-secure-v9.4`)
 
 ---
 
