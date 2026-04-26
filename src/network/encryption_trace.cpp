@@ -22,8 +22,10 @@ static std::ofstream g_trace_file;
 static std::string g_trace_path;
 static bool g_trace_initialized = false;
 static bool g_trace_path_set = false;
-// v9.23: Once disabled (log level = none at first call), never open the file
-static bool g_trace_disabled = false;
+// v9.25: Removed g_trace_disabled — the trace file is now created at any
+// non-none encryption log level (not just trace). Previously, once disabled
+// (log level = none at first call), the file was never opened. Now the file
+// is created on first write at any active level, and recreated if deleted.
 
 // ---- TraceLine destructor: dual output ----
 
@@ -51,19 +53,64 @@ TraceLine::~TraceLine()
         writeTraceFile(line);
 }
 
+// ---- EncLogLine: Generalized dual-output for ALL log levels (v9.25) ----
+
+EncLogLine::EncLogLine(std::ostream &stream, EncryptionLogLevel level)
+        : m_stream(nullptr)
+{
+        if (EncryptionConfig::shouldLog(level)) {
+                m_stream = &stream;
+                // v9.25: Ensure the trace file exists when any encryption
+                // logging is active. This fixes the bug where deleting
+                // encryption_trace.log manually and restarting with --log
+                // would not recreate the file.
+                ensureEncryptionLogExists();
+        }
+}
+
+EncLogLine::~EncLogLine()
+{
+        if (!m_stream)
+                return;
+
+        std::string line = m_buf.str();
+
+        // Strip trailing newlines from the captured content
+        while (!line.empty() && (line.back() == '\n' || line.back() == '\r'))
+                line.pop_back();
+
+        if (line.empty())
+                return;
+
+        // Write to the standard stream (infostream/actionstream/errorstream)
+        *m_stream << line << std::endl;
+
+        // v9.25: Also write to the dedicated trace file at all log levels.
+        // Previously only enclog_trace (TraceLine) wrote to the trace file.
+        // Now all encryption log output goes to encryption_trace.log,
+        // making it the single destination for all encryption events.
+        writeTraceFile(line);
+}
+
 // ---- Trace file implementation ----
 
 static void ensureTraceFileOpen()
 {
         // Must be called with g_trace_mutex held
 
-        if (g_trace_initialized || g_trace_disabled)
+        if (g_trace_initialized)
                 return;
 
-        // v9.23: If encryption log level is "none", never open the trace file.
-        // This prevents the 180MB+ log file problem when logging is disabled.
-        if (!EncryptionConfig::shouldLog(ENC_LOG_TRACE)) {
-                g_trace_disabled = true;
+        // v9.25: If encryption log level is "none", skip opening the file.
+        // Unlike v9.23 which permanently disabled the file (g_trace_disabled),
+        // v9.25 allows the file to be opened on subsequent calls if the log
+        // level changes. This fixes the bug where manually deleting
+        // encryption_trace.log and restarting with --log (action level)
+        // would not recreate the file.
+        //
+        // Changed: open at ANY non-none level (not just trace), so the
+        // file exists when logging is ON regardless of log level.
+        if (!EncryptionConfig::shouldLog(ENC_LOG_ERROR)) {
                 return;
         }
 
@@ -124,6 +171,12 @@ void initTraceFile(const std::string &path)
         }
 }
 
+void ensureEncryptionLogExists()
+{
+        std::lock_guard<std::mutex> lock(g_trace_mutex);
+        ensureTraceFileOpen();
+}
+
 void writeTraceFile(const std::string &line)
 {
         std::lock_guard<std::mutex> lock(g_trace_mutex);
@@ -157,6 +210,15 @@ std::string getTraceFilePath()
 {
         std::lock_guard<std::mutex> lock(g_trace_mutex);
         return g_trace_path;
+}
+
+void closeTraceFile()
+{
+        std::lock_guard<std::mutex> lock(g_trace_mutex);
+        if (g_trace_file.is_open()) {
+                g_trace_file.close();
+        }
+        g_trace_initialized = false;
 }
 
 } // namespace EncLog

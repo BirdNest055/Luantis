@@ -16,6 +16,7 @@ Generated automatically from code comments.
 | BUG FIX | 2 (v9.9 build and runtime bugs — FIXED) |
 | BUG FIX | 2 (v9.11 ECDH salt bugs — FIXED) |
 | BUG FIX | 1 (v9.24 settingtypes context bug — FIXED) |
+| BUG FIX | 1 (v9.25 encryption log autocreate bug — FIXED) |
 
 ## Clawtest v9.9 Bug Fixes
 
@@ -43,6 +44,14 @@ This bug was discovered and fixed during v9.24 development:
 | File | Bug | Root Cause | Fix | Status |
 |------|-----|-----------|-----|--------|
 | `builtin/settingtypes.txt` | `ERROR[Main]: Unknown context in settingtypes.txt "encryption_log_level (Encryption log level) [server,client] enum action none,error,action,trace"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:30`) only accepts single context values: `common`, `client`, `server`, `world_creation`. The comma-separated `[server,client]` was treated as the literal string `"server,client"` which is not a valid context. | Changed `[server,client]` to `[common]` — the correct context for settings that apply to both server and client | Fixed |
+
+## Clawtest v9.25 Bug Fix
+
+This bug was discovered and fixed during v9.25 development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `src/network/encryption_trace.cpp` | `encryption_trace.log` not created when logging is toggled ON with `--log` (default "action" level). Manually deleting the file and restarting does not recreate it. | `ensureTraceFileOpen()` only opened the file when `shouldLog(ENC_LOG_TRACE)` was true (i.e., level >= trace). At the default "action" level, the file was never opened. Additionally, `g_trace_disabled` permanently prevented reopening even if conditions changed. | (1) Changed guard from `shouldLog(ENC_LOG_TRACE)` to `shouldLog(ENC_LOG_ERROR)` — file is created at any non-none level. (2) Removed `g_trace_disabled` — file can be opened on subsequent calls. (3) All `enclog_*` macros now write to trace file via `EncLogLine` class, making it the single destination for all encryption events. | Fixed |
 
 ## Clawtest Compiler Warnings (from GitHub Actions CI)
 

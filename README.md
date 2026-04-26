@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Clawtest</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.24-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.25-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -52,6 +52,7 @@ Clawtest extends Luanti v5.16.0-dev with these major features:
 | Settings panel fix | v9.22+ | All 16 g_settings keys written, activated_at synced from connection layer, both secure and insecure modes work |
 | Log toggle | v9.23+ | `--no-log`/`--log` flags in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem |
 | Settingtypes context fix | v9.24+ | Fixed `encryption_log_level` context from `[server,client]` to `[common]` (parser only accepts single context values) |
+| Encryption log autocreate | v9.25+ | `encryption_trace.log` is now created at any non-none log level (not just trace); all `enclog_*` macros write to the trace file; fixes missing log file after manual deletion |
 
 Encryption Architecture
 -----------------------
@@ -352,9 +353,9 @@ Version scheme
 Clawtest uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.24)
+2. **Clawtest version** (encryption feature version): `v9.X` (currently v9.25)
 
-The full version string is `5.16.1-v9.24-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.25-dev`, displayed via `--version` and in the UI.
 
 The Clawtest version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -377,5 +378,6 @@ The Clawtest version tracks encryption feature development:
 - v9.22: Settings panel fix — write all 16 g_settings keys, sync activated_at from connection, both secure/insecure modes work
 - v9.23: Log toggle feature — `--no-log`/`--log` in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem
 - v9.24: Settingtypes context fix — `encryption_log_level` context `[server,client]` → `[common]` (Luanti parser only accepts single context values)
+- v9.25: Encryption log autocreate — `encryption_trace.log` created at any non-none level, all `enclog_*` macros write to trace file, fixes missing file after deletion
 
-Git tags follow the pattern `clawtest-v9.24`.
+Git tags follow the pattern `clawtest-v9.25`.

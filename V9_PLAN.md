@@ -400,10 +400,11 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.22: Settings panel fix | DONE | Write all 16 g_settings keys, sync activated_at from connection layer, both secure/insecure modes work |
 | v9.23: Log toggle feature | DONE | Add --no-log/--log flags to start scripts, encryption_log_level setting (none/error/action/trace), log suppression prevents debug.txt and trace file creation |
 | v9.24: Settingtypes context fix | DONE | Fix encryption_log_level context [server,client] → [common]; Luanti parser only accepts single context values (common/client/server/world_creation) |
+| v9.25: Encryption log autocreate | DONE | encryption_trace.log created at any non-none level (not just trace); all enclog_* macros write to trace file via EncLogLine class; fixes missing log file after manual deletion |
 
 ---
 
-## v9.19–v9.24: Encryption Spamming Problem & Solution
+## v9.19–v9.25: Encryption Spamming Problem & Solution
 
 ### The Problem: Encryption Log Spam
 
@@ -439,6 +440,8 @@ A new `encryption_log_level` setting controls the verbosity of `[ENC:...]` log m
 | `trace` | Everything including per-packet diagnostics | Debugging specific encryption issues |
 
 **Bug fixed in v9.24**: The initial `encryption_log_level` setting used `[server,client]` as its context annotation in `settingtypes.txt`. The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua`) only accepts single context values (`common`, `client`, `server`, `world_creation`), so the comma-separated `[server,client]` was treated as an unknown context, producing `ERROR[Main]: Unknown context in settingtypes.txt`. Fixed by changing to `[common]` — the correct context for settings that apply to both server and client.
+
+**Autocreate fix (v9.25)**: In v9.23/v9.24, `encryption_trace.log` was only created when `encryption_log_level = trace`. At the default "action" level (which is what `--log` sets), the file was never created. If a user manually deleted the file and restarted with `--log`, the file would not be recreated — a test-driven-development finding. In v9.25, two changes were made: (1) The trace file is now created at ANY non-none log level (error, action, or trace), not just at trace level. This is done by changing the guard in `ensureTraceFileOpen()` from `shouldLog(ENC_LOG_TRACE)` to `shouldLog(ENC_LOG_ERROR)`. (2) ALL `enclog_*` macros (not just `enclog_trace`) now write to the trace file via the new `EncLogLine` class, making `encryption_trace.log` the single destination for all encryption log events. The `EncLogLine` class is a generalization of the previous `TraceLine` class that supports any log level and any output stream, with automatic dual output to both the standard stream and the trace file.
 
 ### How to Use
 
