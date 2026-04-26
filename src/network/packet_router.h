@@ -6,6 +6,8 @@
 
 #include "irrlichttypes.h"
 #include "util/pointer.h"
+#include <array>
+#include <vector>
 #include <variant>
 #include <optional>
 

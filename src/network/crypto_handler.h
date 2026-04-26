@@ -9,6 +9,8 @@
 #include "network/packet_router.h"
 #include "util/pointer.h"
 #include <optional>
+#include <array>
+#include <vector>
 #include <string>
 
 struct PeerEncryptionState;
