@@ -1002,7 +1002,7 @@ secure_connection (Secure connection) [client] bool true
 #    trace   = Show everything including per-packet trace diagnostics
 #    Use "none" for production servers where log noise is unwanted.
 #    Use "trace" when debugging encryption issues.
-encryption_log_level (Encryption log level) [server,client] enum action none,error,action,trace
+encryption_log_level (Encryption log level) [common] enum action none,error,action,trace
 
 #    Show the security overlay warning when the connection is insecure.
 #    When enabled, a persistent "INSECURE CONNECTION" banner is displayed at the
