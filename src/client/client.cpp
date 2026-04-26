@@ -523,6 +523,15 @@ bool Client::syncSecurityInfoFromConnection()
 
         // Repopulate with the REAL state
         Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+
+        // v9.22: Read activated_at from the CONNECTION LAYER, not from
+        // m_encryption_state which is never updated after init.
+        // The receive thread's auto-activation sets activated_at on the
+        // connection layer's udpPeer — the Client's copy stays at 0.
+        u64 real_activated_at = m_con->GetPeerEncryptionActivatedAt(PEER_ID_SERVER);
+        if (real_activated_at == 0)
+                real_activated_at = m_encryption_state.activated_at; // fallback
+
         m_security_info = populateRealSecurityInfo(
                 encryption_active,
                 ecdh_completed,
@@ -530,7 +539,7 @@ bool Client::syncSecurityInfoFromConnection()
                 m_security_info.fingerprint_verify_result,
                 m_encryption_state.session_id,
                 m_encryption_state.server_fingerprint,
-                m_encryption_state.activated_at,
+                real_activated_at,
                 m_proto_ver,
                 m_address_name,
                 remote.getPort(),
@@ -539,14 +548,27 @@ bool Client::syncSecurityInfoFromConnection()
         int new_score = m_security_info.getSecurityScore();
 
         // Update runtime settings so the Lua UI reflects the change
+        // v9.22: Write ALL 16 g_settings keys that the Lua security_info
+        // component reads. Previously this was missing authentication,
+        // protocol_version, server_address, server_port, session_id,
+        // connected_since, and server_fingerprint — causing the panel
+        // to show stale/wrong values (e.g. "Authentication: None" when
+        // SRP auth was actually used, "Connected Since: 0", etc.).
         g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
         g_settings->set("security_info_state", m_security_info.getStateString());
         g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
         g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
+        g_settings->set("security_info_authentication", m_security_info.getAuthenticationString());
         g_settings->set("security_info_cipher_suite", m_security_info.getCipherSuiteString());
         g_settings->set("security_info_cert_status", m_security_info.getCertificateStatusString());
         g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
         g_settings->set("security_info_replay_protection", m_security_info.isReplayProtected() ? "Yes" : "No");
+        g_settings->set("security_info_protocol_version", std::to_string(m_security_info.protocol_version));
+        g_settings->set("security_info_server_address", m_security_info.server_address);
+        g_settings->set("security_info_server_port", std::to_string(m_security_info.server_port));
+        g_settings->set("security_info_session_id", m_security_info.session_id);
+        g_settings->set("security_info_connected_since", std::to_string(m_security_info.connected_since));
+        g_settings->set("security_info_server_fingerprint", m_security_info.server_fingerprint);
         g_settings->set("security_info_tls_version", m_security_info.getTlsVersionString());
 
         if (old_score != new_score) {
