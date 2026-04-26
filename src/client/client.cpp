@@ -76,6 +76,8 @@ enum class SSCMMode {
 // Network
 #include "network/clientopcodes.h"
 #include "network/connection.h"
+#include "network/connection_security.h"
+#include "network/encryption_log.h"
 #include "network/networkexceptions.h"
 #include "network/networkpacket.h"
 #include "serialization.h"
@@ -471,6 +473,84 @@ void Client::connect(const Address &address, const std::string &address_name)
         m_con->Connect(address);
 
         initLocalMapSaving(address, m_address_name);
+}
+
+bool Client::syncSecurityInfoFromConnection()
+{
+        // v9.20: This is the key method that makes the encryption score HONEST.
+        //
+        // Problem: The Client's m_security_info was only updated at two fixed
+        // points (TOCLIENT_HELLO and handleCommand_EcdhPubkey), and the ECDH
+        // handler hardcoded encryption_active=true even when encryption was NOT
+        // actually active. This meant the score showed 85/100 (Good) when no
+        // packets were being encrypted — FAKE information.
+        //
+        // Fix: We now query the connection layer's LIVE encryption state every
+        // time this method is called. The receive thread's auto-activation
+        // (in threads.cpp) sets active=true on the connection layer's udpPeer
+        // when it successfully decrypts the first encrypted packet. We read
+        // that here and repopulate the security info accordingly.
+        //
+        // This method is called from the GameUI update loop (every frame),
+        // so the score automatically updates in real-time when encryption
+        // activates.
+
+        if (!m_con)
+                return false;
+
+        // Read the connection layer's LIVE state
+        bool encryption_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+        bool ecdh_completed = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+
+        // Check if anything actually changed — skip expensive repopulation
+        // if the state hasn't changed since last time.
+        bool was_secure = m_security_info.isSecure();
+        bool was_forward_secret = m_security_info.isForwardSecret();
+
+        if (encryption_active == was_secure && ecdh_completed == was_forward_secret)
+                return false; // No change
+
+        int old_score = m_security_info.getSecurityScore();
+
+        // Repopulate with the REAL state
+        Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+        m_security_info = populateRealSecurityInfo(
+                encryption_active,
+                ecdh_completed,
+                m_security_info.fingerprint_pinned,
+                m_security_info.fingerprint_verify_result,
+                m_encryption_state.session_id,
+                m_encryption_state.server_fingerprint,
+                m_encryption_state.activated_at,
+                m_proto_ver,
+                m_address_name,
+                remote.getPort(),
+                PeerEncryptionState::KEY_ROTATION_SUPPORTED);
+
+        int new_score = m_security_info.getSecurityScore();
+
+        // Update runtime settings so the Lua UI reflects the change
+        g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
+        g_settings->set("security_info_state", m_security_info.getStateString());
+        g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
+        g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
+        g_settings->set("security_info_cipher_suite", m_security_info.getCipherSuiteString());
+        g_settings->set("security_info_cert_status", m_security_info.getCertificateStatusString());
+        g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
+        g_settings->set("security_info_replay_protection", m_security_info.isReplayProtected() ? "Yes" : "No");
+        g_settings->set("security_info_tls_version", m_security_info.getTlsVersionString());
+
+        if (old_score != new_score) {
+                enclog_security("Security score updated from live connection state")
+                        << EncLog::kv("old_score", old_score)
+                        << EncLog::kv("new_score", new_score)
+                        << EncLog::kv("encryption_active", encryption_active)
+                        << EncLog::kv("ecdh_completed", ecdh_completed)
+                        << EncLog::kv("session_id", m_encryption_state.session_id)
+                        << std::endl;
+        }
+
+        return old_score != new_score;
 }
 
 void Client::step(float dtime)

@@ -368,8 +368,24 @@ public:
         const ConnectionSecurityInfo& getConnectionSecurityInfo() const { return m_security_info; }
         void setConnectionSecurityInfo(const ConnectionSecurityInfo& info) { m_security_info = info; }
 
+        // v9.20: Sync security info from the connection layer's LIVE state.
+        // This re-reads the actual encryption active/ECDH completed flags
+        // from the connection layer (which is updated by the receive thread
+        // on auto-activation) and repopulates m_security_info with the REAL
+        // state. Returns true if the score changed.
+        bool syncSecurityInfoFromConnection();
+
         // Real encryption state
-        bool isEncryptionActive() const { return m_encryption_state.active.load(); }
+        // v9.20: Query the connection layer's LIVE active state, not the
+        // Client's stale copy. The Client's m_encryption_state.active is
+        // never updated after the initial push, so it's always false.
+        // The connection layer's udpPeer->encryption_state.active is set
+        // to true by auto-activation in the receive thread.
+        bool isEncryptionActive() const {
+                if (m_con)
+                        return m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+                return m_encryption_state.active.load();
+        }
         PeerEncryptionState& getEncryptionState() { return m_encryption_state; }
         const PeerEncryptionState& getEncryptionState() const { return m_encryption_state; }
 

@@ -232,9 +232,14 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
 
         // Update security overlay — persistent warning for insecure connections
         if (m_guitext_security) {
-                // Sync security info from client
-                if (client)
+                // v9.20: Sync security info from client, including the LIVE
+                // encryption state from the connection layer. This ensures
+                // the score reflects reality (not stale/fake data) by reading
+                // the connection layer's actual active/ECDH state every frame.
+                if (client) {
+                        client->syncSecurityInfoFromConnection();
                         m_security_info = client->getConnectionSecurityInfo();
+                }
 
                 // Re-read the overlay setting each frame so toggling takes effect immediately
                 m_flags.show_security_overlay = g_settings->getBool("show_security_overlay");

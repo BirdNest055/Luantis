@@ -1802,6 +1802,30 @@ bool Connection::MixECDHSecretOnPeer(session_t peer_id,
         return true;
 }
 
+bool Connection::IsPeerEncryptionActive(session_t peer_id) const
+{
+        MutexAutoLock peerlock(m_peers_mutex);
+        auto it = m_peers.find(peer_id);
+        if (it == m_peers.end())
+                return false;
+        auto *udpPeer = dynamic_cast<UDPPeer *>(it->second);
+        if (!udpPeer)
+                return false;
+        return udpPeer->encryption_state.active.load(std::memory_order_acquire);
+}
+
+bool Connection::IsPeerECDHCompleted(session_t peer_id) const
+{
+        MutexAutoLock peerlock(m_peers_mutex);
+        auto it = m_peers.find(peer_id);
+        if (it == m_peers.end())
+                return false;
+        auto *udpPeer = dynamic_cast<UDPPeer *>(it->second);
+        if (!udpPeer)
+                return false;
+        return udpPeer->encryption_state.ecdh_completed.load(std::memory_order_acquire);
+}
+
 void Connection::SetPeerID(session_t id)
 {
         m_peer_id = id;

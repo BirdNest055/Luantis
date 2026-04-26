@@ -298,6 +298,30 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                                 << EncLog::kv("role", "client")
                                                 << EncLog::kv("cipher", "AES-256-GCM")
                                                 << std::endl;
+
+                                        // v9.20: Populate security info based on the REAL encryption
+                                        // state. At this point, encryption is initialized but NOT
+                                        // active yet (active=false), so the score will honestly
+                                        // show 0/100 (Insecure) until encryption actually activates.
+                                        // The GameUI sync will update the score in real-time when
+                                        // encryption activates via auto-activation in the receive path.
+                                        {
+                                                Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+                                                bool enc_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+                                                bool ecdh_done = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+                                                m_security_info = populateRealSecurityInfo(
+                                                        enc_active /* REAL state, not fake! */,
+                                                        ecdh_done,
+                                                        false /* fingerprint_pinned */,
+                                                        0 /* fingerprint_verify_result */,
+                                                        m_encryption_state.session_id,
+                                                        m_encryption_state.server_fingerprint,
+                                                        m_encryption_state.activated_at,
+                                                        m_proto_ver,
+                                                        m_address_name,
+                                                        remote.getPort(),
+                                                        PeerEncryptionState::KEY_ROTATION_SUPPORTED);
+                                        }
                                 } else {
                                         enclog_error("Failed to initialize encryption from SRP session key")
                                                 << EncLog::kv("reason", "HKDF key derivation failed")
@@ -2289,11 +2313,26 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         // m_encryption_state.activated_at will be set by the auto-activation
         // in the receive path when encryption actually activates.
 
-        // Populate HONEST security info with ECDH forward secrecy
+        // v9.20: Populate HONEST security info based on the REAL encryption
+        // active state. Previously this was hardcoded to true, which was
+        // FAKE — the score showed 85/100 (Good) even when encryption was
+        // not actually protecting any traffic (active=false).
+        //
+        // Now we query the connection layer's live state, which is the
+        // authoritative source. The receive thread's auto-activation sets
+        // active=true on the connection layer's udpPeer, and we read it
+        // from there. If encryption hasn't activated yet, the score will
+        // honestly show 0/100 (Insecure), because that's the truth —
+        // no packets are being encrypted yet.
+        //
+        // The GameUI sync (GameUI::updateHover) will re-read this every
+        // frame, so the score automatically updates when encryption activates.
         Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+        bool encryption_actually_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+        bool ecdh_actually_completed = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
         m_security_info = populateRealSecurityInfo(
-                true /* encryption_active */,
-                m_encryption_state.ecdh_completed.load() /* ecdh_completed */,
+                encryption_actually_active /* encryption_active — REAL state, not fake! */,
+                ecdh_actually_completed /* ecdh_completed — REAL state from connection layer */,
                 false /* fingerprint_pinned */,
                 0 /* fingerprint_verify_result */,
                 m_encryption_state.session_id,
@@ -2303,6 +2342,13 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
                 m_address_name,
                 remote.getPort(),
                 PeerEncryptionState::KEY_ROTATION_SUPPORTED /* key_rotation_supported */);
+
+        // v9.20: Update the runtime settings score so the Lua UI shows real info
+        g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
+        g_settings->set("security_info_state", m_security_info.getStateString());
+        g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
+        g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
+        g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
 
         infostream << "Client::handleCommand_EcdhPubkey: ECDH forward secrecy established"
                 << " (session_id=" << m_encryption_state.session_id
