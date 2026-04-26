@@ -24,6 +24,7 @@ set(unittest_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/test_singleplayer_security.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_singleplayer_encryption_skip.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_encrypted_flag_detection.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_packet_router.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_forward_secrecy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_craft.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_datastructures.cpp
