@@ -5,17 +5,26 @@
  * controlling whether encryption is active on a connection. All code
  * that checks or enforces encryption policy should go through this API.
  *
+ * v9.23: Added encryption log level control. The `encryption_log_level`
+ * setting controls which [ENC:...] log lines are emitted:
+ *   "none"    — suppress ALL encryption log output (except hard crashes)
+ *   "error"   — only [ENC:ERROR] lines
+ *   "action"  — ACTIVATE, SECURITY, ERROR, DISABLE (default)
+ *   "trace"   — everything including TRACE and per-packet diagnostics
+ *
  * Design goals:
  *   1. Single place to check "should encryption be active?"
  *   2. Easy to toggle encryption on/off from config or code
  *   3. Clear logging for every encryption decision
  *   4. Testable from scripts without rebuilding
+ *   5. v9.23: Controllable log verbosity for production vs debugging
  */
 
 #pragma once
 
 #include <string>
 #include "irrlichttypes.h"
+#include "network/encryption_log_level.h"  // v9.23: EncryptionLogLevel enum
 
 /**
  * EncryptionConfig — Centralized encryption policy manager.
@@ -68,5 +77,37 @@ void logEncryptionDecision(u16 peer_id, bool is_server, bool activated);
  * @return Bitfield of ConnectionSecurityFlags
  */
 u8 getSecurityFlags();
+
+// ---- v9.23: Encryption log level control ----
+
+/**
+ * Get the current encryption log level.
+ * Reads `encryption_log_level` from g_settings.
+ * Default: "action" (ENC_LOG_ACTION).
+ */
+EncryptionLogLevel getLogLevel();
+
+/**
+ * Check if a given encryption log category should be emitted
+ * at the current log level.
+ *
+ * @param level  The minimum level required for this log line
+ * @return true if the log line should be emitted
+ */
+bool shouldLog(EncryptionLogLevel level);
+
+/**
+ * Get the current log level as a human-readable string.
+ * One of: "none", "error", "action", "trace"
+ */
+std::string getLogLevelString();
+
+/**
+ * Parse a log level string to the enum value.
+ * Returns ENC_LOG_ACTION for unrecognized values (safe default).
+ *
+ * @param str  One of: "none", "error", "action", "trace"
+ */
+EncryptionLogLevel parseLogLevel(const std::string &str);
 
 } // namespace EncryptionConfig

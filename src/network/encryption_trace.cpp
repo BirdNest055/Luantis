@@ -4,6 +4,7 @@
 
 #include "network/encryption_trace.h"
 #include "network/encryption_log.h"
+#include "network/encryption_config.h"  // v9.23: shouldLog() check
 #include "log.h"
 #include "porting.h"
 #include "filesys.h"
@@ -21,11 +22,18 @@ static std::ofstream g_trace_file;
 static std::string g_trace_path;
 static bool g_trace_initialized = false;
 static bool g_trace_path_set = false;
+// v9.23: Once disabled (log level = none at first call), never open the file
+static bool g_trace_disabled = false;
 
 // ---- TraceLine destructor: dual output ----
 
 TraceLine::~TraceLine()
 {
+        // v9.23: If encryption log level is below trace, skip all output.
+        // This prevents generating log data when logging is disabled.
+        if (!EncryptionConfig::shouldLog(ENC_LOG_TRACE))
+                return;
+
         std::string line = m_buf.str();
 
         // Strip trailing newlines from the captured content
@@ -49,8 +57,15 @@ static void ensureTraceFileOpen()
 {
         // Must be called with g_trace_mutex held
 
-        if (g_trace_initialized)
+        if (g_trace_initialized || g_trace_disabled)
                 return;
+
+        // v9.23: If encryption log level is "none", never open the trace file.
+        // This prevents the 180MB+ log file problem when logging is disabled.
+        if (!EncryptionConfig::shouldLog(ENC_LOG_TRACE)) {
+                g_trace_disabled = true;
+                return;
+        }
 
         g_trace_initialized = true;
 

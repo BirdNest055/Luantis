@@ -10,6 +10,10 @@
 # Options:
 #   --secure               Enable secure/encrypted connection (skips security menu)
 #   --insecure             Disable secure connection (skips security menu)
+#   --log                  Enable full logging (default)
+#   --no-log               Disable ALL logging — no debug.txt, no encryption trace
+#                          Use this when logging is not needed to avoid large log files
+#   --log-encryption LVL   Set encryption log level: none|error|action|trace
 #   --foreground           Run server in foreground (skips run mode menu)
 #   --background           Run server as daemon (nohup, skips run mode menu)
 #   --screen               Run server in a screen session (skips run mode menu)
@@ -35,6 +39,8 @@
 #   ./start_server.sh --secure --port 30001              # Secure server on port 30001
 #   ./start_server.sh --insecure --background            # Insecure server in background
 #   ./start_server.sh --secure --screen --world myworld  # Secure server in screen session
+#   ./start_server.sh --no-log --secure --foreground     # No logging, secure, foreground
+#   ./start_server.sh --log-encryption trace --secure    # Full encryption trace logging
 #   ./start_server.sh --list-worlds                      # List available worlds
 #   ./start_server.sh --create-world test_world          # Create a new world
 #   ./start_server.sh --admin admin --max-players 20     # With admin and player limit
@@ -63,6 +69,8 @@ RESET=$'\033[0m'
 SECURE_MODE=-1          # -1 = not set (ask user), 1 = secure, 0 = insecure
 RUN_MODE=""             # "" = not set (ask user), foreground | background | screen
 SECURE_EXPLICIT=0       # 1 = user passed --secure or --insecure on CLI
+ENC_LOG_LEVEL=""         # Empty = default (action), one of: none, error, action, trace
+LOGGING_ENABLED=1        # 1 = full logging (default), 0 = no logging at all
 RUN_MODE_EXPLICIT=0     # 1 = user passed --foreground/--background/--screen on CLI
 WORLD_NAME=""           # World name (empty = auto or prompt)
 PORT=""                 # Empty = ask or default 30000
@@ -108,6 +116,9 @@ parse_args() {
         case "$1" in
             --secure)       SECURE_MODE=1; SECURE_EXPLICIT=1 ;;
             --insecure)     SECURE_MODE=0; SECURE_EXPLICIT=1 ;;
+            --log)          LOGGING_ENABLED=1 ;;
+            --no-log)       LOGGING_ENABLED=0 ;;
+            --log-encryption) ENC_LOG_LEVEL="${2:?--log-encryption requires none|error|action|trace}"; shift ;;
             --foreground)   RUN_MODE="foreground"; RUN_MODE_EXPLICIT=1 ;;
             --background)   RUN_MODE="background"; RUN_MODE_EXPLICIT=1 ;;
             --screen)       RUN_MODE="screen"; RUN_MODE_EXPLICIT=1 ;;
@@ -310,6 +321,19 @@ generate_temp_config() {
         echo "" >> "$TEMP_CONFIG"
         echo "# Added by start_server.sh" >> "$TEMP_CONFIG"
         echo "secure_connection = false" >> "$TEMP_CONFIG"
+    fi
+
+    # v9.23: Master logging toggle
+    if [[ "$LOGGING_ENABLED" -eq 0 ]]; then
+        echo "" >> "$TEMP_CONFIG"
+        echo "# v9.23: Logging disabled by --no-log" >> "$TEMP_CONFIG"
+        echo "debug_log_level = " >> "$TEMP_CONFIG"
+        echo "encryption_log_level = none" >> "$TEMP_CONFIG"
+    else
+        # v9.23: Encryption log level (only if explicitly set)
+        if [[ -n "$ENC_LOG_LEVEL" ]]; then
+            echo "encryption_log_level = ${ENC_LOG_LEVEL}" >> "$TEMP_CONFIG"
+        fi
     fi
 
     # Admin name
@@ -770,9 +794,44 @@ show_start_menu() {
         echo ""
     fi
 
+    # ── Logging mode ──
+    echo -e "  ${BOLD}8. Logging Mode:${RESET}"
+    echo ""
+    echo -e "    ${CYAN}1)${RESET} ${GREEN}Logging ON${RESET}    - Full logging to debug.txt (default)"
+    echo -e "    ${CYAN}2)${RESET} ${RED}Logging OFF${RESET}   - No debug.txt, no trace files (saves disk)"
+    echo ""
+    echo -e "    ${DIM}When OFF, no log data is generated at all. Use when logging is not needed.${RESET}"
+    echo -e "    ${DIM}A previous session with logging ON generated 180MB+ of log data.${RESET}"
+    echo ""
+
+    while true; do
+        local answer=""
+        read -rp "  Select logging mode [1-2] (default: 1): " answer || true
+        answer="${answer#"${answer%%[![:space:]]*}"}"
+        answer="${answer%"${answer##*[![:space:]]}"}"
+
+        case "$answer" in
+            1|"")
+                LOGGING_ENABLED=1
+                log "Logging: ${GREEN}ON${RESET}"
+                break
+                ;;
+            2)
+                LOGGING_ENABLED=0
+                log "Logging: ${RED}OFF${RESET} (no debug.txt, no trace files)"
+                break
+                ;;
+            q|quit)
+                info "Cancelled."; exit 0 ;;
+            *)
+                echo -e "  ${RED}Invalid choice. Enter 1 or 2.${RESET}" ;;
+        esac
+    done
+    echo ""
+
     # ── Run mode ──
     if [[ -z "$RUN_MODE" ]]; then
-        echo -e "  ${BOLD}8. Run Mode:${RESET}"
+        echo -e "  ${BOLD}9. Run Mode:${RESET}"
         echo ""
         echo -e "    ${CYAN}1)${RESET} Foreground   - Run in terminal (Ctrl+C to stop)"
         echo -e "    ${CYAN}2)${RESET} Background   - Run as daemon (nohup)"
@@ -911,6 +970,12 @@ main() {
     echo -e "  ${CYAN}Game:${RESET}       ${GAME_ID}"
     echo -e "  ${CYAN}World:${RESET}      ${WORLD_NAME:-<auto>}"
     echo -e "  ${CYAN}Security:${RESET}   $([ "$SECURE_MODE" -eq 1 ] && echo "${GREEN}secure${RESET}" || echo "${YELLOW}insecure${RESET}")"
+    if [[ "$LOGGING_ENABLED" -eq 0 ]]; then
+        echo -e "  ${CYAN}Logging:${RESET}    ${RED}OFF${RESET} (no debug.txt, no trace files)"
+    else
+        local enc_log_desc="${ENC_LOG_LEVEL:-action (default)}"
+        echo -e "  ${CYAN}Logging:${RESET}    ${GREEN}ON${RESET} (enc level: ${enc_log_desc})"
+    fi
     echo -e "  ${CYAN}Run mode:${RESET}   ${RUN_MODE}"
     [[ -n "$ADMIN_NAME" ]] && echo -e "  ${CYAN}Admin:${RESET}      ${ADMIN_NAME}"
     [[ -n "$MAX_PLAYERS" ]] && echo -e "  ${CYAN}Max players:${RESET} ${MAX_PLAYERS}"

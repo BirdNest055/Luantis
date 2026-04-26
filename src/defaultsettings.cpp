@@ -489,6 +489,9 @@ void set_default_settings()
         settings->setDefault("strict_protocol_version_checking", "false");
         settings->setDefault("protocol_version_min", "1");
         settings->setDefault("secure_connection", "true");
+        // v9.23: Encryption log verbosity. "none"=off, "error"=errors only,
+        // "action"=errors+activation/security/disable (default), "trace"=everything
+        settings->setDefault("encryption_log_level", "action");
         settings->setDefault("player_transfer_distance", "0");
         settings->setDefault("max_simultaneous_block_sends_per_client", "40");
 
