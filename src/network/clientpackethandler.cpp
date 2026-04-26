@@ -309,6 +309,10 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                                 Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
                                                 bool enc_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
                                                 bool ecdh_done = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+                                                // v9.22: Read activated_at from connection layer
+                                                u64 real_activated_at = m_con->GetPeerEncryptionActivatedAt(PEER_ID_SERVER);
+                                                if (real_activated_at == 0)
+                                                        real_activated_at = m_encryption_state.activated_at;
                                                 m_security_info = populateRealSecurityInfo(
                                                         enc_active /* REAL state, not fake! */,
                                                         ecdh_done,
@@ -316,7 +320,7 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                                         0 /* fingerprint_verify_result */,
                                                         m_encryption_state.session_id,
                                                         m_encryption_state.server_fingerprint,
-                                                        m_encryption_state.activated_at,
+                                                        real_activated_at /* v9.22: from connection layer */,
                                                         m_proto_ver,
                                                         m_address_name,
                                                         remote.getPort(),
@@ -2330,6 +2334,10 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
         bool encryption_actually_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
         bool ecdh_actually_completed = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+        // v9.22: Read activated_at from connection layer (where auto-activation sets it)
+        u64 real_activated_at = m_con->GetPeerEncryptionActivatedAt(PEER_ID_SERVER);
+        if (real_activated_at == 0)
+                real_activated_at = m_encryption_state.activated_at; // fallback
         m_security_info = populateRealSecurityInfo(
                 encryption_actually_active /* encryption_active — REAL state, not fake! */,
                 ecdh_actually_completed /* ecdh_completed — REAL state from connection layer */,
@@ -2337,18 +2345,29 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
                 0 /* fingerprint_verify_result */,
                 m_encryption_state.session_id,
                 m_encryption_state.server_fingerprint,
-                m_encryption_state.activated_at,
+                real_activated_at /* v9.22: from connection layer */,
                 m_proto_ver,
                 m_address_name,
                 remote.getPort(),
                 PeerEncryptionState::KEY_ROTATION_SUPPORTED /* key_rotation_supported */);
 
-        // v9.20: Update the runtime settings score so the Lua UI shows real info
+        // v9.22: Update ALL runtime settings so the Lua UI shows complete info
         g_settings->set("security_info_security_score", m_security_info.getSecurityScoreString());
         g_settings->set("security_info_state", m_security_info.getStateString());
         g_settings->set("security_info_encryption", m_security_info.getEncryptionString());
         g_settings->set("security_info_key_exchange", m_security_info.getKeyExchangeString());
+        g_settings->set("security_info_authentication", m_security_info.getAuthenticationString());
+        g_settings->set("security_info_cipher_suite", m_security_info.getCipherSuiteString());
+        g_settings->set("security_info_cert_status", m_security_info.getCertificateStatusString());
         g_settings->set("security_info_forward_secrecy", m_security_info.isForwardSecret() ? "Yes" : "No");
+        g_settings->set("security_info_replay_protection", m_security_info.isReplayProtected() ? "Yes" : "No");
+        g_settings->set("security_info_protocol_version", std::to_string(m_security_info.protocol_version));
+        g_settings->set("security_info_server_address", m_security_info.server_address);
+        g_settings->set("security_info_server_port", std::to_string(m_security_info.server_port));
+        g_settings->set("security_info_session_id", m_security_info.session_id);
+        g_settings->set("security_info_connected_since", std::to_string(m_security_info.connected_since));
+        g_settings->set("security_info_server_fingerprint", m_security_info.server_fingerprint);
+        g_settings->set("security_info_tls_version", m_security_info.getTlsVersionString());
 
         infostream << "Client::handleCommand_EcdhPubkey: ECDH forward secrecy established"
                 << " (session_id=" << m_encryption_state.session_id

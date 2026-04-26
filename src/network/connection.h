@@ -107,6 +107,11 @@ public:
         // v9.20: Query whether ECDH has completed for a peer.
         // Returns the connection layer's live ECDH completion state.
         virtual bool IsPeerECDHCompleted(session_t peer_id) const = 0;
+
+        // v9.22: Query the encryption activation timestamp for a peer.
+        // Returns the connection layer's activated_at value (unix timestamp),
+        // or 0 if encryption is not active or peer not found.
+        virtual u64 GetPeerEncryptionActivatedAt(session_t peer_id) const = 0;
 };
 
 // MTP = Minetest Protocol

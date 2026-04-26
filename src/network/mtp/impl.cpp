@@ -1826,6 +1826,18 @@ bool Connection::IsPeerECDHCompleted(session_t peer_id) const
         return udpPeer->encryption_state.ecdh_completed.load(std::memory_order_acquire);
 }
 
+u64 Connection::GetPeerEncryptionActivatedAt(session_t peer_id) const
+{
+        MutexAutoLock peerlock(m_peers_mutex);
+        auto it = m_peers.find(peer_id);
+        if (it == m_peers.end())
+                return 0;
+        auto *udpPeer = dynamic_cast<UDPPeer *>(it->second);
+        if (!udpPeer)
+                return 0;
+        return udpPeer->encryption_state.activated_at;
+}
+
 void Connection::SetPeerID(session_t id)
 {
         m_peer_id = id;

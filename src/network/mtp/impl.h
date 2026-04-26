@@ -275,6 +275,9 @@ public:
         // v9.20: Query the connection layer's live ECDH completion state.
         bool IsPeerECDHCompleted(session_t peer_id) const override;
 
+        // v9.22: Query the encryption activation timestamp from the connection layer.
+        u64 GetPeerEncryptionActivatedAt(session_t peer_id) const override;
+
 protected:
         PeerHelper getPeerNoEx(session_t peer_id);
         session_t   lookupPeer(const Address& sender);
