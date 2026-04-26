@@ -4,3 +4,7 @@ project.zip
 debug.txt
 *.log
 .build_deps_installed
+# v9.26: Media folder — when connecting to a server, Luanti downloads textures,
+# sounds, and other media files to this directory. These are client-side cache
+# files that should not be tracked in git (hundreds/thousands of files).
+media/
