@@ -6,6 +6,8 @@
 #include "network/mtp/threads.h"
 #include "network/crypto.h"
 #include "network/encryption_log.h"
+#include "network/packet_router.h"
+#include "network/crypto_handler.h"
 #include "log.h"
 #include "profiler.h"
 #include "settings.h"
@@ -352,116 +354,49 @@ void ConnectionSendThread::rawSend(const BufferedPacket *p)
 {
         assert(p);
         try {
-                // v9: Encrypt the packet if encryption is active for this peer.
-                // The base header (7 bytes: protocol_id, peer_id, channel) stays unencrypted
-                // so the receiver can route the packet. Everything after the base header
-                // is encrypted with AES-256-GCM.
-                //
-                // Encrypted packet format after base header:
-                //   [encrypted_flag(1B)][nonce(12B)][ciphertext(NB)][GCM_tag(16B)]
-                //
-                // The encrypted_flag byte is included as AAD (Additional Authenticated Data)
-                // so it's authenticated but not encrypted — prevents flag tampering.
+                // v9.17: Clean send path using CryptoHandler.
+                // The flag-based routing is now a first-class decision:
+                // - If encryption is active for this peer → encrypt via CryptoHandler
+                // - Otherwise → send plaintext
+                // No inline crypto code, no pointer arithmetic in this function.
 
-                // Look up the peer by destination address to check encryption state.
-                // We cannot use readPeerId() here because that reads the SENDER peer_id
-                // from the packet header. On the server, the sender is always PEER_ID_SERVER,
-                // and the server doesn't have a UDPPeer entry for itself. We need the
-                // DESTINATION peer to find its encryption state.
                 session_t dest_peer_id = m_connection->lookupPeer(p->address);
-                // On the server, GetPeerID() returns PEER_ID_SERVER.
-                // On the client, GetPeerID() returns the assigned peer ID (not PEER_ID_SERVER).
                 bool we_are_server = (m_connection->GetPeerID() == PEER_ID_SERVER);
                 PeerHelper peer = m_connection->getPeerNoEx(dest_peer_id);
                 auto *udpPeer = dynamic_cast<UDPPeer *>(&peer);
 
-                if (udpPeer && udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
-                        // Encryption is active — encrypt the packet.
-                        // Use a scope to hold the lock only while accessing key/nonce data.
-                        std::vector<u8> encrypted_packet;
-                        bool encrypt_ok = false;
+                if (udpPeer && CryptoHandler::isEncryptionActive(udpPeer->encryption_state)) {
+                        // Encryption is active — encrypt using CryptoHandler
+                        const u8 *plaintext = &p->data[PACKET_BASE_HEADER_SIZE];
+                        size_t plaintext_len = p->size() - PACKET_BASE_HEADER_SIZE;
 
-                        {
-                                auto lock = udpPeer->encryption_state.lock();
+                        EncryptResult result = CryptoHandler::encrypt(
+                                plaintext, plaintext_len,
+                                udpPeer->encryption_state,
+                                we_are_server);
 
-                                // Determine which direction key to use.
-                                // Server sends with S2C key, client sends with C2S key.
-                                DirectionalEncryptionState &dir_state =
-                                        we_are_server ? udpPeer->encryption_state.s2c
-                                                  : udpPeer->encryption_state.c2s;
+                        if (result.status == EncryptResult::Success) {
+                                // Build the encrypted packet using clean builder
+                                std::vector<u8> encrypted_packet = buildEncryptedPacket(
+                                        p->data, result.nonce, result.ciphertext, result.tag);
 
-                                // Build nonce
-                                std::array<u8, GCM_NONCE_SIZE> nonce = dir_state.nextNonce();
-
-                                // AAD: the encrypted flag byte (authenticated but not encrypted)
-                                u8 encrypted_flag = ENCRYPTED_FLAG_AES_256_GCM;
-
-                                // Plaintext is everything after the base header
-                                const u8 *plaintext = &p->data[BASE_HEADER_SIZE];
-                                size_t plaintext_len = p->size() - BASE_HEADER_SIZE;
-
-                                // Encrypt
-                                CryptoResult result = aes256gcm_encrypt(
-                                        dir_state.key.data(), dir_state.key.size(),
-                                        nonce.data(), nonce.size(),
-                                        plaintext, plaintext_len,
-                                        &encrypted_flag, 1);
-
-                                if (result.success) {
-                                        // Build the encrypted packet:
-                                        // [base_header(7B)][encrypted_flag(1B)][nonce(12B)][ciphertext][tag(16B)]
-                                        size_t encrypted_size = BASE_HEADER_SIZE + ENCRYPTED_PACKET_OVERHEAD + result.data.size();
-                                        encrypted_packet.resize(encrypted_size);
-
-                                        // Copy base header (unencrypted)
-                                        memcpy(encrypted_packet.data(), p->data, BASE_HEADER_SIZE);
-
-                                        // Write encrypted flag
-                                        encrypted_packet[BASE_HEADER_SIZE] = encrypted_flag;
-
-                                        // Write nonce
-                                        memcpy(encrypted_packet.data() + BASE_HEADER_SIZE + 1,
-                                                nonce.data(), GCM_NONCE_SIZE);
-
-                                        // Write ciphertext
-                                        if (!result.data.empty()) {
-                                                memcpy(encrypted_packet.data() + BASE_HEADER_SIZE + 1 + GCM_NONCE_SIZE,
-                                                        result.data.data(), result.data.size());
-                                        }
-
-                                        // Write GCM tag
-                                        memcpy(encrypted_packet.data() + encrypted_size - GCM_TAG_SIZE,
-                                                result.tag.data(), GCM_TAG_SIZE);
-
-                                        encrypt_ok = true;
-
-                                        // Log first encrypted packet for this direction
-                                        if (dir_state.packets_processed == 1) {
-                                                enclog_send("First encrypted packet sent")
-                                                        << EncLog::kv("peer", dest_peer_id)
-                                                        << EncLog::kv("direction", we_are_server ? "S2C" : "C2S")
-                                                        << EncLog::kv("plaintext_size", (u32)plaintext_len)
-                                                        << EncLog::kv("encrypted_size", (u32)encrypted_size)
-                                                        << EncLog::kv("overhead", (u32)ENCRYPTED_PACKET_OVERHEAD)
-                                                        << std::endl;
-                                        }
-                                } else {
-                                        // Encryption failed — this is a critical error.
-                                        // Drop the packet and log the error.
-                                        dir_state.auth_failures++;
-                                        enclog_error("Encryption FAILED for peer")
-                                                << EncLog::kv("peer", dest_peer_id)
-                                                << EncLog::kv("error", result.error_msg)
-                                                << EncLog::kv("action", "PACKET_DROPPED")
-                                                << EncLog::kv("auth_failures", dir_state.auth_failures)
-                                                << std::endl;
-                                }
-                        }
-                        // Lock is released here
-
-                        if (encrypt_ok) {
                                 m_connection->m_udpSocket.Send(p->address,
                                         encrypted_packet.data(), encrypted_packet.size());
+
+                                // Log first encrypted packet for this direction
+                                enclog_send("Encrypted packet sent")
+                                        << EncLog::kv("peer", dest_peer_id)
+                                        << EncLog::kv("direction", we_are_server ? "S2C" : "C2S")
+                                        << EncLog::kv("plaintext_size", (u32)plaintext_len)
+                                        << EncLog::kv("encrypted_size", (u32)encrypted_packet.size())
+                                        << std::endl;
+                        } else {
+                                // Encryption failed — drop the packet
+                                enclog_error("Encryption FAILED for peer")
+                                        << EncLog::kv("peer", dest_peer_id)
+                                        << EncLog::kv("error", result.error_detail)
+                                        << EncLog::kv("action", "PACKET_DROPPED")
+                                        << std::endl;
                         }
                 } else {
                         // No encryption — send plaintext
@@ -1225,212 +1160,93 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                 // Make a new SharedBuffer from the data without the base headers
                 size_t data_after_header_size = received_size - BASE_HEADER_SIZE;
 
-                // v9.15: Check if this packet is encrypted using the 0x80 flag.
-                // The 0x80 flag byte is the SOLE determinant of whether a packet
-                // is encrypted. If present, decrypt. If absent, always process as
-                // plaintext — regardless of whether encryption is active.
-                //
-                // This eliminates the need for grace periods entirely:
-                // - No 0x80 flag → plaintext, always accepted (no error, no warning)
-                // - 0x80 flag present → encrypted, must decrypt
-                //
-                // During the plaintext→encrypted transition, the peer may still have
-                // packets in the network pipeline from before it activated encryption.
-                // These plaintext packets simply lack the 0x80 flag, so they are
-                // processed normally without any special handling.
+                // v9.17: Flag-routed packet processing.
+                // The 0x80 flag is a FIRST-CLASS routing decision made by
+                // routePacket(). Each route has its own clean handler.
+                // No inline crypto code, no pointer arithmetic, no grace periods.
                 SharedBuffer<u8> strippeddata;
 
-                if (data_after_header_size >= ENCRYPTED_PACKET_OVERHEAD &&
-                        packetdata[BASE_HEADER_SIZE] == ENCRYPTED_FLAG_AES_256_GCM) {
+                PacketRoute route = routePacket(*packetdata, received_size);
 
-                        // This packet has the 0x80 flag — it's encrypted. Decrypt it.
-                        // Lock encryption state for thread-safe access
-                        auto enc_lock = udpPeer->encryption_state.lock();
+                switch (route) {
+                case PacketRoute::Plaintext: {
+                        // No 0x80 flag — always process as plaintext.
+                        // This is correct regardless of encryption state:
+                        // - Before activation: normal plaintext
+                        // - During transition: pipeline packets from before peer activated
+                        // - After activation: 0x80 flag is authoritative, so no flag = plaintext
+                        auto parsed = parsePlaintext(*packetdata, received_size);
+                        strippeddata = parsed.data;
+                        break;
+                }
 
-                        const u8 *after_header = &packetdata[BASE_HEADER_SIZE];
-
-                        // Parse encrypted packet structure
-                        // [0]     encrypted_flag (0x80) — already checked
-                        // [1..12] nonce (12 bytes)
-                        // [13..N] ciphertext
-                        // [N-15..N] GCM tag (16 bytes)
-                        const u8 *nonce_ptr = after_header + 1;
-                        const u8 *ciphertext_ptr = after_header + 1 + GCM_NONCE_SIZE;
-                        size_t remaining = data_after_header_size - 1 - GCM_NONCE_SIZE;
-                        if (remaining < GCM_TAG_SIZE) {
-                                enclog_error("Encrypted packet too short from peer")
+                case PacketRoute::Encrypted: {
+                        // 0x80 flag present — must decrypt before MTP processing.
+                        auto parsed = parseEncrypted(*packetdata, received_size);
+                        if (!parsed) {
+                                // Malformed encrypted packet — drop silently
+                                enclog_error("Malformed encrypted packet from peer")
                                         << EncLog::kv("peer", peer_id)
-                                        << EncLog::kv("remaining", (u32)remaining)
-                                        << EncLog::kv("min_required", (u32)GCM_TAG_SIZE)
                                         << EncLog::kv("action", "PACKET_DROPPED")
                                         << std::endl;
                                 return;
                         }
-                        size_t ciphertext_len = remaining - GCM_TAG_SIZE;
-                        const u8 *tag_ptr = after_header + data_after_header_size - GCM_TAG_SIZE;
 
-                        // Determine which direction key to use for decryption.
-                        // If we're the server, we receive packets encrypted with C2S key.
-                        // If we're the client, we receive packets encrypted with S2C key.
                         bool we_are_server = (m_connection->GetPeerID() == PEER_ID_SERVER);
-                        DirectionalEncryptionState &dir_state =
-                                we_are_server ? udpPeer->encryption_state.c2s
-                                          : udpPeer->encryption_state.s2c;
+                        DecryptResult dec_result = CryptoHandler::decrypt(
+                                *parsed, udpPeer->encryption_state, we_are_server);
 
-                        // Check that decryption key is initialized (not all zeros).
-                        // This can happen if we receive an encrypted packet before
-                        // our local key derivation is complete (e.g., during the
-                        // ECDH handshake when the server activates before the client).
-                        bool key_initialized = false;
-                        for (size_t i = 0; i < dir_state.key.size(); i++) {
-                                if (dir_state.key[i] != 0) {
-                                        key_initialized = true;
-                                        break;
-                                }
-                        }
-                        if (!key_initialized) {
-                                enclog_error("Received encrypted packet but decryption key not initialized")
-                                        << EncLog::kv("peer", peer_id)
-                                        << EncLog::kv("action", "PACKET_DROPPED")
-                                        << EncLog::kv("hint", "key_derivation_may_not_have_completed_yet")
-                                        << std::endl;
-                                return;
-                        }
-
-                        // Extract nonce counter for replay detection
-                        u64 received_counter = 0;
-                        for (int i = 0; i < 8; i++) {
-                                received_counter = (received_counter << 8) | nonce_ptr[NONCE_BASE_SIZE + i];
-                        }
-
-                        // Replay protection check
-                        if (!dir_state.isNotReplay(received_counter)) {
-                                enclog_error("Replay detected from peer")
-                                        << EncLog::kv("peer", peer_id)
-                                        << EncLog::kv("received_counter", received_counter)
-                                        << EncLog::kv("expected_counter", dir_state.nonce_counter)
-                                        << EncLog::kv("action", "PACKET_DROPPED")
-                                        << EncLog::kv("replay_attempts", dir_state.replay_attempts + 1)
-                                        << std::endl;
-                                dir_state.replay_attempts++;
-                                return;
-                        }
-
-                        // AAD: the encrypted flag byte
-                        u8 encrypted_flag = ENCRYPTED_FLAG_AES_256_GCM;
-
-                        // Decrypt
-                        CryptoResult result = aes256gcm_decrypt(
-                                dir_state.key.data(), dir_state.key.size(),
-                                nonce_ptr, GCM_NONCE_SIZE,
-                                ciphertext_ptr, ciphertext_len,
-                                tag_ptr, GCM_TAG_SIZE,
-                                &encrypted_flag, 1);
-
-                        if (result.success) {
-                                // Decryption succeeded — use decrypted data
-                                strippeddata = SharedBuffer<u8>(result.data.size());
-                                memcpy(*strippeddata, result.data.data(), result.data.size());
-
-                                // Update high-water mark counter
-                                dir_state.updateCounter(received_counter);
-
-                                // Log first decrypted packet for this direction
-                                if (dir_state.packets_processed == 0) {
-                                        enclog_recv("First encrypted packet received and decrypted")
-                                                << EncLog::kv("peer", peer_id)
-                                                << EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
-                                                << EncLog::kv("ciphertext_size", (u32)ciphertext_len)
-                                                << EncLog::kv("plaintext_size", (u32)result.data.size())
-                                                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 8))
-                                                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 8))
-                                                << EncLog::kv("s2c_nonce_counter", (u64)udpPeer->encryption_state.s2c.nonce_counter)
-                                                << EncLog::kv("c2s_nonce_counter", (u64)udpPeer->encryption_state.c2s.nonce_counter)
-                                                << std::endl;
-                                }
-                                dir_state.packets_processed++;
+                        switch (dec_result.status) {
+                        case DecryptResult::Success:
+                                strippeddata = dec_result.plaintext;
 
                                 // Auto-activate encryption if not already active.
-                                // This happens when the peer activates encryption before us.
-                                // Receiving a valid encrypted packet proves the peer has activated,
-                                // so we should activate too for outgoing packets.
+                                // Receiving a valid encrypted packet proves the peer has activated.
                                 if (!udpPeer->encryption_state.active.load(std::memory_order_acquire)) {
                                         udpPeer->encryption_state.activate();
                                         udpPeer->encryption_state.activated_at = porting::getTimeS();
                                         enclog_activate("Encryption AUTO-ACTIVATED on receive")
                                                 << EncLog::kv("peer", peer_id)
-                                                << EncLog::kv("reason", "received valid encrypted packet from peer")
+                                                << EncLog::kv("reason", "received valid encrypted packet")
                                                 << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
-                                                << EncLog::kv("fingerprint", udpPeer->encryption_state.server_fingerprint)
-                                                << EncLog::kv("status", "ALL_FUTURE_PACKETS_ENCRYPTED")
                                                 << std::endl;
                                 }
 
-                                // Periodic audit logging (every AUDIT_INTERVAL_MS or AUDIT_MIN_PACKETS)
+                                // Periodic audit logging
                                 udpPeer->encryption_state.packets_since_audit++;
-                                u64 now_ms = porting::getTimeMs();
-                                if (udpPeer->encryption_state.packets_since_audit >= PeerEncryptionState::AUDIT_MIN_PACKETS &&
-                                        now_ms - udpPeer->encryption_state.last_audit_time_ms >= PeerEncryptionState::AUDIT_INTERVAL_MS) {
-                                        udpPeer->encryption_state.last_audit_time_ms = now_ms;
-                                        udpPeer->encryption_state.packets_since_audit = 0;
-                                        EncLog::logEncryptionAudit(
-                                                peer_id,
-                                                true,
-                                                udpPeer->encryption_state.session_id,
-                                                udpPeer->encryption_state.c2s.packets_processed,
-                                                udpPeer->encryption_state.s2c.packets_processed,
-                                                udpPeer->encryption_state.c2s.auth_failures,
-                                                udpPeer->encryption_state.s2c.auth_failures,
-                                                udpPeer->encryption_state.c2s.replay_attempts,
-                                                udpPeer->encryption_state.s2c.replay_attempts);
+                                {
+                                        u64 now_ms = porting::getTimeMs();
+                                        if (udpPeer->encryption_state.packets_since_audit >= PeerEncryptionState::AUDIT_MIN_PACKETS &&
+                                                now_ms - udpPeer->encryption_state.last_audit_time_ms >= PeerEncryptionState::AUDIT_INTERVAL_MS) {
+                                                udpPeer->encryption_state.last_audit_time_ms = now_ms;
+                                                udpPeer->encryption_state.packets_since_audit = 0;
+                                                EncLog::logEncryptionAudit(
+                                                        peer_id, true,
+                                                        udpPeer->encryption_state.session_id,
+                                                        udpPeer->encryption_state.c2s.packets_processed,
+                                                        udpPeer->encryption_state.s2c.packets_processed,
+                                                        udpPeer->encryption_state.c2s.auth_failures,
+                                                        udpPeer->encryption_state.s2c.auth_failures,
+                                                        udpPeer->encryption_state.c2s.replay_attempts,
+                                                        udpPeer->encryption_state.s2c.replay_attempts);
+                                        }
                                 }
-                        } else {
-                                // Decryption failed — authentication tag mismatch.
-                                // This means the packet was tampered with, corrupted,
-                                // or encrypted with the wrong key.
-                                // Log with diagnostic key fingerprints to help diagnose
-                                // key mismatches (v9.15: added nonce counter info).
-                                dir_state.auth_failures++;
+                                break;
 
-                                // v9.15: Only log the first few failures at ERROR level,
-                                // then throttle to avoid spamming the log with hundreds
-                                // of identical messages. After 10 failures, log at most
-                                // once per 100 failures. This prevents the log from being
-                                // flooded while still providing diagnostic information.
-                                bool should_log = (dir_state.auth_failures <= 3) ||
-                                        (dir_state.auth_failures % 100 == 0);
-
-                                if (should_log) {
-                                        enclog_error("Decryption FAILED from peer")
-                                                << EncLog::kv("peer", peer_id)
-                                                << EncLog::kv("error", result.error_msg)
-                                                << EncLog::kv("action", "PACKET_DROPPED")
-                                                << EncLog::kv("auth_failures", dir_state.auth_failures)
-                                                << EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
-                                                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 8))
-                                                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 8))
-                                                << EncLog::kv("s2c_nonce_counter", (u64)udpPeer->encryption_state.s2c.nonce_counter)
-                                                << EncLog::kv("c2s_nonce_counter", (u64)udpPeer->encryption_state.c2s.nonce_counter)
-                                                << EncLog::kv("received_counter", received_counter)
-                                                << EncLog::kv("ecdh_completed", udpPeer->encryption_state.ecdh_completed.load())
-                                                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
-                                                << std::endl;
-                                }
-                                return;
+                        case DecryptResult::KeyNotInitialized:
+                        case DecryptResult::ReplayDetected:
+                        case DecryptResult::AuthFailed:
+                        case DecryptResult::InternalError:
+                                CryptoHandler::logDecryptFailure(dec_result, peer_id,
+                                        udpPeer->encryption_state, we_are_server);
+                                return;  // Drop the packet
                         }
-                } else {
-                        // No 0x80 flag → plaintext packet. Always process as plaintext.
-                        // This is correct regardless of whether encryption is active:
-                        // - Before encryption activates: normal plaintext packets
-                        // - During transition: pipeline packets from before peer activated
-                        // - After encryption fully active: should not happen, but if it
-                        //   does, the packet is simply processed (0x80 flag is authoritative)
-                        //
-                        // v9.15: NO grace period logic, NO error logging, NO warnings.
-                        // The 0x80 flag is the sole determinant. No flag = plaintext. Period.
-                        strippeddata = SharedBuffer<u8>(data_after_header_size);
-                        memcpy(*strippeddata, &packetdata[BASE_HEADER_SIZE],
-                                data_after_header_size);
+                        break;
+                }
+
+                case PacketRoute::Invalid:
+                        // Packet too short or malformed — drop silently
+                        return;
                 }
 
                 try {
