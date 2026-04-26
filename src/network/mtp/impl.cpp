@@ -1715,6 +1715,93 @@ void Connection::ActivatePeerEncryption(session_t peer_id)
                 << std::endl;
 }
 
+void Connection::UpdatePeerECDHKeypair(session_t peer_id,
+        const std::array<u8, X25519_PRIVATE_KEY_SIZE> &ecdh_private_key,
+        const std::array<u8, X25519_PUBLIC_KEY_SIZE> &ecdh_public_key)
+{
+        MutexAutoLock peerlock(m_peers_mutex);
+        auto it = m_peers.find(peer_id);
+        if (it == m_peers.end()) {
+                warningstream << "Connection::UpdatePeerECDHKeypair: peer " << peer_id
+                        << " not found" << std::endl;
+                return;
+        }
+        auto *udpPeer = dynamic_cast<UDPPeer *>(it->second);
+        if (!udpPeer) {
+                warningstream << "Connection::UpdatePeerECDHKeypair: peer " << peer_id
+                        << " is not a UDPPeer" << std::endl;
+                return;
+        }
+        // Lock the target's encryption state before writing.
+        // CRITICAL: This ONLY updates the ECDH keypair fields, preserving all
+        // SRP-derived keys, nonce bases, session_id, etc. that were previously
+        // pushed via SetPeerEncryptionState. A full SetPeerEncryptionState call
+        // would overwrite everything, which is dangerous if the source state
+        // object has been reset (e.g., due to client re-creation after acceptAuth).
+        {
+                auto enc_lock = udpPeer->encryption_state.lock();
+                udpPeer->encryption_state.ecdh_private_key = ecdh_private_key;
+                udpPeer->encryption_state.ecdh_public_key = ecdh_public_key;
+        }
+        enclog_trace("UpdatePeerECDHKeypair: ECDH keypair stored (SRP keys PRESERVED)")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("ecdh_pubkey_hex", EncLog::hexDump(ecdh_public_key.data(), X25519_PUBLIC_KEY_SIZE))
+                << EncLog::kv("s2c_key_fp_after", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_key_fp_after", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("session_id_after", udpPeer->encryption_state.session_id)
+                << std::endl;
+}
+
+bool Connection::MixECDHSecretOnPeer(session_t peer_id,
+        const u8 *ecdh_shared_secret, size_t shared_secret_len)
+{
+        MutexAutoLock peerlock(m_peers_mutex);
+        auto it = m_peers.find(peer_id);
+        if (it == m_peers.end()) {
+                warningstream << "Connection::MixECDHSecretOnPeer: peer " << peer_id
+                        << " not found" << std::endl;
+                return false;
+        }
+        auto *udpPeer = dynamic_cast<UDPPeer *>(it->second);
+        if (!udpPeer) {
+                warningstream << "Connection::MixECDHSecretOnPeer: peer " << peer_id
+                        << " is not a UDPPeer" << std::endl;
+                return false;
+        }
+
+        // Log the state BEFORE mixing to verify the SRP keys are present
+        enclog_trace("MixECDHSecretOnPeer: BEFORE mixing (on connection layer)")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                << EncLog::kv("ecdh_completed_before", udpPeer->encryption_state.ecdh_completed.load())
+                << std::endl;
+
+        // Mix the ECDH shared secret into the connection layer's encryption state.
+        // CRITICAL: This operates on udpPeer->encryption_state (which has the
+        // correct SRP-derived keys), NOT on client->encryption_state (which may
+        // have been reset to all-zeros after acceptAuth triggered a state change).
+        bool ok = mixECDHSecretIntoKeys(udpPeer->encryption_state,
+                ecdh_shared_secret, shared_secret_len);
+        if (!ok) {
+                enclog_error("MixECDHSecretOnPeer: mixECDHSecretIntoKeys FAILED on connection layer")
+                        << EncLog::kv("peer", peer_id)
+                        << std::endl;
+                return false;
+        }
+
+        enclog_trace("MixECDHSecretOnPeer: AFTER mixing (on connection layer)")
+                << EncLog::kv("peer", peer_id)
+                << EncLog::kv("s2c_key_fp", keyToFingerprint(udpPeer->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_key_fp", keyToFingerprint(udpPeer->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("session_id", udpPeer->encryption_state.session_id)
+                << EncLog::kv("ecdh_completed_after", udpPeer->encryption_state.ecdh_completed.load())
+                << std::endl;
+
+        return true;
+}
+
 void Connection::SetPeerID(session_t id)
 {
         m_peer_id = id;

@@ -79,6 +79,23 @@ public:
         // problem where AUTH_ACCEPT would be encrypted before the
         // client can decrypt it.
         virtual void ActivatePeerEncryption(session_t peer_id) = 0;
+
+        // v9.19: Update ONLY the ECDH keypair fields on the peer's
+        // encryption state in the connection layer, WITHOUT overwriting
+        // the SRP-derived keys, nonce bases, session_id, etc.
+        // This prevents a full SetPeerEncryptionState from clobbering
+        // good keys when the source state has been reset.
+        virtual void UpdatePeerECDHKeypair(session_t peer_id,
+                const std::array<u8, X25519_PRIVATE_KEY_SIZE> &ecdh_private_key,
+                const std::array<u8, X25519_PUBLIC_KEY_SIZE> &ecdh_public_key) = 0;
+
+        // v9.19: Mix the ECDH shared secret into the peer's encryption keys
+        // DIRECTLY on the connection layer's encryption state (udpPeer).
+        // This ensures the mixing happens on the CORRECT SRP-derived keys,
+        // not on a potentially-reset client->encryption_state object.
+        // Returns true if mixing succeeded, false on failure.
+        virtual bool MixECDHSecretOnPeer(session_t peer_id,
+                const u8 *ecdh_shared_secret, size_t shared_secret_len) = 0;
 };
 
 // MTP = Minetest Protocol
