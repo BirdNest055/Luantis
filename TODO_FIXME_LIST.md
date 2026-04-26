@@ -15,6 +15,7 @@ Generated automatically from code comments.
 | WARNING | 7 (Clawtest-specific compiler warnings from CI) |
 | BUG FIX | 2 (v9.9 build and runtime bugs — FIXED) |
 | BUG FIX | 2 (v9.11 ECDH salt bugs — FIXED) |
+| BUG FIX | 1 (v9.24 settingtypes context bug — FIXED) |
 
 ## Clawtest v9.9 Bug Fixes
 
@@ -34,6 +35,14 @@ These bugs were discovered and fixed during v9.11 ECDH forward secrecy developme
 |------|-----|-----------|-----|--------|
 | `src/network/crypto.cpp` | `mixECDHSecretIntoKeys()` used unsalted HKDF | HKDF was called with `nullptr, 0` for salt, causing key mismatch between client and server | Derive salt deterministically from combined IKM (SRP + ECDH), matching `initFromSRPSessionKey()` pattern | Fixed |
 | `src/network/crypto.cpp` | `rotateKeys()` used random HKDF salt | `secure_random()` for HKDF salt caused KEY MISMATCH between client and server (same bug pattern as v9.9 salt bug) | Derive salt deterministically from rotation IKM | Fixed |
+
+## Clawtest v9.24 Bug Fix
+
+This bug was discovered and fixed during v9.24 development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `builtin/settingtypes.txt` | `ERROR[Main]: Unknown context in settingtypes.txt "encryption_log_level (Encryption log level) [server,client] enum action none,error,action,trace"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:30`) only accepts single context values: `common`, `client`, `server`, `world_creation`. The comma-separated `[server,client]` was treated as the literal string `"server,client"` which is not a valid context. | Changed `[server,client]` to `[common]` — the correct context for settings that apply to both server and client | Fixed |
 
 ## Clawtest Compiler Warnings (from GitHub Actions CI)
 

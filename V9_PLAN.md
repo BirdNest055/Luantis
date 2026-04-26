@@ -394,3 +394,64 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.12: Encryption activation race condition fix | DONE | Client defers activation until server's first encrypted packet, receive path auto-activates on successful decrypt |
 | v9.12: SetPeerEncryptionState field fix | DONE | Now copies all fields including ecdh_completed, hkdf_salt, key_rotation_count, ECDH keys |
 | v9.12: Receive path 0x80 flag detection | DONE | Detects encrypted packets by flag byte regardless of active state, with key-initialized guard |
+| v9.19: GCM auth spam fix | DONE | Prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes |
+| v9.20: Fake encryption score fix | DONE | Use real connection state instead of hardcoded encryption_active=true |
+| v9.21: Build error fix | DONE | Move isEncryptionActive() from client.h inline to client.cpp (incomplete type error) |
+| v9.22: Settings panel fix | DONE | Write all 16 g_settings keys, sync activated_at from connection layer, both secure/insecure modes work |
+| v9.23: Log toggle feature | DONE | Add --no-log/--log flags to start scripts, encryption_log_level setting (none/error/action/trace), log suppression prevents debug.txt and trace file creation |
+| v9.24: Settingtypes context fix | DONE | Fix encryption_log_level context [server,client] → [common]; Luanti parser only accepts single context values (common/client/server/world_creation) |
+
+---
+
+## v9.19–v9.24: Encryption Spamming Problem & Solution
+
+### The Problem: Encryption Log Spam
+
+During development and testing of the AES-256-GCM encryption layer, verbose encryption logging produced excessive output that caused real performance problems:
+
+- **180MB log file**: A single logging session generated a 180MB `debug.txt` file from per-packet encryption trace messages (`[ENC:TRACE]` entries for every encrypted/decrypted packet)
+- **Game slowdown**: The I/O overhead of writing massive log files caused noticeable game lag, especially during high-traffic sessions (world loading, chunk generation, many players)
+- **No way to disable**: The encryption log level was hardcoded to `action` (or `trace` during debugging), with no way to reduce or suppress output without recompiling
+- **Unwanted even when encryption works**: Once encryption is confirmed working, the log output adds no value but continues to consume resources
+
+### The Solution: Multi-Layered Log Control (v9.23 + v9.24)
+
+Two complementary changes were made to solve this problem permanently:
+
+**1. Log Toggle in Start Scripts (v9.23)**
+
+The `start_client.sh` and `start_server.sh` scripts now accept `--no-log` (default) and `--log` flags:
+
+- `--no-log` (default): The game starts with NO debug.txt creation and NO encryption trace file output. The `debug_log_level` setting is set to `none` at startup via the temp config, preventing any log data from being generated in the first place. This means zero I/O overhead from logging — no files are created, no data is written.
+- `--log`: Enables normal logging with `debug_log_level = action`. The `encryption_log_level` setting controls how verbose the encryption-specific messages are.
+
+The key design principle: **when logging is OFF, no extra data is generated at all**. This is not about redirecting or hiding output — the logging infrastructure itself is suppressed before the game even starts, via the temp config file that the startup script generates. This prevents the 180MB log file problem from ever recurring.
+
+**2. Encryption Log Level Setting (v9.23 + v9.24)**
+
+A new `encryption_log_level` setting controls the verbosity of `[ENC:...]` log messages independently of the general log level:
+
+| Level | Output | Use Case |
+|-------|--------|----------|
+| `none` | No encryption log messages at all | Production servers, normal gameplay |
+| `error` | Only `[ENC:ERROR]` — encryption failures | Monitoring for issues without noise |
+| `action` | Activation, security, disable, and error events (default) | Development, first-time setup |
+| `trace` | Everything including per-packet diagnostics | Debugging specific encryption issues |
+
+**Bug fixed in v9.24**: The initial `encryption_log_level` setting used `[server,client]` as its context annotation in `settingtypes.txt`. The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua`) only accepts single context values (`common`, `client`, `server`, `world_creation`), so the comma-separated `[server,client]` was treated as an unknown context, producing `ERROR[Main]: Unknown context in settingtypes.txt`. Fixed by changing to `[common]` — the correct context for settings that apply to both server and client.
+
+### How to Use
+
+```bash
+# Normal gameplay — no logs, no overhead (default)
+./start_client.sh --name player1 --address localhost --go
+
+# Debug an encryption issue — enable full logging
+./start_client.sh --name player1 --address localhost --log --go
+
+# Fine-tune encryption log level in minetest.conf
+encryption_log_level = none    # Zero encryption log noise
+encryption_log_level = error   # Only failures
+encryption_log_level = action  # Key events (default)
+encryption_log_level = trace   # Per-packet diagnostics (generates large logs!)
+```
