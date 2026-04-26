@@ -381,11 +381,9 @@ public:
         // never updated after the initial push, so it's always false.
         // The connection layer's udpPeer->encryption_state.active is set
         // to true by auto-activation in the receive thread.
-        bool isEncryptionActive() const {
-                if (m_con)
-                        return m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
-                return m_encryption_state.active.load();
-        }
+        // NOTE: Implementation is in client.cpp because IConnection is only
+        // forward-declared in this header (incomplete type).
+        bool isEncryptionActive() const;
         PeerEncryptionState& getEncryptionState() { return m_encryption_state; }
         const PeerEncryptionState& getEncryptionState() const { return m_encryption_state; }
 

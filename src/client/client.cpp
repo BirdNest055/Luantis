@@ -475,6 +475,15 @@ void Client::connect(const Address &address, const std::string &address_name)
         initLocalMapSaving(address, m_address_name);
 }
 
+bool Client::isEncryptionActive() const
+{
+        // v9.20: Query the connection layer's LIVE active state.
+        // Must be in .cpp because IConnection is only forward-declared in client.h.
+        if (m_con)
+                return m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+        return m_encryption_state.active.load();
+}
+
 bool Client::syncSecurityInfoFromConnection()
 {
         // v9.20: This is the key method that makes the encryption score HONEST.
