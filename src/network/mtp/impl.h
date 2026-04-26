@@ -257,6 +257,18 @@ public:
         // are sent as plaintext before encryption activates.
         void ActivatePeerEncryption(session_t peer_id) override;
 
+        // v9.19: Update ONLY the ECDH keypair fields on the peer's
+        // encryption state in the connection layer, WITHOUT overwriting
+        // the SRP-derived keys, nonce bases, session_id, etc.
+        void UpdatePeerECDHKeypair(session_t peer_id,
+                const std::array<u8, X25519_PRIVATE_KEY_SIZE> &ecdh_private_key,
+                const std::array<u8, X25519_PUBLIC_KEY_SIZE> &ecdh_public_key) override;
+
+        // v9.19: Mix ECDH shared secret into the connection layer's encryption
+        // state directly, ensuring correct SRP keys are used as the base.
+        bool MixECDHSecretOnPeer(session_t peer_id,
+                const u8 *ecdh_shared_secret, size_t shared_secret_len) override;
+
 protected:
         PeerHelper getPeerNoEx(session_t peer_id);
         session_t   lookupPeer(const Address& sender);

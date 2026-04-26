@@ -1871,18 +1871,21 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
                         client->encryption_state.ecdh_private_key = server_kp.private_key;
                         client->encryption_state.ecdh_public_key = server_kp.public_key;
 
-                        // Update the connection state with the stored keypair
-                        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+                        // v9.19 FIX: Use UpdatePeerECDHKeypair instead of SetPeerEncryptionState.
+                        // A full SetPeerEncryptionState would overwrite ALL fields in the
+                        // connection layer's encryption state (including the SRP-derived keys
+                        // that were pushed earlier). If client->encryption_state has been
+                        // reset (e.g., due to RemoteClient re-creation after acceptAuth),
+                        // the full replace would clobber good keys with all-zeros.
+                        // UpdatePeerECDHKeypair ONLY writes the ecdh_private_key and
+                        // ecdh_public_key fields, preserving the SRP-derived keys.
+                        m_con->UpdatePeerECDHKeypair(peer_id,
+                                server_kp.private_key, server_kp.public_key);
 
-                        // v9.19-trace: Log the state we just pushed (SRP-only keys + ECDH keypair stored)
-                        enclog_trace("Server ECDH: pushed SRP-only keys + ECDH keypair to connection layer")
+                        // v9.19-trace: Log the ECDH keypair we just pushed
+                        enclog_trace("Server ECDH: stored ECDH keypair in connection layer (SRP keys PRESERVED)")
                                 << EncLog::kv("peer", peer_id)
                                 << EncLog::kv("server_pubkey_hex", EncLog::hexDump(server_kp.public_key.data(), X25519_PUBLIC_KEY_SIZE))
-                                << EncLog::kv("session_id", client->encryption_state.session_id)
-                                << EncLog::kv("active", client->encryption_state.active.load())
-                                << EncLog::kv("ecdh_completed", client->encryption_state.ecdh_completed.load())
-                                << EncLog::kv("s2c_key_fp", keyToFingerprint(client->encryption_state.s2c.key.data(), AES256_KEY_SIZE))
-                                << EncLog::kv("c2s_key_fp", keyToFingerprint(client->encryption_state.c2s.key.data(), AES256_KEY_SIZE))
                                 << std::endl;
 
                         // Send the ECDH public key to the client (plaintext, before activation)
@@ -2114,17 +2117,18 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
                 return;
         }
 
-        // Mix the ECDH shared secret into the encryption keys
-        bool ok = mixECDHSecretIntoKeys(client->encryption_state,
+        // v9.19 FIX: Mix ECDH secret DIRECTLY into the connection layer's encryption
+        // state (udpPeer->encryption_state), NOT into client->encryption_state.
+        // The connection layer has the correct SRP-derived keys (pushed at line 1824),
+        // while client->encryption_state may have been reset to all-zeros after
+        // acceptAuth triggered a client state change.
+        bool ok = m_con->MixECDHSecretOnPeer(peer_id,
                 shared_secret.shared_secret.data(), shared_secret.shared_secret.size());
         if (!ok) {
-                errorstream << "Server::handleCommand_EcdhPubkey: mixECDHSecretIntoKeys failed for peer "
+                errorstream << "Server::handleCommand_EcdhPubkey: MixECDHSecretOnPeer failed for peer "
                         << peer_id << std::endl;
                 return;
         }
-
-        // Update the connection with the new ECDH-mixed keys
-        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
 
         // v9.19-trace: Log server state BEFORE activation
         enclog_trace("Server ECDH: about to ACTIVATE encryption")
