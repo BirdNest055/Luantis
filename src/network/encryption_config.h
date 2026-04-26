@@ -1,5 +1,5 @@
 /*
- * encryption_config.h — Modular encryption toggle for Clawtest v9.3+
+ * encryption_config.h — Modular encryption toggle for Luanti-Secure v9.3+
  *
  * This module provides a centralized, single-point-of-truth system for
  * controlling whether encryption is active on a connection. All code

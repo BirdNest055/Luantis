@@ -1,4 +1,4 @@
-# Clawtest Project — Complete File & Dependency Map
+# Luanti-Secure Project — Complete File & Dependency Map
 
 > **Repository:** [BirdNest055/Clawtest](https://github.com/BirdNest055/Clawtest) (fork of Luanti with real encrypted communications)
 > **Version:** 5.16.1-v9.3 | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
@@ -125,9 +125,9 @@ These headers form the backbone of the codebase — included by the most other f
 | `CMakeLists.txt` | Master build file. Version 5.16.1-v9.3, C++17. Options: BUILD_CLIENT, BUILD_SERVER, BUILD_UNITTESTS, ENABLE_LTO, RUN_IN_PLACE, BUILD_WITH_TRACY. OpenSSL REQUIRED. | All subdirectories |
 | `CMakePresets.json` | CMake preset configurations | `CMakeLists.txt` |
 | `vcpkg.json` | vcpkg dependency manifest: zlib, zstd, openssl, curl, openal-soft, libvorbis, libogg, libjpeg-turbo, sqlite3, freetype, luajit, gmp, jsoncpp, gettext, sdl2 | `CMakeLists.txt` |
-| `VERSION` | Clawtest version file (currently "9.3") | `CMakeLists.txt` |
+| `VERSION` | Luanti-Secure version file (currently "9.3") | `CMakeLists.txt` |
 | `minetest.conf.example` | Example configuration with all settings documented | `src/defaultsettings.cpp`, `builtin/settingtypes.txt` |
-| `README.md` | Project readme — Clawtest fork with encrypted comms | — |
+| `README.md` | Project readme — Luanti-Secure fork with encrypted comms | — |
 | `LICENSE.txt` / `COPYING.LESSER` | LGPL 2.1 license | — |
 | `Dockerfile` | Docker container for server deployment | `CMakeLists.txt` (build), `src/main.cpp` (run) |
 | `shell.nix` | Nix shell for reproducible development | — |
@@ -141,7 +141,7 @@ These headers form the backbone of the codebase — included by the most other f
 | `ai-agent-instructions.md` | Conventions and rules for AI agents | — |
 | `ai-codebase-reference.md` | Current codebase state summary | — |
 | `TODO_FIXME_LIST.md` | Auto-generated list of TODO/FIXME/HACK comments | — |
-| `OPENCLAW_GUIDE.md` | OpenClaw CLI guide | — |
+| `OPENSECURE_GUIDE.md` | OpenSecure CLI guide | — |
 
 ---
 

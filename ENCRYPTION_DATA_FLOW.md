@@ -1,6 +1,6 @@
-# Encryption Data Flow — Clawtest v9.25
+# Encryption Data Flow — Luanti-Secure v9.25
 
-> A comprehensive guide to how encryption works between the Clawtest server and client, what happens to data at each stage, and what protections exist (and don't exist) at every point.
+> A comprehensive guide to how encryption works between the Luanti-Secure server and client, what happens to data at each stage, and what protections exist (and don't exist) at every point.
 
 ## Table of Contents
 
@@ -18,9 +18,9 @@
 
 ## Overview
 
-Clawtest uses AES-256-GCM authenticated encryption to protect all game traffic between server and client after SRP authentication completes. This means that once a player logs in with a password, all subsequent network packets are encrypted and authenticated — an attacker capturing network traffic cannot read game data, modify packets without detection, or replay old packets.
+Luanti-Secure uses AES-256-GCM authenticated encryption to protect all game traffic between server and client after SRP authentication completes. This means that once a player logs in with a password, all subsequent network packets are encrypted and authenticated — an attacker capturing network traffic cannot read game data, modify packets without detection, or replay old packets.
 
-The encryption is derived from the SRP (Secure Remote Password) authentication that already exists in Luanti. SRP produces a 32-byte shared session key on both sides during login. In upstream Luanti, this key was discarded after authentication. Clawtest captures this key and uses it to derive AES-256-GCM encryption keys via HKDF-SHA256.
+The encryption is derived from the SRP (Secure Remote Password) authentication that already exists in Luanti. SRP produces a 32-byte shared session key on both sides during login. In upstream Luanti, this key was discarded after authentication. Luanti-Secure captures this key and uses it to derive AES-256-GCM encryption keys via HKDF-SHA256.
 
 ### Key Properties
 
@@ -46,7 +46,7 @@ When the client first connects to the server, ALL traffic is plaintext. This is 
 - Server responds with TOCLIENT_HELLO, which may include security flags indicating that encryption is supported
 - The base protocol header (protocol_id, peer_id, channel) is always sent in plaintext — it must be, because the routing layer needs to read it before the packet reaches the decryption layer
 
-**Data at this point:** Completely visible on the network. An attacker with Wireshark can see the server address, port, and the fact that a Luanti/Clawtest connection is being established. The protocol ID (0x4f457403) is visible in every packet.
+**Data at this point:** Completely visible on the network. An attacker with Wireshark can see the server address, port, and the fact that a Luanti/Luanti-Secure connection is being established. The protocol ID (0x4f457403) is visible in every packet.
 
 ### Phase 2: SRP Authentication (Plaintext but Protected)
 
@@ -440,7 +440,7 @@ Note: The score is capped at 100 for display. Bonus points help first-time TOFU 
 
 ## What Encryption Does NOT Protect
 
-Being honest about limitations is a core principle of Clawtest's security design. Here is what the encryption does NOT protect against:
+Being honest about limitations is a core principle of Luanti-Secure's security design. Here is what the encryption does NOT protect against:
 
 ### Traffic Analysis
 An attacker can still see:
@@ -473,11 +473,11 @@ An attacker with a man-in-the-middle position could potentially:
 - Block the ECDH key exchange, forcing SRP-only encryption (score drops from 85→70)
 - Block encryption entirely, forcing plaintext (if the client allows insecure mode)
 
-Clawtest mitigates this by always attempting encryption by default and warning the user when it is not available.
+Luanti-Secure mitigates this by always attempting encryption by default and warning the user when it is not available.
 
 ### Metadata Leakage
 The base protocol header (7 bytes) is always plaintext:
-- Protocol ID reveals this is Luanti/Clawtest traffic
+- Protocol ID reveals this is Luanti/Luanti-Secure traffic
 - Peer ID and channel reveal connection structure
 - The encrypted flag (0x80) reveals that encryption is active
 

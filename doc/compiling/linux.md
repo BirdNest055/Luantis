@@ -18,7 +18,7 @@
 | JsonCPP    | 1.0.0+  | Bundled JsonCPP is used if not present |
 | Curl       | 7.56.0+ | Optional   |
 | gettext    | -       | Optional   |
-| OpenSSL    | 3.0+    | Required (Clawtest encryption module) |
+| OpenSSL    | 3.0+    | Required (Luanti-Secure encryption module) |
 
 For Debian/Ubuntu users:
 
@@ -81,7 +81,7 @@ Download source, without using Git:
 
 ## Build
 
-### Using build_linux.sh (Recommended for Clawtest)
+### Using build_linux.sh (Recommended for Luanti-Secure)
 
 The `build_linux.sh` script handles dependency detection, installation, and building automatically:
 
@@ -141,7 +141,7 @@ Run unit tests:
 - You can select between Release and Debug build by `-DCMAKE_BUILD_TYPE=<Debug or Release>`.
   - Debug build is slower, but gives much more useful output in a debugger.
 
-### Clawtest-Specific CMake Options
+### Luanti-Secure-Specific CMake Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -151,4 +151,4 @@ Run unit tests:
 | `BUILD_UNITTESTS` | TRUE | Build unit tests (includes crypto tests) |
 | `ENABLE_LTO` | TRUE (Release) | Link-Time Optimization (disable for faster builds) |
 
-Note: OpenSSL 3.0+ is **required** for the Clawtest encryption module (not optional as in upstream Luanti).
+Note: OpenSSL 3.0+ is **required** for the Luanti-Secure encryption module (not optional as in upstream Luanti).
