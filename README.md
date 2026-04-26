@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Luanti-Secure</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.25-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.28-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -53,6 +53,9 @@ Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 | Log toggle | v9.23+ | `--no-log`/`--log` flags in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem |
 | Settingtypes context fix | v9.24+ | Fixed `encryption_log_level` context from `[server,client]` to `[common]` (parser only accepts single context values) |
 | Encryption log autocreate | v9.25+ | `encryption_trace.log` is now created at any non-none log level (not just trace); all `enclog_*` macros write to the trace file; fixes missing log file after manual deletion |
+| Gitignore media folder | v9.26+ | `media/` directory added to `.gitignore` to prevent server-downloaded textures/sounds from overwhelming git |
+| Project rename | v9.27+ | Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files |
+| Minecraft-like keybinds | v9.28+ | Default keybindings changed to match Minecraft: E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom |
 
 Encryption Architecture
 -----------------------
@@ -146,21 +149,24 @@ Default controls
 All controls are re-bindable using settings.
 Some can be changed in the key config dialog in the settings tab.
 
+Default keybindings are set to Minecraft-like defaults (changed in v9.28):
+
 | Button                        | Action                                                         |
 |-------------------------------|----------------------------------------------------------------|
 | Move mouse                    | Look around                                                    |
 | W, A, S, D                    | Move                                                           |
 | Space                         | Jump/move up                                                   |
-| Shift                         | Sneak/move down                                                |
+| Left Shift                    | Sneak/move down                                                |
+| Left Ctrl                     | Sprint / Aux1 (Move fast in fast mode. Games may add special features) |
 | Q                             | Drop itemstack                                                 |
 | Shift + Q                     | Drop single item                                               |
 | Left mouse button             | Dig/punch/use                                                  |
 | Right mouse button            | Place/use                                                      |
 | Shift + right mouse button    | Build (without using)                                          |
-| I                             | Inventory menu                                                 |
+| E                             | Inventory menu                                                 |
 | Mouse wheel                   | Select item                                                    |
-| 0-9                           | Select item                                                    |
-| Z                             | Zoom (needs zoom privilege)                                    |
+| 1-9, 0                        | Select hotbar slot                                             |
+| C                             | Zoom (needs zoom privilege)                                    |
 | T                             | Chat                                                           |
 | /                             | Command                                                        |
 | Esc                           | Pause menu/abort/exit (pauses only singleplayer game)          |
@@ -169,18 +175,28 @@ Some can be changed in the key config dialog in the settings tab.
 | K                             | Enable/disable fly mode (needs fly privilege)                  |
 | J                             | Enable/disable fast mode (needs fast privilege)                |
 | H                             | Enable/disable noclip mode (needs noclip privilege)            |
-| E                             | Aux1 (Move fast in fast mode. Games may add special features)  |
-| C                             | Cycle through camera modes                                     |
+| G                             | Toggle fog                                                     |
+| F5                            | Cycle through camera modes                                     |
+| F3                            | Cycle through debug information screens                        |
+| F6                            | Cycle through profiler info screens                            |
 | V                             | Cycle through minimap modes                                    |
 | Shift + V                     | Change minimap orientation                                     |
 | F1                            | Hide/show HUD                                                  |
 | F2                            | Hide/show chat                                                 |
-| F3                            | Disable/enable fog                                             |
-| F4                            | Disable/enable camera update (Mapblocks are not updated anymore when disabled, disabled in release builds)  |
-| F5                            | Cycle through debug information screens                        |
-| F6                            | Cycle through profiler info screens                            |
+| F4                            | Disable/enable camera update (debug builds only)               |
 | F10                           | Show/hide console                                              |
 | F12                           | Take screenshot                                                |
+
+**v9.28 Keybinding changes from upstream Luanti defaults:**
+
+| Action | Upstream Default | Luanti-Secure Default | Reason |
+|--------|-----------------|----------------------|--------|
+| Inventory | I | E | Minecraft uses E for inventory |
+| Sprint/Aux1 | E | Left Ctrl | Minecraft uses Ctrl for sprint |
+| Camera mode | C | F5 | Minecraft uses F5 for camera views |
+| Debug info | F5 | F3 | Minecraft uses F3 for debug screen |
+| Toggle fog | F3 | G | F3 now used for debug (Minecraft-like) |
+| Zoom | Z | C | C freed up from camera mode |
 
 Paths
 -----
@@ -353,9 +369,9 @@ Version scheme
 Luanti-Secure uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.25)
+2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.28)
 
-The full version string is `5.16.1-v9.25-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.28-dev`, displayed via `--version` and in the UI.
 
 The Luanti-Secure version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -378,6 +394,9 @@ The Luanti-Secure version tracks encryption feature development:
 - v9.22: Settings panel fix — write all 16 g_settings keys, sync activated_at from connection, both secure/insecure modes work
 - v9.23: Log toggle feature — `--no-log`/`--log` in start scripts, `encryption_log_level` setting (none/error/action/trace), prevents 180MB log file problem
 - v9.24: Settingtypes context fix — `encryption_log_level` context `[server,client]` → `[common]` (Luanti parser only accepts single context values)
-- v9.25: Encryption log autocreate — `encryption_trace.log` created at any non-none level, all `enclog_*` macros write to trace file, fixes missing file after deletion
+- v9.25: Encryption log autocreate — `encryption_trace.log` created at any non-none level, all `enclog_*` macros write to trace file
+- v9.26: Gitignore `media/` folder — prevents server-downloaded media files from overwhelming git
+- v9.27: Project rename — Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files
+- v9.28: Minecraft-like default keybindings — E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom
 
-Git tags follow the pattern `clawtest-v9.25`.
+Git tags follow the pattern `luanti-secure-v9.28`.

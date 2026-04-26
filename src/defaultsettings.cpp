@@ -141,9 +141,9 @@ void set_default_settings()
         settings->setDefault("keymap_dig", "MOUSE_BUTTON_1");
         settings->setDefault("keymap_place", "MOUSE_BUTTON_3");
         settings->setDefault("keymap_drop", "SYSTEM_SCANCODE_20"); // KEY_KEY_Q
-        settings->setDefault("keymap_zoom", "SYSTEM_SCANCODE_29"); // KEY_KEY_Z
-        settings->setDefault("keymap_inventory", "SYSTEM_SCANCODE_12"); // KEY_KEY_I
-        settings->setDefault("keymap_aux1", "SYSTEM_SCANCODE_8"); // KEY_KEY_E
+        settings->setDefault("keymap_zoom", "SYSTEM_SCANCODE_6"); // KEY_KEY_C  // v9.28: Changed from Z to C (C freed from camera mode)
+        settings->setDefault("keymap_inventory", "SYSTEM_SCANCODE_8"); // KEY_KEY_E  // v9.28: Changed from I to E (Minecraft-like)
+        settings->setDefault("keymap_aux1", "SYSTEM_SCANCODE_224"); // KEY_LCTRL  // v9.28: Changed from E to Left Ctrl (Minecraft-like sprint)
         settings->setDefault("keymap_chat", "SYSTEM_SCANCODE_23"); // KEY_KEY_T
         settings->setDefault("keymap_cmd", "SYSTEM_SCANCODE_56"); // /
         settings->setDefault("keymap_cmd_local", "SYSTEM_SCANCODE_55"); // .
@@ -166,15 +166,15 @@ void set_default_settings()
         settings->setDefault("keymap_toggle_block_bounds", "");
         settings->setDefault("keymap_toggle_hud", "SYSTEM_SCANCODE_58"); // KEY_F1
         settings->setDefault("keymap_toggle_chat", "SYSTEM_SCANCODE_59"); // KEY_F2
-        settings->setDefault("keymap_toggle_fog", "SYSTEM_SCANCODE_60"); // KEY_F3
+        settings->setDefault("keymap_toggle_fog", "SYSTEM_SCANCODE_10"); // KEY_KEY_G  // v9.28: Changed from F3 to G (F3 now used for debug, Minecraft-like)
 #ifndef NDEBUG
         settings->setDefault("keymap_toggle_update_camera", "SYSTEM_SCANCODE_61"); // KEY_F4
 #else
         settings->setDefault("keymap_toggle_update_camera", "");
 #endif
-        settings->setDefault("keymap_toggle_debug", "SYSTEM_SCANCODE_62"); // KEY_F5
+        settings->setDefault("keymap_toggle_debug", "SYSTEM_SCANCODE_60"); // KEY_F3  // v9.28: Changed from F5 to F3 (Minecraft-like)
         settings->setDefault("keymap_toggle_profiler", "SYSTEM_SCANCODE_63"); // KEY_F6
-        settings->setDefault("keymap_camera_mode", "SYSTEM_SCANCODE_6"); // KEY_KEY_C
+        settings->setDefault("keymap_camera_mode", "SYSTEM_SCANCODE_62"); // KEY_F5  // v9.28: Changed from C to F5 (Minecraft-like)
         settings->setDefault("keymap_camera_yaw_left", "");
         settings->setDefault("keymap_camera_yaw_right", "");
         settings->setDefault("keymap_camera_pitch_up", "");
