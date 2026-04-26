@@ -1157,9 +1157,6 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
 
                 // Throw the received packet to channel->processPacket()
 
-                // Make a new SharedBuffer from the data without the base headers
-                size_t data_after_header_size = received_size - BASE_HEADER_SIZE;
-
                 // v9.17: Flag-routed packet processing.
                 // The 0x80 flag is a FIRST-CLASS routing decision made by
                 // routePacket(). Each route has its own clean handler.

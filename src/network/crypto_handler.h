@@ -5,6 +5,7 @@
 #pragma once
 
 #include "irrlichttypes.h"
+#include "network/networkprotocol.h" // session_t
 #include "network/packet_router.h"
 #include "util/pointer.h"
 #include <optional>
