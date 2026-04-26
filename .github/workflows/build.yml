@@ -3,6 +3,12 @@ name: Clawtest Build
 # Single consolidated workflow for Clawtest
 # - Build (client + server) runs by default on every push/PR
 # - All other jobs are toggleable via workflow_dispatch inputs
+#
+# v9.18: Build acceleration features:
+#   - ccache with GitHub Actions cache (80-90% rebuild speedup)
+#   - Ninja build system (better parallel scheduling than Make)
+#   - apt package caching (skip re-downloading deps)
+#   - Unity build option for even faster compiles
 on:
   push:
     branches: [main, master, 'v*', 'clawtest-*']
@@ -38,6 +44,11 @@ on:
         required: false
         type: boolean
         default: true
+      unity_build:
+        description: 'Use CMake unity builds (faster compile, may cause issues)'
+        required: false
+        type: boolean
+        default: false
       cpp_lint:
         description: 'Run clang-tidy C++ lint'
         required: false
@@ -55,6 +66,7 @@ env:
   BUILD_SERVER: ${{ github.event.inputs.build_server || 'true' }}
   RUN_TESTS: ${{ github.event.inputs.run_tests || 'true' }}
   PACKAGE_ARTIFACTS: ${{ github.event.inputs.package_artifacts || 'true' }}
+  UNITY_BUILD: ${{ github.event.inputs.unity_build || 'false' }}
 
 jobs:
   # ============================================================
@@ -97,48 +109,70 @@ jobs:
           echo "Version tag:  $VERSION_TAG"
           echo "Full version: $FULL_VERSION"
 
-      - name: Install dependencies
+      # =====================================================
+      # BUILD ACCELERATION: ccache + Ninja
+      # ccache caches compiled object files between runs.
+      # On repeated builds (same branch, same source files),
+      # unchanged files compile from cache in ms instead of s.
+      # Typical speedup: 80-90% compile time reduction.
+      # =====================================================
+      - name: Install ccache and Ninja
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ccache ninja-build
 
-          # Core build tools
-          sudo apt-get install -y --no-install-recommends \
+      - name: Configure ccache
+        run: |
+          # Set ccache directory to a known location for caching
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache --set-config=max_size=500M
+          ccache --set-config=compression=true
+          ccache --set-config=compression_level=6
+          ccache --set-config=hash_dir=false
+          # Show config
+          ccache -p
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-${{ runner.os }}-${{ env.BUILD_TYPE }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ env.BUILD_TYPE }}-
+            ccache-${{ runner.os }}-
+
+      # =====================================================
+      # BUILD ACCELERATION: apt package cache
+      # Avoids re-downloading ~200MB of dev packages each run
+      # =====================================================
+      - name: Cache apt packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: >-
             build-essential cmake pkg-config
+            zlib1g-dev libzstd-dev libsqlite3-dev libgmp-dev
+            libjsoncpp-dev libluajit-5.1-dev libcurl4-openssl-dev
+            libssl-dev libncurses-dev
+            libfreetype-dev libgl1-mesa-dev libsdl2-dev
+            libopenal-dev libvorbis-dev libogg-dev
+            libjpeg-dev libpng-dev gettext
+          version: 1.0
 
-          # Common libraries (server + client)
-          sudo apt-get install -y --no-install-recommends \
-            zlib1g-dev libzstd-dev libsqlite3-dev libgmp-dev \
-            libjsoncpp-dev libluajit-5.1-dev libcurl4-openssl-dev \
-            libssl-dev
-
-          # Client: Graphics, audio, media
-          if [[ "${{ env.BUILD_CLIENT }}" == "true" ]]; then
-            # Resolve freetype package name (differs across Ubuntu versions)
-            FREETYPE_PKG="libfreetype-dev"
-            if ! apt-cache showpkg libfreetype-dev 2>/dev/null | grep -q "Package: libfreetype-dev"; then
-              FREETYPE_PKG="libfreetype6-dev"
-            fi
-
-            sudo apt-get install -y --no-install-recommends \
-              ${FREETYPE_PKG} libgl1-mesa-dev libsdl2-dev \
-              libopenal-dev libvorbis-dev libogg-dev \
-              libjpeg-dev libpng-dev gettext
-          fi
-
-          # Server: Terminal UI
-          if [[ "${{ env.BUILD_SERVER }}" == "true" ]]; then
-            sudo apt-get install -y --no-install-recommends \
-              libncurses-dev
-          fi
+      - name: Reset ccache stats before build
+        run: ccache --zero-stats
 
       - name: Configure CMake
         run: |
           CMAKE_ARGS=(
             -B build
+            -G Ninja
             -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}"
             -DCMAKE_INSTALL_PREFIX=/usr/local
             -DRUN_IN_PLACE=TRUE
             -DENABLE_LTO=FALSE
+            # ccache integration via CMake compiler launcher
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           )
 
           # Build targets
@@ -161,11 +195,26 @@ jobs:
             CMAKE_ARGS+=(-DBUILD_UNITTESTS=FALSE)
           fi
 
+          # Unity build (optional - merges .cpp files for faster compilation)
+          if [[ "${{ env.UNITY_BUILD }}" == "true" ]]; then
+            CMAKE_ARGS+=(-DCMAKE_UNITY_BUILD=ON)
+            CMAKE_ARGS+=(-DCMAKE_UNITY_BUILD_BATCH_SIZE=16)
+          fi
+
           echo "CMake arguments: ${CMAKE_ARGS[*]}"
           cmake "${CMAKE_ARGS[@]}" .
 
       - name: Build
         run: cmake --build build -j "$(nproc)"
+
+      - name: Show ccache stats
+        if: always()
+        run: |
+          echo "=== ccache statistics ==="
+          ccache --show-stats
+          echo ""
+          echo "=== Cache hit rate ==="
+          ccache -s | grep -E "^(Hits:|Misses:|Cache size|Max cache size)" || true
 
       - name: Run unit tests
         if: env.RUN_TESTS == 'true'
@@ -254,6 +303,7 @@ jobs:
           Server Built:     ${{ steps.verify.outputs.server_ok }}
           Unit Tests:       ${{ steps.tests.outcome }}
           Encryption:       Modular (AES-256-GCM with SRP, toggleable via secure_connection)
+          ccache Hit Rate:  $(ccache -s | grep "Hits:" | head -1 || echo "N/A")
           EOF
           sed -i 's/^          //' "$ARTIFACT_DIR/BUILD_INFO.txt"
 
@@ -284,7 +334,11 @@ jobs:
           echo "  Server:   ${{ steps.verify.outputs.server_ok }}"
           echo "  Tests:    ${{ steps.tests.outcome }}"
           echo "  Packaged: ${{ env.PACKAGE_ARTIFACTS }}"
+          echo "  Unity:    ${{ env.UNITY_BUILD }}"
           echo "============================================"
+          echo ""
+          echo "=== ccache performance ==="
+          ccache -s || true
 
   # ============================================================
   # OPTIONAL: C++ Lint (toggleable, default OFF)
