@@ -81,6 +81,8 @@ DecryptResult CryptoHandler::decrypt(
 		dir_state.auth_failures++;
 		result.status = DecryptResult::AuthFailed;
 		result.error_detail = crypto_result.error_msg;
+		result.auth_failure_count = dir_state.auth_failures;
+		result.expected_nonce_counter = dir_state.nonce_counter;
 	}
 
 	return result;
@@ -129,6 +131,8 @@ EncryptResult CryptoHandler::encrypt(
 	} else {
 		result.status = EncryptResult::InternalError;
 		result.error_detail = crypto_result.error_msg;
+		result.auth_failure_count = dir_state.auth_failures;
+		result.expected_nonce_counter = dir_state.nonce_counter;
 	}
 
 	return result;
@@ -156,34 +160,94 @@ void CryptoHandler::logDecryptFailure(const DecryptResult& result,
 		enclog_error("Replay detected from peer")
 			<< EncLog::kv("peer", peer_id)
 			<< EncLog::kv("received_counter", result.nonce_counter)
+			<< EncLog::kv("expected_counter", result.expected_nonce_counter)
 			<< EncLog::kv("action", "PACKET_DROPPED")
 			<< std::endl;
 		break;
 
 	case DecryptResult::AuthFailed: {
-		// Throttled logging: first 3 at ERROR, then every 100th
-		// Determine direction for auth_failures lookup
-		// (The caller already incremented auth_failures in decrypt(),
-		//  so we check the count to decide whether to log.)
-		bool should_log = true;  // Default to logging; caller can check
-		// The actual throttling is based on the auth_failures counter
-		// which was already incremented in decrypt().
-		// Since we don't have access to the counter here directly
-		// (it's inside the locked state), we log a generic message.
-		// The caller should check dir_state.auth_failures for throttling.
-		enclog_error("Decryption FAILED from peer")
-			<< EncLog::kv("peer", peer_id)
-			<< EncLog::kv("error", result.error_detail)
-			<< EncLog::kv("action", "PACKET_DROPPED")
-			<< EncLog::kv("direction", we_are_server ? "C2S" : "S2C")
-			<< EncLog::kv("received_counter", result.nonce_counter)
-			<< EncLog::kv("s2c_key_fp",
-				keyToFingerprint(enc_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 8))
-			<< EncLog::kv("c2s_key_fp",
-				keyToFingerprint(enc_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 8))
-			<< EncLog::kv("ecdh_completed", enc_state.ecdh_completed.load())
-			<< EncLog::kv("session_id", enc_state.session_id)
-			<< std::endl;
+		const u64 count = result.auth_failure_count;
+		const char *direction = we_are_server ? "C2S" : "S2C";
+
+		// v9.19: Throttled GCM auth failure logging.
+		// Previous versions logged EVERY failure at ERROR level, causing
+		// massive log spam that drowned out real issues and made the game
+		// unplayable when a key mismatch occurred.
+		//
+		// Strategy:
+		//   - First 3 failures:     ERROR level (full diagnostic dump)
+		//   - Failures 4-9:         WARNING level (one-line summary)
+		//   - Failures 10+:         Every 50th at WARNING level
+		//   - At 100 failures:      Single persistent mismatch banner
+		if (count <= 3) {
+			// Full diagnostic dump for the first few failures
+			enclog_error("GCM auth FAILED from peer")
+				<< EncLog::kv("peer", peer_id)
+				<< EncLog::kv("direction", direction)
+				<< EncLog::kv("received_counter", result.nonce_counter)
+				<< EncLog::kv("expected_counter", result.expected_nonce_counter)
+				<< EncLog::kv("failure_num", count)
+				<< EncLog::kv("s2c_key_fp",
+					keyToFingerprint(enc_state.s2c.key.data(), AES256_KEY_SIZE).substr(0, 16))
+				<< EncLog::kv("c2s_key_fp",
+					keyToFingerprint(enc_state.c2s.key.data(), AES256_KEY_SIZE).substr(0, 16))
+				<< EncLog::kv("ecdh_completed", enc_state.ecdh_completed.load())
+				<< EncLog::kv("active", enc_state.active.load())
+				<< EncLog::kv("session_id", enc_state.session_id.substr(0, 16))
+				<< std::endl;
+
+			// One-time key mismatch diagnostic on the FIRST failure only
+			if (count == 1) {
+				enclog_error("KEY MISMATCH DIAGNOSTIC -- first GCM auth failure for this session")
+					<< EncLog::kv("peer", peer_id)
+					<< EncLog::kv("direction", direction)
+					<< EncLog::kv("s2c_key_full_fp",
+						keyToFingerprint(enc_state.s2c.key.data(), AES256_KEY_SIZE))
+					<< EncLog::kv("c2s_key_full_fp",
+						keyToFingerprint(enc_state.c2s.key.data(), AES256_KEY_SIZE))
+					<< EncLog::kv("s2c_nonce_base",
+						binToHex(enc_state.s2c.nonce_base.data(), enc_state.s2c.nonce_base.size()))
+					<< EncLog::kv("c2s_nonce_base",
+						binToHex(enc_state.c2s.nonce_base.data(), enc_state.c2s.nonce_base.size()))
+					<< EncLog::kv("s2c_counter", enc_state.s2c.nonce_counter)
+					<< EncLog::kv("c2s_counter", enc_state.c2s.nonce_counter)
+					<< EncLog::kv("s2c_packets", enc_state.s2c.packets_processed)
+					<< EncLog::kv("c2s_packets", enc_state.c2s.packets_processed)
+					<< EncLog::kv("ecdh_completed", enc_state.ecdh_completed.load())
+					<< EncLog::kv("activated_at", enc_state.activated_at)
+					<< EncLog::kv("session_id", enc_state.session_id)
+					<< std::endl;
+			}
+		} else if (count <= 9) {
+			// Brief warning for failures 4-9
+			warningstream << ENC_TAG_ERROR
+				<< "GCM auth failure #" << count
+				<< " from peer " << peer_id
+				<< " | direction=" << direction
+				<< " | counter=" << result.nonce_counter
+				<< " | session=" << enc_state.session_id.substr(0, 16)
+				<< std::endl;
+		} else if (count % 50 == 0) {
+			// Periodic summary every 50 failures after the first 9
+			warningstream << ENC_TAG_ERROR
+				<< "GCM auth failures continue: " << count
+				<< " total from peer " << peer_id
+				<< " | direction=" << direction
+				<< " | session=" << enc_state.session_id.substr(0, 16)
+				<< " | likely KEY MISMATCH -- check ECDH exchange"
+				<< std::endl;
+		}
+
+		// Persistent mismatch banner at 100 failures
+		if (count == 100) {
+			enclog_error("PERSISTENT KEY MISMATCH -- 100 consecutive GCM auth failures")
+				<< EncLog::kv("peer", peer_id)
+				<< EncLog::kv("direction", direction)
+				<< EncLog::kv("session_id", enc_state.session_id.substr(0, 16))
+				<< EncLog::kv("possible_cause", "ECDH_key_exchange_failed_on_one_side")
+				<< EncLog::kv("recommendation", "check_initFromSRPSessionKey_and_mixECDHSecretIntoKeys_on_both_sides")
+				<< std::endl;
+		}
 		break;
 	}
 

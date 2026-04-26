@@ -31,6 +31,8 @@ struct DecryptResult {
 	SharedBuffer<u8> plaintext;  ///< Valid only when status == Success
 	std::string error_detail;    ///< Diagnostic info for error cases
 	u64 nonce_counter = 0;       ///< Counter from the packet (for diagnostics)
+	u64 auth_failure_count = 0;  ///< Total auth failures for this direction (for throttled logging)
+	u64 expected_nonce_counter = 0; ///< Local nonce counter at time of failure (for diagnostics)
 };
 
 /// Result of attempting to encrypt a plaintext payload.
