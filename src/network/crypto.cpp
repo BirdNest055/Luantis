@@ -471,6 +471,19 @@ bool PeerEncryptionState::initFromSRPSessionKey(const u8* session_key, size_t ke
                 << EncLog::kv("key_rotation", "supported")
                 << std::endl;
 
+        // v9.19-trace: Full key material trace for debugging key mismatch
+        enclog_trace("initFromSRPSessionKey: FULL KEY MATERIAL")
+                << EncLog::kv("role", is_server ? "server" : "client")
+                << EncLog::kv("session_id", session_id)
+                << EncLog::kv("c2s_key_fp", keyToFingerprint(c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("s2c_key_fp", keyToFingerprint(s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_nonce_base_hex", EncLog::hexDump(c2s.nonce_base.data(), c2s.nonce_base.size()))
+                << EncLog::kv("s2c_nonce_base_hex", EncLog::hexDump(s2c.nonce_base.data(), s2c.nonce_base.size()))
+                << EncLog::kv("hkdf_salt_hex", EncLog::hexDump(hkdf_salt.data(), hkdf_salt.size()))
+                << EncLog::kv("srp_key_fp", keyToFingerprint(srp_session_key.data(), SRP_SESSION_KEY_SIZE))
+                << EncLog::kv("ecdh_completed", ecdh_completed.load())
+                << std::endl;
+
         return true;
 }
 
@@ -955,6 +968,20 @@ bool mixECDHSecretIntoKeys(PeerEncryptionState &state,
                 << EncLog::kv("pfs", "yes")
                 << EncLog::kv("key_exchange", "SRP+X25519")
                 << EncLog::kv("salted_hkdf", "yes")
+                << std::endl;
+
+        // v9.19-trace: Full key material trace after ECDH key mixing
+        enclog_trace("mixECDHSecretIntoKeys: FULL KEY MATERIAL AFTER ECDH")
+                << EncLog::kv("session_id", state.session_id)
+                << EncLog::kv("c2s_key_fp", keyToFingerprint(state.c2s.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("s2c_key_fp", keyToFingerprint(state.s2c.key.data(), AES256_KEY_SIZE))
+                << EncLog::kv("c2s_nonce_base_hex", EncLog::hexDump(state.c2s.nonce_base.data(), state.c2s.nonce_base.size()))
+                << EncLog::kv("s2c_nonce_base_hex", EncLog::hexDump(state.s2c.nonce_base.data(), state.s2c.nonce_base.size()))
+                << EncLog::kv("hkdf_salt_hex", EncLog::hexDump(state.hkdf_salt.data(), state.hkdf_salt.size()))
+                << EncLog::kv("ecdh_secret_fp", keyToFingerprint(state.ecdh_shared_secret.data(), X25519_SHARED_SECRET_SIZE))
+                << EncLog::kv("srp_key_fp", keyToFingerprint(state.srp_session_key.data(), SRP_SESSION_KEY_SIZE))
+                << EncLog::kv("ecdh_completed", state.ecdh_completed.load())
+                << EncLog::kv("active", state.active.load())
                 << std::endl;
 
         return true;
