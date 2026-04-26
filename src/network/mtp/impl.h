@@ -269,6 +269,12 @@ public:
         bool MixECDHSecretOnPeer(session_t peer_id,
                 const u8 *ecdh_shared_secret, size_t shared_secret_len) override;
 
+        // v9.20: Query the connection layer's live encryption active state.
+        bool IsPeerEncryptionActive(session_t peer_id) const override;
+
+        // v9.20: Query the connection layer's live ECDH completion state.
+        bool IsPeerECDHCompleted(session_t peer_id) const override;
+
 protected:
         PeerHelper getPeerNoEx(session_t peer_id);
         session_t   lookupPeer(const Address& sender);
@@ -312,7 +318,9 @@ private:
 
         std::map<session_t, Peer *> m_peers;
         std::vector<session_t> m_peer_ids;
-        std::mutex m_peers_mutex;
+        // v9.20: mutable to allow const query methods (IsPeerEncryptionActive,
+        // IsPeerECDHCompleted) to lock the mutex for thread-safe reads.
+        mutable std::mutex m_peers_mutex;
 
         std::unique_ptr<ConnectionSendThread> m_sendThread;
         std::unique_ptr<ConnectionReceiveThread> m_receiveThread;

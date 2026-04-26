@@ -96,6 +96,17 @@ public:
         // Returns true if mixing succeeded, false on failure.
         virtual bool MixECDHSecretOnPeer(session_t peer_id,
                 const u8 *ecdh_shared_secret, size_t shared_secret_len) = 0;
+
+        // v9.20: Query whether encryption is actually active for a peer.
+        // Returns the connection layer's live encryption active state.
+        // This is the authoritative source for whether packets are being
+        // encrypted/decrypted — NOT the Client/Server's copy of the state,
+        // which may be stale after auto-activation in the receive thread.
+        virtual bool IsPeerEncryptionActive(session_t peer_id) const = 0;
+
+        // v9.20: Query whether ECDH has completed for a peer.
+        // Returns the connection layer's live ECDH completion state.
+        virtual bool IsPeerECDHCompleted(session_t peer_id) const = 0;
 };
 
 // MTP = Minetest Protocol
