@@ -7,6 +7,7 @@ set(common_network_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/crypto.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/crypto_handler.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/encryption_config.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/encryption_trace.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/packet_router.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mtp/impl.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mtp/threads.cpp

@@ -7,6 +7,7 @@
 #include "log.h"
 #include "irrlichttypes.h"
 #include "network/networkprotocol.h"  // for session_t
+#include "network/encryption_trace.h"
 #include <string>
 #include <sstream>
 #include <ctime>
@@ -86,10 +87,11 @@
 // AUDIT: Periodic statistics — info level
 #define enclog_audit(msg) infostream << ENC_TAG_AUDIT << msg
 
-// TRACE: Detailed per-packet diagnostic tracing — info level
-// Use for logging every packet routing decision, key state at decision
-// points, hex dumps of packet headers, etc. This is the firehose.
-#define enclog_trace(msg) infostream << ENC_TAG_TRACE << msg
+// TRACE: Detailed per-packet diagnostic tracing — dual output.
+// Writes to BOTH actionstream (console + debug.txt) AND the dedicated
+// encryption_trace.log file. Use for logging every packet routing
+// decision, key state at decision points, hex dumps, etc.
+#define enclog_trace(msg) EncLog::TraceLine() << ENC_TAG_TRACE << msg
 
 // ---- Security status banner helpers ----
 
