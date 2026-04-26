@@ -1,4 +1,4 @@
-# Encryption Data Flow — Clawtest v9.24
+# Encryption Data Flow — Clawtest v9.25
 
 > A comprehensive guide to how encryption works between the Clawtest server and client, what happens to data at each stage, and what protections exist (and don't exist) at every point.
 
@@ -546,7 +546,7 @@ Insecure mode exists for:
 
 During development, verbose per-packet encryption trace messages (`[ENC:TRACE]`) were logged for every encrypted and decrypted packet. In a typical game session, this generated a **180MB debug.txt** log file that caused noticeable game slowdown due to the I/O overhead of writing massive amounts of log data. This was acceptable during initial debugging but became a serious problem for normal gameplay.
 
-### Solution: Two-Layer Log Control (v9.23 + v9.24)
+### Solution: Two-Layer Log Control (v9.23 + v9.24 + v9.25)
 
 **Layer 1: Start Script Toggle**
 
@@ -571,6 +571,8 @@ The `encryption_log_level` setting controls the verbosity of `[ENC:...]` log mes
 The `encryption_log_level` setting applies to both server and client (context: `[common]`). It is defined in `builtin/settingtypes.txt` and can be set in `minetest.conf` or through the in-game settings dialog.
 
 **Bug note (v9.24)**: The initial v9.23 implementation used `[server,client]` as the context annotation in `settingtypes.txt`. The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua`, line 30) only accepts single context values: `common`, `client`, `server`, `world_creation`. The comma-separated value was parsed as the literal string `"server,client"` which is not a valid context, producing `ERROR[Main]: Unknown context in settingtypes.txt`. This was fixed in v9.24 by changing to `[common]`.
+
+**Autocreate fix (v9.25)**: In v9.23/v9.24, `encryption_trace.log` was only created when `encryption_log_level = trace`. At the default "action" level, the file was never created. If a user manually deleted the file and restarted with `--log`, the file would not be recreated — a test-driven-development finding. In v9.25, the trace file is now created at ANY non-none log level (error, action, or trace). Additionally, ALL `enclog_*` macros (not just `enclog_trace`) now write to the trace file, making `encryption_trace.log` the single destination for all encryption log events. The `EncLogLine` class (a generalization of the previous `TraceLine`) ensures dual output to both the standard stream and the trace file at all log levels.
 
 ### Recommended Configurations
 
@@ -610,6 +612,11 @@ encryption_log_level = trace
                                    │  action = Key events (default) │
                                    │  trace  = Per-packet (SLOW!)   │
                                    └────────────────────────────────┘
+                                            │
+                                   v9.25: ALL levels write to
+                                   encryption_trace.log (not just
+                                   trace). File is auto-created at
+                                   any non-none level.
 ```
 
 ## Threat Model

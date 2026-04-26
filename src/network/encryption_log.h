@@ -66,11 +66,14 @@ namespace EncryptionConfig { bool shouldLog(EncryptionLogLevel level); }
 #define ENC_TAG_TRACE    "[ENC:TRACE] "
 
 // ---- Convenience macros for structured encryption logging ----
-// Each macro streams to `actionstream` (always logged) or `infostream`
-// depending on severity. The format is:
-//   [ENC:<CATEGORY>] <message> | key=value | key=value
-
-// v9.23: All enclog macros now respect the `encryption_log_level` setting.
+// Each macro uses EncLogLine (v9.25) to write to BOTH the standard
+// stream (infostream/actionstream/errorstream) AND the dedicated
+// encryption_trace.log file. This ensures encryption_trace.log is
+// the single destination for ALL encryption events at any log level.
+//
+// v9.23: All enclog macros respect the `encryption_log_level` setting.
+// v9.25: All enclog macros now write to encryption_trace.log (not just trace).
+//
 // Log levels required per category:
 //   INIT     → ACTION (key derivation is important operational info)
 //   ACTIVATE → ACTION (always logged when log level >= action)
@@ -90,43 +93,35 @@ namespace EncryptionConfig { bool shouldLog(EncryptionLogLevel level); }
 
 // INIT: Key derivation and initialization events
 #define enclog_init(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
-                infostream << ENC_TAG_INIT << msg
+        EncLog::EncLogLine(infostream, ENC_LOG_ACTION) << ENC_TAG_INIT << msg
 
 // ACTIVATE: Encryption activation events (action level)
 #define enclog_activate(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
-                actionstream << ENC_TAG_ACTIVATE << msg
+        EncLog::EncLogLine(actionstream, ENC_LOG_ACTION) << ENC_TAG_ACTIVATE << msg
 
 // SEND: Outbound encryption events (trace level)
 #define enclog_send(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
-                infostream << ENC_TAG_SEND << msg
+        EncLog::EncLogLine(infostream, ENC_LOG_TRACE) << ENC_TAG_SEND << msg
 
 // RECV: Inbound decryption events (trace level)
 #define enclog_recv(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
-                infostream << ENC_TAG_RECV << msg
+        EncLog::EncLogLine(infostream, ENC_LOG_TRACE) << ENC_TAG_RECV << msg
 
 // SECURITY: Security state changes (action level)
 #define enclog_security(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
-                actionstream << ENC_TAG_SECURITY << msg
+        EncLog::EncLogLine(actionstream, ENC_LOG_ACTION) << ENC_TAG_SECURITY << msg
 
 // ERROR: Encryption failures (error level — shown unless log level = none)
 #define enclog_error(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_ERROR)) \
-                errorstream << ENC_TAG_ERROR << msg
+        EncLog::EncLogLine(errorstream, ENC_LOG_ERROR) << ENC_TAG_ERROR << msg
 
 // DISABLE: Encryption teardown (action level)
 #define enclog_disable(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
-                actionstream << ENC_TAG_DISABLE << msg
+        EncLog::EncLogLine(actionstream, ENC_LOG_ACTION) << ENC_TAG_DISABLE << msg
 
 // AUDIT: Periodic statistics (trace level)
 #define enclog_audit(msg) \
-        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
-                infostream << ENC_TAG_AUDIT << msg
+        EncLog::EncLogLine(infostream, ENC_LOG_TRACE) << ENC_TAG_AUDIT << msg
 
 // TRACE: Detailed per-packet diagnostic tracing — dual output.
 // Writes to BOTH actionstream (console + debug.txt) AND the dedicated
@@ -134,21 +129,24 @@ namespace EncryptionConfig { bool shouldLog(EncryptionLogLevel level); }
 // decision, key state at decision points, hex dumps, etc.
 // Only active when encryption_log_level >= trace.
 //
-// The TraceLine object checks shouldLog() in its destructor. When the
-// log level is below trace, the destructor does nothing, so all the
-// streaming work is wasted — but the compiler can optimize it away
-// since the object has no observable side effects in that case.
+// v9.25: Now uses EncLogLine like all other macros (previously used
+// TraceLine). The behavior is the same — dual output to actionstream
+// and the trace file. The EncLogLine class is a generalization of
+// TraceLine that works at all log levels.
 //
 // Usage:
 //   enclog_trace("msg") << EncLog::kv("key", val) << std::endl;
 #define enclog_trace(msg) \
-        EncLog::TraceLine() << ENC_TAG_TRACE << msg
+        EncLog::EncLogLine(actionstream, ENC_LOG_TRACE) << ENC_TAG_TRACE << msg
 
 // ---- Security status banner helpers ----
 
 /// Generate a visual security status banner for a connection.
 /// This produces a multi-line block that clearly shows whether
 /// the connection is SECURE or INSECURE with all relevant details.
+///
+/// v9.25: Banner output now also goes to encryption_trace.log
+/// via the EncLogLine-based enclog_security macro.
 ///
 /// Example SECURE output:
 ///   ╔══════════════════════════════════════════════════════════╗
@@ -238,7 +236,8 @@ inline std::string kv(const char* key, const char* value)
         return std::string(" | ") + key + "=" + value;
 }
 
-/// Log the SECURE connection banner with all details
+/// Log the SECURE connection banner with all details.
+/// v9.25: All output now also goes to encryption_trace.log.
 inline void logSecureConnectionBanner(
         const std::string& session_id,
         const std::string& fingerprint,
@@ -252,77 +251,127 @@ inline void logSecureConnectionBanner(
         if (!EncryptionConfig::shouldLog(ENC_LOG_ACTION))
                 return;
 
+        // v9.25: Use EncLogLine so output goes to both actionstream and trace file.
+        // We build each line as a separate EncLogLine to avoid complex buffering.
+
+        // Ensure trace file exists before writing banner lines
+        ensureEncryptionLogExists();
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  CONNECTION SECURE -- AES-256-GCM Encryption Active" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  CONNECTION SECURE -- AES-256-GCM Encryption Active");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Cipher:           AES-256-GCM (256-bit key)" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Cipher:           AES-256-GCM (256-bit key)");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Key Exchange:     SRP (Secure Remote Password)" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Key Exchange:     SRP (Secure Remote Password)");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Authentication:   SRP mutual" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Authentication:   SRP mutual");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Session ID:       " << session_id << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Session ID:       " + session_id);
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Fingerprint:      " << fingerprint << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Fingerprint:      " + fingerprint);
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Forward Secrecy:  " << (forward_secrecy ? "Yes" : "No (SRP-derived keys)") << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Forward Secrecy:  " + (forward_secrecy ? "Yes" : "No (SRP-derived keys)"));
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Replay Protection:" << (replay_protection ? " Yes (sliding window)" : " No") << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Replay Protection:" + (replay_protection ? " Yes (sliding window)" : " No"));
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Score:            " << security_score << "/100 (" << score_label << ")" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Score:            " + std::to_string(security_score) + "/100 (" + score_label + ")");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  C2S packets:      " << c2s_packets << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  C2S packets:      " + std::to_string(c2s_packets));
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  S2C packets:      " << s2c_packets << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  S2C packets:      " + std::to_string(s2c_packets));
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
 }
 
-/// Log the INSECURE connection banner with the reason
+/// Log the INSECURE connection banner with the reason.
+/// v9.25: All output now also goes to encryption_trace.log.
 inline void logInsecureConnectionBanner(const std::string& reason)
 {
         if (!EncryptionConfig::shouldLog(ENC_LOG_ACTION))
                 return;
 
+        // v9.25: Ensure trace file exists and write banner to it
+        ensureEncryptionLogExists();
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  !! CONNECTION INSECURE -- No Encryption !!" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  !! CONNECTION INSECURE -- No Encryption !!");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  All traffic is sent as PLAINTEXT UDP" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  All traffic is sent as PLAINTEXT UDP");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Any network observer can read and modify packets" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Any network observer can read and modify packets");
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "  Reason: " << reason << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "  Reason: " + reason);
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
+        writeTraceFile(std::string(ENC_TAG_SECURITY) + "========================================================");
 }
 
 /// Log a periodic encryption audit summary for a peer.
