@@ -15,6 +15,10 @@
 #   --password-file FILE   Read password from file
 #   --secure               Enable secure/encrypted connection (skips security menu)
 #   --insecure             Disable secure connection (skips security menu)
+#   --log                  Enable full logging (default)
+#   --no-log               Disable ALL logging — no debug.txt, no encryption trace
+#                          Use this when logging is not needed to avoid large log files
+#   --log-encryption LVL   Set encryption log level: none|error|action|trace
 #   --go                   Skip main menu, connect directly to server
 #   --build                Build client binary first if it doesn't exist
 #   --fullscreen           Start in fullscreen mode
@@ -34,6 +38,8 @@
 #   ./start_client.sh --address localhost --port 30000 --name player1 --go --secure
 #   ./start_client.sh --build --secure --go              # Build if needed, then connect
 #   ./start_client.sh --go --fullscreen                  # Connect in fullscreen
+#   ./start_client.sh --go --no-log                     # No logging (no debug.txt, no trace files)
+#   ./start_client.sh --go --log-encryption trace       # Full encryption trace logging
 #   ./start_client.sh --go --resolution 1920x1080        # Custom resolution
 #
 
@@ -61,6 +67,8 @@ PLAYER_PASSWORD=""       # Empty = no password
 PASSWORD_FILE=""         # File to read password from
 SECURE_MODE=-1           # -1 = not set (ask user), 1 = secure, 0 = insecure
 SECURE_EXPLICIT=0        # 1 = user passed --secure or --insecure on CLI
+ENC_LOG_LEVEL=""         # Empty = default (action), one of: none, error, action, trace
+LOGGING_ENABLED=1        # 1 = full logging (default), 0 = no logging at all
 DO_GO=-1                 # -1 = ask user, 1 = skip main menu, 0 = show main menu
 DO_BUILD=0               # Whether to build before starting
 DO_FULLSCREEN=-1         # -1 = ask user, 1 = fullscreen, 0 = windowed
@@ -101,6 +109,9 @@ parse_args() {
             --password-file) PASSWORD_FILE="${2:?--password-file requires a file path}"; shift ;;
             --secure)       SECURE_MODE=1; SECURE_EXPLICIT=1 ;;
             --insecure)     SECURE_MODE=0; SECURE_EXPLICIT=1 ;;
+            --log)          LOGGING_ENABLED=1 ;;
+            --no-log)       LOGGING_ENABLED=0 ;;
+            --log-encryption) ENC_LOG_LEVEL="${2:?--log-encryption requires none|error|action|trace}"; shift ;;
             --go)           DO_GO=1 ;;
             --build)        DO_BUILD=1 ;;
             --fullscreen)   DO_FULLSCREEN=1 ;;
@@ -353,8 +364,44 @@ select_security_interactive() {
     echo ""
 }
 
+select_logging_interactive() {
+    echo -e "  ${BOLD}6. Logging Mode:${RESET}"
+    echo ""
+    echo -e "    ${CYAN}1)${RESET} ${GREEN}Logging ON${RESET}    - Full logging to debug.txt (default)"
+    echo -e "    ${CYAN}2)${RESET} ${RED}Logging OFF${RESET}   - No debug.txt, no trace files (saves disk)"
+    echo ""
+    echo -e "    ${DIM}When OFF, no log data is generated at all. Use when logging is not needed.${RESET}"
+    echo -e "    ${DIM}A previous session with logging ON generated 180MB+ of log data.${RESET}"
+    echo ""
+
+    while true; do
+        local answer=""
+        read -rp "  Select logging mode [1-2] (default: 1): " answer || true
+        answer="${answer#"${answer%%[![:space:]]*}"}"
+        answer="${answer%"${answer##*[![:space:]]}"}"
+
+        case "$answer" in
+            1|"")
+                LOGGING_ENABLED=1
+                log "Logging: ${GREEN}ON${RESET}"
+                break
+                ;;
+            2)
+                LOGGING_ENABLED=0
+                log "Logging: ${RED}OFF${RESET} (no debug.txt, no trace files)"
+                break
+                ;;
+            q|quit)
+                info "Cancelled."; exit 0 ;;
+            *)
+                echo -e "  ${RED}Invalid choice. Enter 1 or 2.${RESET}" ;;
+        esac
+    done
+    echo ""
+}
+
 select_launch_mode_interactive() {
-    echo -e "  ${BOLD}6. Launch Mode:${RESET}"
+    echo -e "  ${BOLD}7. Launch Mode:${RESET}"
     echo ""
     echo -e "    ${CYAN}1)${RESET} Direct Connect  - Skip main menu, connect directly to server"
     echo -e "    ${CYAN}2)${RESET} Main Menu       - Open Luanti main menu first"
@@ -387,7 +434,7 @@ select_launch_mode_interactive() {
 }
 
 select_display_interactive() {
-    echo -e "  ${BOLD}7. Display Mode:${RESET}"
+    echo -e "  ${BOLD}8. Display Mode:${RESET}"
     echo ""
     echo -e "    ${CYAN}1)${RESET} Windowed      - Run in a window"
     echo -e "    ${CYAN}2)${RESET} Fullscreen    - Run in fullscreen"
@@ -420,7 +467,7 @@ select_display_interactive() {
 
     # Resolution (only for windowed mode)
     if [[ "$DO_FULLSCREEN" -eq 0 ]] && [[ -z "$RESOLUTION" ]]; then
-        echo -e "  ${BOLD}8. Window Resolution (optional):${RESET}"
+        echo -e "  ${BOLD}9. Window Resolution (optional):${RESET}"
         echo ""
         echo -e "    Common resolutions:"
         echo -e "      1280x720, 1366x768, 1600x900, 1920x1080, 2560x1440"
@@ -469,6 +516,19 @@ generate_temp_config() {
         echo "" >> "$TEMP_CONFIG"
         echo "# Added by start_client.sh" >> "$TEMP_CONFIG"
         echo "secure_connection = false" >> "$TEMP_CONFIG"
+    fi
+
+    # v9.23: Master logging toggle
+    if [[ "$LOGGING_ENABLED" -eq 0 ]]; then
+        echo "" >> "$TEMP_CONFIG"
+        echo "# v9.23: Logging disabled by --no-log" >> "$TEMP_CONFIG"
+        echo "debug_log_level = " >> "$TEMP_CONFIG"
+        echo "encryption_log_level = none" >> "$TEMP_CONFIG"
+    else
+        # v9.23: Encryption log level (only if explicitly set)
+        if [[ -n "$ENC_LOG_LEVEL" ]]; then
+            echo "encryption_log_level = ${ENC_LOG_LEVEL}" >> "$TEMP_CONFIG"
+        fi
     fi
 
     # Player name
@@ -617,6 +677,9 @@ show_start_menu() {
         echo ""
     fi
 
+    # ── Logging mode ──
+    select_logging_interactive
+
     # ── Direct connect or main menu ──
     if [[ "$DO_GO" -eq -1 ]]; then
         select_launch_mode_interactive
@@ -698,6 +761,12 @@ main() {
     echo -e "  ${CYAN}Player:${RESET}     ${PLAYER_NAME:-<not set>}"
     echo -e "  ${CYAN}Password:${RESET}   $([ -n "$PLAYER_PASSWORD" ] && echo "********" || echo "<none>")"
     echo -e "  ${CYAN}Security:${RESET}   $([ "$SECURE_MODE" -eq 1 ] && echo "${GREEN}secure${RESET}" || echo "${YELLOW}insecure${RESET}")"
+    if [[ "$LOGGING_ENABLED" -eq 0 ]]; then
+        echo -e "  ${CYAN}Logging:${RESET}    ${RED}OFF${RESET} (no debug.txt, no trace files)"
+    else
+        local enc_log_desc="${ENC_LOG_LEVEL:-action (default)}"
+        echo -e "  ${CYAN}Logging:${RESET}    ${GREEN}ON${RESET} (enc level: ${enc_log_desc})"
+    fi
     echo -e "  ${CYAN}Launch:${RESET}     $([ "$DO_GO" -eq 1 ] && echo "direct connect" || echo "main menu")"
     echo -e "  ${CYAN}Display:${RESET}    $([ "$DO_FULLSCREEN" -eq 1 ] && echo "fullscreen" || echo "windowed")"
     [[ -n "$RESOLUTION" ]] && echo -e "  ${CYAN}Resolution:${RESET}  ${RESOLUTION}"

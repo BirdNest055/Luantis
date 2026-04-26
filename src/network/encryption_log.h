@@ -8,6 +8,13 @@
 #include "irrlichttypes.h"
 #include "network/networkprotocol.h"  // for session_t
 #include "network/encryption_trace.h"
+#include "network/encryption_log_level.h"  // v9.23: EncryptionLogLevel enum (lightweight, no settings.h)
+
+// Forward-declare the log level check function from encryption_config.
+// We can't include encryption_config.h here (pulls in settings.h),
+// but we need shouldLog() in the macro guards. The linker resolves it.
+namespace EncryptionConfig { bool shouldLog(EncryptionLogLevel level); }
+
 #include <string>
 #include <sstream>
 #include <ctime>
@@ -63,35 +70,79 @@
 // depending on severity. The format is:
 //   [ENC:<CATEGORY>] <message> | key=value | key=value
 
-// INIT: Key derivation and initialization events (info level)
-#define enclog_init(msg) infostream << ENC_TAG_INIT << msg
+// v9.23: All enclog macros now respect the `encryption_log_level` setting.
+// Log levels required per category:
+//   INIT     → ACTION (key derivation is important operational info)
+//   ACTIVATE → ACTION (always logged when log level >= action)
+//   SEND     → TRACE  (only in trace mode)
+//   RECV     → TRACE  (only in trace mode)
+//   SECURITY → ACTION (always logged when log level >= action)
+//   ERROR    → ERROR  (always logged unless log level = none)
+//   DISABLE  → ACTION (always logged when log level >= action)
+//   AUDIT    → TRACE  (only in trace mode)
+//   TRACE    → TRACE  (only in trace mode)
+//
+// When encryption_log_level = "none", ALL encryption log output is
+// suppressed (even errors) — use only when you want zero log noise.
+// When "error", only [ENC:ERROR] lines appear.
+// When "action" (default), ACTIVATE/SECURITY/DISABLE/ERROR lines appear.
+// When "trace", everything appears including per-packet diagnostics.
 
-// ACTIVATE: Encryption activation events (action level — always logged)
-#define enclog_activate(msg) actionstream << ENC_TAG_ACTIVATE << msg
+// INIT: Key derivation and initialization events
+#define enclog_init(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
+                infostream << ENC_TAG_INIT << msg
 
-// SEND: Outbound encryption events (info level, not per-packet)
-#define enclog_send(msg) infostream << ENC_TAG_SEND << msg
+// ACTIVATE: Encryption activation events (action level)
+#define enclog_activate(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
+                actionstream << ENC_TAG_ACTIVATE << msg
 
-// RECV: Inbound decryption events (info level, not per-packet)
-#define enclog_recv(msg) infostream << ENC_TAG_RECV << msg
+// SEND: Outbound encryption events (trace level)
+#define enclog_send(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
+                infostream << ENC_TAG_SEND << msg
 
-// SECURITY: Security state changes — ALWAYS logged (action level)
-#define enclog_security(msg) actionstream << ENC_TAG_SECURITY << msg
+// RECV: Inbound decryption events (trace level)
+#define enclog_recv(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
+                infostream << ENC_TAG_RECV << msg
 
-// ERROR: Encryption failures — ALWAYS logged (error level)
-#define enclog_error(msg) errorstream << ENC_TAG_ERROR << msg
+// SECURITY: Security state changes (action level)
+#define enclog_security(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
+                actionstream << ENC_TAG_SECURITY << msg
 
-// DISABLE: Encryption teardown — ALWAYS logged (action level)
-#define enclog_disable(msg) actionstream << ENC_TAG_DISABLE << msg
+// ERROR: Encryption failures (error level — shown unless log level = none)
+#define enclog_error(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_ERROR)) \
+                errorstream << ENC_TAG_ERROR << msg
 
-// AUDIT: Periodic statistics — info level
-#define enclog_audit(msg) infostream << ENC_TAG_AUDIT << msg
+// DISABLE: Encryption teardown (action level)
+#define enclog_disable(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_ACTION)) \
+                actionstream << ENC_TAG_DISABLE << msg
+
+// AUDIT: Periodic statistics (trace level)
+#define enclog_audit(msg) \
+        if (EncryptionConfig::shouldLog(ENC_LOG_TRACE)) \
+                infostream << ENC_TAG_AUDIT << msg
 
 // TRACE: Detailed per-packet diagnostic tracing — dual output.
 // Writes to BOTH actionstream (console + debug.txt) AND the dedicated
 // encryption_trace.log file. Use for logging every packet routing
 // decision, key state at decision points, hex dumps, etc.
-#define enclog_trace(msg) EncLog::TraceLine() << ENC_TAG_TRACE << msg
+// Only active when encryption_log_level >= trace.
+//
+// The TraceLine object checks shouldLog() in its destructor. When the
+// log level is below trace, the destructor does nothing, so all the
+// streaming work is wasted — but the compiler can optimize it away
+// since the object has no observable side effects in that case.
+//
+// Usage:
+//   enclog_trace("msg") << EncLog::kv("key", val) << std::endl;
+#define enclog_trace(msg) \
+        EncLog::TraceLine() << ENC_TAG_TRACE << msg
 
 // ---- Security status banner helpers ----
 
@@ -198,6 +249,9 @@ inline void logSecureConnectionBanner(
         u64 c2s_packets,
         u64 s2c_packets)
 {
+        if (!EncryptionConfig::shouldLog(ENC_LOG_ACTION))
+                return;
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;
@@ -245,6 +299,9 @@ inline void logSecureConnectionBanner(
 /// Log the INSECURE connection banner with the reason
 inline void logInsecureConnectionBanner(const std::string& reason)
 {
+        if (!EncryptionConfig::shouldLog(ENC_LOG_ACTION))
+                return;
+
         actionstream
                 << ENC_TAG_SECURITY
                 << "========================================================" << std::endl;

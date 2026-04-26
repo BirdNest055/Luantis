@@ -2,6 +2,7 @@
  * encryption_config.cpp — Modular encryption toggle for Clawtest v9.3+
  *
  * Implementation of the centralized encryption policy manager.
+ * v9.23: Added encryption log level control.
  */
 
 #include "encryption_config.h"
@@ -56,6 +57,44 @@ u8 getSecurityFlags()
 	// When shouldEncrypt() is false, flags = 0 (no encryption advertised)
 
 	return flags;
+}
+
+// ---- v9.23: Encryption log level control ----
+
+EncryptionLogLevel parseLogLevel(const std::string &str)
+{
+	if (str == "none")
+		return ENC_LOG_NONE;
+	if (str == "error")
+		return ENC_LOG_ERROR;
+	if (str == "action")
+		return ENC_LOG_ACTION;
+	if (str == "trace")
+		return ENC_LOG_TRACE;
+	// Unrecognized: safe default is "action"
+	return ENC_LOG_ACTION;
+}
+
+EncryptionLogLevel getLogLevel()
+{
+	std::string level_str = g_settings->get("encryption_log_level");
+	return parseLogLevel(level_str);
+}
+
+bool shouldLog(EncryptionLogLevel level)
+{
+	return getLogLevel() >= level;
+}
+
+std::string getLogLevelString()
+{
+	switch (getLogLevel()) {
+	case ENC_LOG_NONE:   return "none";
+	case ENC_LOG_ERROR:  return "error";
+	case ENC_LOG_ACTION: return "action";
+	case ENC_LOG_TRACE:  return "trace";
+	default:             return "action";
+	}
 }
 
 } // namespace EncryptionConfig

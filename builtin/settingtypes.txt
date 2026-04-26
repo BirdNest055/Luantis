@@ -995,6 +995,15 @@ update_information_url (Update information URL) string https://www.luanti.org/re
 #    development on trusted networks.
 secure_connection (Secure connection) [client] bool true
 
+#    Controls the verbosity of [ENC:...] encryption log messages.
+#    none    = Suppress ALL encryption log output (zero noise)
+#    error   = Only show [ENC:ERROR] lines (encryption failures)
+#    action  = Show activation, security, disable, and error events (default)
+#    trace   = Show everything including per-packet trace diagnostics
+#    Use "none" for production servers where log noise is unwanted.
+#    Use "trace" when debugging encryption issues.
+encryption_log_level (Encryption log level) [server,client] enum action none,error,action,trace
+
 #    Show the security overlay warning when the connection is insecure.
 #    When enabled, a persistent "INSECURE CONNECTION" banner is displayed at the
 #    top-right of the screen during multiplayer sessions on unencrypted connections.
