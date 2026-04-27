@@ -164,8 +164,11 @@ std::string KeypairManager::sign(const std::string &message) const
                 return "";
         }
 
-        // Ed25519: one-shot sign (no streaming needed, but we use Init/Update/Final
-        // for API compatibility)
+        // Ed25519: one-shot sign using EVP_DigestSign.
+        // NOTE: OpenSSL 3.5+ no longer supports the streaming API
+        // (Init/Update/Final) for Ed25519 — it returns
+        // "provider signature not supported" on Update/Final.
+        // The one-shot EVP_DigestSign() must be used instead.
         if (EVP_DigestSignInit(mdctx, nullptr, nullptr, nullptr, pkey) != 1) {
                 errorstream << "KeypairManager::sign: DigestSignInit failed." << std::endl;
                 EVP_MD_CTX_free(mdctx);
@@ -173,20 +176,16 @@ std::string KeypairManager::sign(const std::string &message) const
                 return "";
         }
 
-        if (EVP_DigestSignUpdate(mdctx, message.data(), message.size()) != 1) {
-                errorstream << "KeypairManager::sign: DigestSignUpdate failed." << std::endl;
-                EVP_MD_CTX_free(mdctx);
-                EVP_PKEY_free(pkey);
-                return "";
-        }
-
+        // Determine the maximum signature length
         size_t sig_len = ED25519_SIGNATURE_SIZE;
         std::string signature(sig_len, '\0');
 
-        if (EVP_DigestSignFinal(mdctx,
+        if (EVP_DigestSign(mdctx,
                         reinterpret_cast<unsigned char *>(&signature[0]),
-                        &sig_len) != 1) {
-                errorstream << "KeypairManager::sign: DigestSignFinal failed." << std::endl;
+                        &sig_len,
+                        reinterpret_cast<const unsigned char *>(message.data()),
+                        message.size()) != 1) {
+                errorstream << "KeypairManager::sign: EVP_DigestSign failed." << std::endl;
                 EVP_MD_CTX_free(mdctx);
                 EVP_PKEY_free(pkey);
                 return "";
@@ -239,21 +238,20 @@ bool KeypairManager::verify(const std::string &public_key,
                 return false;
         }
 
+        // Ed25519: one-shot verify using EVP_DigestVerify.
+        // NOTE: OpenSSL 3.5+ no longer supports the streaming API
+        // (Init/Update/Final) for Ed25519 — same as signing.
         if (EVP_DigestVerifyInit(mdctx, nullptr, nullptr, nullptr, pkey) != 1) {
                 EVP_MD_CTX_free(mdctx);
                 EVP_PKEY_free(pkey);
                 return false;
         }
 
-        if (EVP_DigestVerifyUpdate(mdctx, message.data(), message.size()) != 1) {
-                EVP_MD_CTX_free(mdctx);
-                EVP_PKEY_free(pkey);
-                return false;
-        }
-
-        int result = EVP_DigestVerifyFinal(mdctx,
+        int result = EVP_DigestVerify(mdctx,
                 reinterpret_cast<const unsigned char *>(signature.data()),
-                signature.size());
+                signature.size(),
+                reinterpret_cast<const unsigned char *>(message.data()),
+                message.size());
 
         EVP_MD_CTX_free(mdctx);
         EVP_PKEY_free(pkey);
