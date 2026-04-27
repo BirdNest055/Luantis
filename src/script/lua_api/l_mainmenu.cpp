@@ -1174,12 +1174,16 @@ int ModApiMainMenu::l_keypair_get_server_list(lua_State *L)
 
         lua_newtable(L);
         int i = 1;
-        for (const auto &[server, username] : server_list) {
+        for (const auto &[server, entry] : server_list) {
                 lua_newtable(L);
                 lua_pushstring(L, server.c_str());
                 lua_setfield(L, -2, "server");
-                lua_pushstring(L, username.c_str());
+                lua_pushstring(L, entry.username.c_str());
                 lua_setfield(L, -2, "username");
+                lua_pushstring(L, entry.created_at.c_str());
+                lua_setfield(L, -2, "created_at");
+                lua_pushstring(L, entry.last_used_at.c_str());
+                lua_setfield(L, -2, "last_used_at");
                 lua_rawseti(L, -2, i++);
         }
         return 1;

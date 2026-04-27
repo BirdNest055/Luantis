@@ -270,13 +270,13 @@ bool KeypairManager::regenerateKeypair()
         return true;
 }
 
-std::vector<std::pair<std::string, std::string>> KeypairManager::getServerUserList() const
+std::vector<std::pair<std::string, KeypairManager::ServerEntry>> KeypairManager::getServerUserList() const
 {
         loadServerUsers();
-        std::vector<std::pair<std::string, std::string>> result;
+        std::vector<std::pair<std::string, ServerEntry>> result;
         result.reserve(m_server_users.size());
-        for (const auto &[server, username] : m_server_users) {
-                result.emplace_back(server, username);
+        for (const auto &[server, entry] : m_server_users) {
+                result.emplace_back(server, entry);
         }
         return result;
 }
@@ -434,6 +434,15 @@ bool KeypairManager::loadKeypair()
         return true;
 }
 
+/// Helper: format current time as ISO 8601 string
+static std::string formatISO8601()
+{
+        std::time_t now = std::time(nullptr);
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&now));
+        return std::string(buf);
+}
+
 void KeypairManager::loadServerUsers() const
 {
         if (m_server_users_loaded)
@@ -470,7 +479,20 @@ void KeypairManager::loadServerUsers() const
 
         if (root.isObject()) {
                 for (const auto &key : root.getMemberNames()) {
-                        m_server_users[key] = root[key].asString();
+                        const Json::Value &val = root[key];
+                        ServerEntry entry;
+                        if (val.isObject()) {
+                                // v9.35 format: {"username": "...", "created_at": "...", "last_used_at": "..."}
+                                entry.username = val.get("username", "").asString();
+                                entry.created_at = val.get("created_at", "").asString();
+                                entry.last_used_at = val.get("last_used_at", "").asString();
+                        } else if (val.isString()) {
+                                // Legacy format (v9.29-v9.34): plain string username
+                                entry.username = val.asString();
+                                entry.created_at = "";
+                                entry.last_used_at = "";
+                        }
+                        m_server_users[key] = entry;
                 }
         }
 
@@ -480,12 +502,16 @@ void KeypairManager::loadServerUsers() const
 void KeypairManager::saveServerUsers() const
 {
         Json::Value root(Json::objectValue);
-        for (const auto &[server, username] : m_server_users) {
-                root[server] = username;
+        for (const auto &[server, entry] : m_server_users) {
+                Json::Value obj(Json::objectValue);
+                obj["username"] = entry.username;
+                obj["created_at"] = entry.created_at;
+                obj["last_used_at"] = entry.last_used_at;
+                root[server] = obj;
         }
 
         Json::StreamWriterBuilder builder;
-        builder["indentation"] = "";
+        builder["indentation"] = "  ";
         std::string content = Json::writeString(builder, root);
 
         std::ofstream file(m_server_users_path);
@@ -503,7 +529,23 @@ void KeypairManager::rememberServerUser(const std::string &server_address,
         const std::string &username)
 {
         loadServerUsers();
-        m_server_users[server_address] = username;
+        auto it = m_server_users.find(server_address);
+        std::string now = formatISO8601();
+        if (it != m_server_users.end()) {
+                // Existing entry: update username and last_used_at
+                it->second.username = username;
+                it->second.last_used_at = now;
+                // Preserve created_at if it was already set
+                if (it->second.created_at.empty())
+                        it->second.created_at = now;
+        } else {
+                // New entry
+                ServerEntry entry;
+                entry.username = username;
+                entry.created_at = now;
+                entry.last_used_at = now;
+                m_server_users[server_address] = entry;
+        }
         saveServerUsers();
 }
 
@@ -512,7 +554,7 @@ std::string KeypairManager::getServerUser(const std::string &server_address) con
         loadServerUsers();
         auto it = m_server_users.find(server_address);
         if (it != m_server_users.end())
-                return it->second;
+                return it->second.username;
         return "";
 }
 

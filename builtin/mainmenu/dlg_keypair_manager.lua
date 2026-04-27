@@ -2,11 +2,23 @@
 -- Copyright (C) 2026 Luanti-Secure contributors
 -- SPDX-License-Identifier: LGPL-2.1-or-later
 --
--- v9.31: GUI-based keypair management dialog.
--- Allows users to view their Ed25519 public key, regenerate their keypair,
--- and manage remembered server usernames.
+-- v9.35: Enhanced keypair management dialog.
+-- Shows all generated keys with server name, username, creation date,
+-- and last use date. Fixed reconnection bug by properly resetting auth state.
 
 --------------------------------------------------------------------------------
+
+local function format_date(iso_str)
+	if not iso_str or iso_str == "" then
+		return fgettext("Unknown")
+	end
+	-- Parse ISO 8601: "2026-04-28T10:00:00Z" → "2026-04-28 10:00"
+	local date_part, time_part = iso_str:match("^(%d%d%d%d%-%d%d%-%d%d)T(%d%d:%d%d)")
+	if date_part and time_part then
+		return date_part .. " " .. time_part
+	end
+	return iso_str
+end
 
 local function keypair_manager_formspec(dialogdata)
 	local TOUCH_GUI = core.settings:get_bool("touch_gui")
@@ -26,24 +38,29 @@ local function keypair_manager_formspec(dialogdata)
 		pubkey_display = pubkey_b64:sub(1, 12) .. " ... " .. pubkey_b64:sub(#pubkey_b64 - 11)
 	end
 
-	-- Build server list rows for the table
+	-- Build server list rows for the table (4 columns: Server, Username, Created, Last Used)
 	local server_table_rows = {}
 	for i, entry in ipairs(server_list) do
-		server_table_rows[#server_table_rows + 1] = core.formspec_escape(entry.server .. "," .. entry.username)
+		server_table_rows[#server_table_rows + 1] = core.formspec_escape(
+			entry.server .. ","
+			.. entry.username .. ","
+			.. format_date(entry.created_at) .. ","
+			.. format_date(entry.last_used_at)
+		)
 	end
 	local server_table_data = table.concat(server_table_rows, ",")
 
 	-- Determine if we need to show the "regenerate" section
-	local regenerate_y = 5.2
+	local regenerate_y = 4.8
 	if #server_list > 0 then
-		regenerate_y = 8.8
+		regenerate_y = 9.8
 	end
 
 	-- Warning message for regenerate
 	local warning_text = ""
 	if dialogdata.show_regenerate_warning then
 		warning_text = table.concat({
-			"box[0.375,", tostring(regenerate_y), ";9.25,1.2;darkred]",
+			"box[0.375,", tostring(regenerate_y), ";11.25,1.2;darkred]",
 			"label[0.625,", tostring(regenerate_y + 0.3), ";",
 			core.formspec_escape(fgettext("WARNING: Regenerating your keypair will invalidate ALL your")),
 			"]",
@@ -57,7 +74,7 @@ local function keypair_manager_formspec(dialogdata)
 	local success_text = ""
 	if dialogdata.show_regenerate_success then
 		success_text = table.concat({
-			"box[0.375,", tostring(regenerate_y), ";9.25,0.6;darkgreen]",
+			"box[0.375,", tostring(regenerate_y), ";11.25,0.6;darkgreen]",
 			"label[0.625,", tostring(regenerate_y + 0.3), ";",
 			core.formspec_escape(fgettext("New keypair generated successfully!")),
 			"]",
@@ -68,7 +85,7 @@ local function keypair_manager_formspec(dialogdata)
 	local no_keypair_text = ""
 	if not has_keypair and keypair_auth_enabled then
 		no_keypair_text = table.concat({
-			"box[0.375,2.2;9.25,0.6;#884400]",
+			"box[0.375,2.2;11.25,0.6;#884400]",
 			"label[0.625,2.5;",
 			core.formspec_escape(fgettext("No keypair found. One will be generated when you first connect.")),
 			"]",
@@ -79,7 +96,7 @@ local function keypair_manager_formspec(dialogdata)
 	local disabled_text = ""
 	if not keypair_auth_enabled then
 		disabled_text = table.concat({
-			"box[0.375,0.8;9.25,0.6;#884400]",
+			"box[0.375,0.8;11.25,0.6;#884400]",
 			"label[0.625,1.1;",
 			core.formspec_escape(fgettext("Keypair authentication is disabled in settings.")),
 			"]",
@@ -87,9 +104,9 @@ local function keypair_manager_formspec(dialogdata)
 	end
 
 	-- Base height
-	local total_height = 7.2
+	local total_height = 7.0
 	if #server_list > 0 then
-		total_height = 10.8
+		total_height = 12.0
 	end
 	if dialogdata.show_regenerate_warning then
 		total_height = total_height + 1.4
@@ -100,7 +117,7 @@ local function keypair_manager_formspec(dialogdata)
 
 	local formspec = {
 		"formspec_version[4]",
-		"size[10,", tostring(total_height), "]",
+		"size[12,", tostring(total_height), "]",
 		TOUCH_GUI and "padding[0.01,0.01]" or "",
 
 		-- Title
@@ -110,7 +127,7 @@ local function keypair_manager_formspec(dialogdata)
 		disabled_text,
 
 		-- Status section
-		"box[0.375,1.5;9.25,0.6;#333333]",
+		"box[0.375,1.5;11.25,0.6;#333333]",
 		"label[0.625,1.8;",
 		fgettext("Keypair status: $1", has_keypair and fgettext("Active") or fgettext("Not generated")),
 		"]",
@@ -121,7 +138,7 @@ local function keypair_manager_formspec(dialogdata)
 		-- Public key display
 		"container[0.375,3.0]",
 		"label[0,0;", fgettext("Public Key (Ed25519)"), "]",
-		"box[0,0.4;9.25,0.6;#222222]",
+		"box[0,0.4;11.25,0.6;#222222]",
 		"label[0.2,0.65;", core.formspec_escape(pubkey_display), "]",
 		"container_end[]",
 	}
@@ -130,19 +147,19 @@ local function keypair_manager_formspec(dialogdata)
 	if #server_list > 0 then
 		table.insert_all(formspec, {
 			"container[0.375,4.2]",
-			"label[0,0;", fgettext("Remembered Servers"), "]",
-			"tablecolumns[text,align=left;text,align=left]",
-			"table[0,0.4;9.25,3.0;keypair_server_table;",
-				"Server,Username,",
+			"label[0,0;", fgettext("Registered Servers"), "]",
+			"tablecolumns[text,align=left;width=3.5;text,align=left;width=2;text,align=left;width=2.5;text,align=left;width=2.5]",
+			"table[0,0.4;11.25,4.5;keypair_server_table;",
+				"Server,Username,Created,Last Used,",
 				server_table_data, "]",
-			"button[0,3.6;4.5,0.8;btn_forget_server;", fgettext("Forget Selected Server"), "]",
-			"tooltip[btn_forget_server;", fgettext("Remove the remembered username for the selected server"), "]",
+			"button[0,5.2;5.5,0.8;btn_forget_server;", fgettext("Forget Selected Server"), "]",
+			"tooltip[btn_forget_server;", fgettext("Remove the selected server registration"), "]",
 			"container_end[]",
 		})
 	else
 		table.insert_all(formspec, {
 			"container[0.375,4.2]",
-			"label[0,0;", fgettext("No remembered servers yet."), "]",
+			"label[0,0;", fgettext("No registered servers yet. Connect to a server to register your keypair."), "]",
 			"container_end[]",
 		})
 	end
@@ -150,12 +167,12 @@ local function keypair_manager_formspec(dialogdata)
 	-- Regenerate section
 	table.insert_all(formspec, {
 		"container[0.375,", tostring(regenerate_y - 0.6), "]",
-		"box[0,0;9.25,0.01;#444444]",
+		"box[0,0;11.25,0.01;#444444]",
 		"container_end[]",
 
 		"container[0.375,", tostring(regenerate_y - 0.4), "]",
 		"label[0,0;", fgettext("Regenerate Keypair"), "]",
-		"button[0,0.3;4.5,0.8;btn_regenerate_keypair;", fgettext("Regenerate Keypair"), "]",
+		"button[0,0.3;5.5,0.8;btn_regenerate_keypair;", fgettext("Regenerate Keypair"), "]",
 		"tooltip[btn_regenerate_keypair;",
 			fgettext("Generate a new Ed25519 keypair, replacing the current one. "
 				.. "This will invalidate all existing server registrations!"),
@@ -166,7 +183,7 @@ local function keypair_manager_formspec(dialogdata)
 		success_text,
 
 		-- Close button
-		"button[6,0.3;3.25,0.8;btn_close;", fgettext("Close"), "]",
+		"button[7.75,0.3;3.5,0.8;btn_close;", fgettext("Close"), "]",
 		"container_end[]",
 	})
 

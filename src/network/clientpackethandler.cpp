@@ -176,6 +176,10 @@ void Client::handleCommand_Hello(NetworkPacket* pkt)
                                 m_chosen_auth_mech == AUTH_MECHANISM_LEGACY_PASSWORD) {
                         srp_user_delete((SRPUser *) m_auth_data);
                         m_auth_data = 0;
+                } else if (m_chosen_auth_mech == AUTH_MECHANISM_KEYPAIR) {
+                        // v9.35: Clean up keypair auth state on re-hello
+                        m_keypair_saved_challenge.clear();
+                        m_keypair_saved_signature.clear();
                 }
         }
 
