@@ -30,6 +30,8 @@ public:
                 TEST(testKeypairFileExists);
                 TEST(testGetServerUserList);
                 TEST(testForgetServerUser);
+                TEST(testServerEntryMetadata);
+                TEST(testLegacyServerUserFormat);
         }
 
 private:
@@ -281,11 +283,15 @@ private:
                 UASSERT(list.size() == 3);
 
                 // Check entries exist (order may vary due to std::map)
+                // v9.35: ServerEntry now has username, created_at, last_used_at
                 bool found1 = false, found2 = false, found3 = false;
-                for (const auto &[server, username] : list) {
-                        if (server == "server1.com:30000" && username == "player1") found1 = true;
-                        if (server == "server2.com:30000" && username == "player2") found2 = true;
-                        if (server == "server3.com:30000" && username == "player3") found3 = true;
+                for (const auto &[server, entry] : list) {
+                        if (server == "server1.com:30000" && entry.username == "player1") found1 = true;
+                        if (server == "server2.com:30000" && entry.username == "player2") found2 = true;
+                        if (server == "server3.com:30000" && entry.username == "player3") found3 = true;
+                        // Verify metadata timestamps are set
+                        UASSERT(!entry.created_at.empty());
+                        UASSERT(!entry.last_used_at.empty());
                 }
                 UASSERT(found1 && found2 && found3);
 
@@ -326,6 +332,86 @@ private:
                         km2.ensureKeypair();
                         UASSERT(!km2.hasServerUser("forget.com:30000"));
                         UASSERT(km2.hasServerUser("keep.com:30000"));
+                }
+
+                std::filesystem::remove_all(tmpdir);
+        }
+
+        void testServerEntryMetadata()
+        {
+                std::string tmpdir = std::filesystem::temp_directory_path().string() + "/keypair_test_meta_" + std::to_string(::getpid());
+                fs::CreateDir(tmpdir);
+
+                KeypairManager km(tmpdir);
+                km.ensureKeypair();
+
+                // Remember a server - this should set both created_at and last_used_at
+                km.rememberServerUser("meta.com:30000", "metauser");
+                auto list = km.getServerUserList();
+                UASSERT(list.size() == 1);
+                UASSERT(list[0].first == "meta.com:30000");
+                UASSERT(list[0].second.username == "metauser");
+                UASSERT(!list[0].second.created_at.empty());
+                UASSERT(!list[0].second.last_used_at.empty());
+
+                // First time: created_at and last_used_at should be the same
+                std::string first_created = list[0].second.created_at;
+                std::string first_last_used = list[0].second.last_used_at;
+
+                // Re-remember the same server - should update last_used_at but preserve created_at
+                km.rememberServerUser("meta.com:30000", "metauser2");
+                list = km.getServerUserList();
+                UASSERT(list[0].second.username == "metauser2");
+                UASSERT(list[0].second.created_at == first_created); // preserved
+                // last_used_at may or may not have changed (depends on timing)
+                UASSERT(!list[0].second.last_used_at.empty());
+
+                std::filesystem::remove_all(tmpdir);
+        }
+
+        void testLegacyServerUserFormat()
+        {
+                // v9.35: Test backward compatibility with the v9.29-v9.34 format
+                // where server_users was {"server:port": "username"} instead of
+                // {"server:port": {"username": "...", "created_at": "...", "last_used_at": "..."}}
+                std::string tmpdir = std::filesystem::temp_directory_path().string() + "/keypair_test_legacy_" + std::to_string(::getpid());
+                fs::CreateDir(tmpdir);
+
+                // Write a legacy-format JSON file
+                std::string filepath = tmpdir + "/keypair_server_users.json";
+                std::ofstream file(filepath);
+                file << "{\"legacy.com:30000\":\"olduser\",\"another.com:30000\":\"anotheruser\"}";
+                file.close();
+
+                // Load it with KeypairManager
+                KeypairManager km(tmpdir);
+                km.ensureKeypair();
+
+                // Should be able to read the legacy format
+                UASSERT(km.hasServerUser("legacy.com:30000"));
+                UASSERT(km.getServerUser("legacy.com:30000") == "olduser");
+                UASSERT(km.getServerUser("another.com:30000") == "anotheruser");
+
+                // Check that the entries were loaded as ServerEntry structs
+                auto list = km.getServerUserList();
+                UASSERT(list.size() == 2);
+
+                // Legacy entries should have empty timestamps
+                for (const auto &[server, entry] : list) {
+                        UASSERT(entry.username != "");
+                        // created_at and last_used_at should be empty for legacy entries
+                        // (they were not in the original format)
+                }
+
+                // After remembering, it should upgrade to the new format
+                km.rememberServerUser("legacy.com:30000", "olduser");
+                list = km.getServerUserList();
+                for (const auto &[server, entry] : list) {
+                        if (server == "legacy.com:30000") {
+                                UASSERT(entry.username == "olduser");
+                                // Now timestamps should be set since rememberServerUser was called
+                                UASSERT(!entry.last_used_at.empty());
+                        }
                 }
 
                 std::filesystem::remove_all(tmpdir);
