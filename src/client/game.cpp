@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <csignal>
+#include <algorithm>
 #include "client/gameui.h"
 #include "client/inputhandler.h"
 #include "client/texturepaths.h"
@@ -2624,15 +2625,15 @@ void Game::updateCameraOffset()
         if (!m_camera_offset_changed)
                 return;
 
-	if (!m_flags.disable_camera_update) {
-		auto *shadow = RenderingEngine::get_shadow_renderer();
-		if (shadow) {
-			shadow->getDirectionalLight().updateCameraOffset(camera);
+        if (!m_flags.disable_camera_update) {
+                auto *shadow = RenderingEngine::get_shadow_renderer();
+                if (shadow) {
+                        shadow->getDirectionalLight().updateCameraOffset(camera);
                         // TODO: Optimize - only redraw shadow map when offset change is significant
                         // Currently redraws on every small offset change
-			if (m_camera_offset_changed && !g_settings->getFlag("performance_tradeoffs"))
-				shadow->setForceUpdateShadowMap();
-		}
+                        if (m_camera_offset_changed && !g_settings->getFlag("performance_tradeoffs"))
+                                shadow->setForceUpdateShadowMap();
+                }
 
                 env.getClientMap().updateCamera(camera->getPosition(),
                         camera->getDirection(), camera->getFovMax(), camera_offset,
@@ -3704,6 +3705,15 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         }
 
         /*
+                v9.38: Server Info Overlay — shown while Tab is held.
+                Only show when no formspec or menu is active (Tab is used for
+                field navigation in formspecs).
+        */
+        if (isKeyDown(KeyType::SERVERINFO) && !isMenuActive()) {
+                drawServerInfoOverlay(screensize);
+        }
+
+        /*
                 Damage flash
         */
         if (this->runData.damage_flash > 0.0f) {
@@ -3728,6 +3738,134 @@ void Game::showOverlayMessage(const char *msg, float dtime, int percent, float *
 {
         m_rendering_engine->draw_load_screen(wstrgettext(msg), guienv, texture_src,
                         dtime, percent, indef_pos);
+}
+
+/******************************************************************************
+ * v9.38: Server Info Overlay
+ *
+ * Draws a semi-transparent overlay when the SERVERINFO key (Tab) is held.
+ * Shows: player list, server info, connection stats.
+ * The section system is extensible from Lua via
+ * builtin/game/server_info_overlay.lua.
+ *****************************************************************************/
+void Game::drawServerInfoOverlay(const v2u32 &screensize)
+{
+        // Semi-transparent dark background
+        float scale = g_fontengine->getDefaultFontSize() / 20.0f;
+        int padding = 10 * scale;
+        int line_height = g_fontengine->getDefaultFontSize() * 1.2f;
+        int max_width = 400 * scale;
+        int max_height = screensize.Y * 0.7f;
+
+        // Center the overlay
+        int ox = (screensize.X - max_width) / 2;
+        int oy = (screensize.Y - max_height) / 2;
+
+        // Background
+        driver->draw2DRectangle(
+                video::SColor(180, 0, 0, 0),
+                core::rect<s32>(ox, oy, ox + max_width, oy + max_height),
+                nullptr);
+
+        // Border (top, bottom, left, right)
+        video::SColor border_color(200, 100, 100, 100);
+        driver->draw2DRectangle(border_color,
+                core::rect<s32>(ox, oy, ox + max_width, oy + 1));
+        driver->draw2DRectangle(border_color,
+                core::rect<s32>(ox, oy + max_height - 1, ox + max_width, oy + max_height));
+        driver->draw2DRectangle(border_color,
+                core::rect<s32>(ox, oy, ox + 1, oy + max_height));
+        driver->draw2DRectangle(border_color,
+                core::rect<s32>(ox + max_width - 1, oy, ox + max_width, oy + max_height));
+
+        auto font = g_fontengine->getFont();
+        if (!font)
+                return;
+
+        int x = ox + padding;
+        int y = oy + padding;
+
+        // Title
+        std::wstring title = L"Server Info";
+        font->draw(title.c_str(),
+                core::rect<s32>(x, y, x + max_width - 2 * padding, y + line_height),
+                video::SColor(255, 255, 220, 50));
+        y += line_height * 1.5f;
+
+        // Separator line
+        driver->draw2DRectangle(
+                video::SColor(200, 100, 100, 100),
+                core::rect<s32>(x, y, x + max_width - 2 * padding, y + 1));
+        y += line_height * 0.5f;
+
+        // Section: Server Info
+        auto names = client->getConnectedPlayerNames();
+        std::wstring server_addr = utf8_to_wide(client->getAddressName() +
+                ":" + std::to_string(client->getServerAddress().getPort()));
+        float rtt = client->getRTT() * 1000.0f;
+
+        font->draw(L"Server",
+                core::rect<s32>(x, y, x + max_width, y + line_height),
+                video::SColor(255, 150, 200, 255));
+        y += line_height;
+
+        font->draw((L"  " + server_addr).c_str(),
+                core::rect<s32>(x, y, x + max_width, y + line_height),
+                video::SColor(255, 200, 200, 200));
+        y += line_height;
+
+        std::wstring rtt_str = L"  Ping: " + utf8_to_wide(
+                std::to_string((int)rtt) + " ms");
+        font->draw(rtt_str.c_str(),
+                core::rect<s32>(x, y, x + max_width, y + line_height),
+                video::SColor(255, 200, 200, 200));
+        y += line_height;
+
+        std::wstring proto_str = L"  Protocol: " + utf8_to_wide(
+                std::to_string(client->getProtoVersion()));
+        font->draw(proto_str.c_str(),
+                core::rect<s32>(x, y, x + max_width, y + line_height),
+                video::SColor(255, 200, 200, 200));
+        y += line_height * 1.5f;
+
+        // Separator
+        driver->draw2DRectangle(
+                video::SColor(200, 100, 100, 100),
+                core::rect<s32>(x, y, x + max_width - 2 * padding, y + 1));
+        y += line_height * 0.5f;
+
+        // Section: Players
+        std::wstring players_header = L"Players (" +
+                utf8_to_wide(std::to_string(names.size())) + L")";
+        font->draw(players_header.c_str(),
+                core::rect<s32>(x, y, x + max_width, y + line_height),
+                video::SColor(255, 150, 200, 255));
+        y += line_height;
+
+        // Sort player names alphabetically
+        std::vector<std::string> sorted_names(names.begin(), names.end());
+        std::sort(sorted_names.begin(), sorted_names.end());
+
+        // Player list with 2 columns
+        int col = 0;
+        int col_width = (max_width - 2 * padding) / 2;
+        for (const auto &name : sorted_names) {
+                if (y > oy + max_height - padding - line_height)
+                        break;
+
+                int px = x + col * col_width;
+                font->draw((L"  " + utf8_to_wide(name)).c_str(),
+                        core::rect<s32>(px, y, px + col_width, y + line_height),
+                        video::SColor(255, 220, 220, 220));
+
+                col++;
+                if (col >= 2) {
+                        col = 0;
+                        y += line_height;
+                }
+        }
+        if (col != 0)
+                y += line_height;
 }
 
 void Game::settingChangedCallback(const std::string &setting_name, void *data)
