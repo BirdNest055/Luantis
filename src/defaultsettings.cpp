@@ -180,6 +180,7 @@ void set_default_settings()
         settings->setDefault("keymap_camera_pitch_up", "");
         settings->setDefault("keymap_camera_pitch_down", "");
         settings->setDefault("keymap_screenshot", "SYSTEM_SCANCODE_69"); // KEY_F12
+        settings->setDefault("keymap_serverinfo", "SYSTEM_SCANCODE_15"); // KEY_TAB
         settings->setDefault("keymap_fullscreen", "SYSTEM_SCANCODE_68"); // KEY_F11
         settings->setDefault("keymap_increase_viewing_range_min", "SYSTEM_SCANCODE_46"); // +
         settings->setDefault("keymap_decrease_viewing_range_min", "SYSTEM_SCANCODE_45"); // -
