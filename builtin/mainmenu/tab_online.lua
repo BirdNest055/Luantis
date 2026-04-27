@@ -137,7 +137,11 @@ local function get_formspec(tabview, name, tabdata)
                 "container[0,4.8]" ..
                 "label[0.25,0;" .. fgettext("Name") .. "]"
 
-        -- v9.29: When keypair auth is enabled, hide password field and show hints
+        -- v9.34: Always show the password field for backwards compatibility.
+        -- When keypair auth is enabled, the password is optional and only
+        -- needed for legacy servers that don't support keypair auth.
+        -- If the server offers KEYPAIR, the password is ignored.
+        -- If the server only offers SRP, the password is used instead.
         local keypair_auth = core.settings:get_bool("keypair_auth")
         local show_key_manager = core.settings:get_bool("keypair_show_manager")
         if keypair_auth then
@@ -150,18 +154,18 @@ local function get_formspec(tabview, name, tabdata)
                         retval = retval ..
                                 "field[0.25,0.2;5.25,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]"
                 end
+                -- v9.34: Show optional password field for legacy server compatibility
                 retval = retval ..
-                        "label[0.25,1.1;" .. core.formspec_escape(fgettext("Keypair authentication enabled (no password needed)")) .. "]"
+                        "label[0.25,1.1;" .. fgettext("Password (legacy servers)") .. "]" ..
+                        "pwdfield[0.25,1.3;5.25,0.75;te_pwd;]" ..
+                        "label[0.25,2.2;" .. core.formspec_escape(fgettext("Keypair auth enabled — password only needed for legacy servers")) .. "]"
 
                 -- Check if we have a remembered username for this server
                 local server_addr = core.settings:get("address") .. ":" .. core.settings:get("remote_port")
                 local last_user = core.keypair_get_server_user and core.keypair_get_server_user(server_addr) or ""
                 if last_user ~= "" then
                         retval = retval ..
-                                "label[0.25,1.5;" .. core.formspec_escape(fgettext("Last username: $1", last_user)) .. "]"
-                else
-                        retval = retval ..
-                                "label[0.25,1.5;" .. core.formspec_escape(fgettext("A new account will be created automatically")) .. "]"
+                                "label[0.25,2.6;" .. core.formspec_escape(fgettext("Last username: $1", last_user)) .. "]"
                 end
         else
                 retval = retval ..
