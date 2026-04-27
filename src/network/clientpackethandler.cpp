@@ -356,9 +356,128 @@ void Client::handleCommand_AuthAccept(NetworkPacket* pkt)
                                 << std::endl;
                 }
         } else {
-                enclog_init("Auth mechanism does not use SRP, encryption not applicable")
-                        << EncLog::kv("auth_mech", (int)m_chosen_auth_mech)
-                        << std::endl;
+                // v9.33: Keypair auth — derive encryption keys from challenge+signature
+                if (m_chosen_auth_mech == AUTH_MECHANISM_KEYPAIR) {
+                        enclog_init("Keypair auth: deriving encryption keys from challenge+signature")
+                                << EncLog::kv("auth_mech", (int)m_chosen_auth_mech)
+                                << EncLog::kv("has_challenge", !m_keypair_saved_challenge.empty() ? "yes" : "no")
+                                << EncLog::kv("has_signature", !m_keypair_saved_signature.empty() ? "yes" : "no")
+                                << std::endl;
+
+                        if (!EncryptionConfig::shouldEncrypt() || m_internal_server) {
+                                if (m_internal_server) {
+                                        enclog_init("Singleplayer: skipping encryption (local connection)")
+                                                << EncLog::kv("mode", "singleplayer")
+                                                << std::endl;
+                                } else {
+                                        EncryptionConfig::logEncryptionDecision(0, false, false);
+                                }
+                                m_encryption_state.disable();
+                        } else if (!m_keypair_saved_challenge.empty() && !m_keypair_saved_signature.empty()) {
+                                bool ok = m_encryption_state.initFromKeypairAuth(
+                                        reinterpret_cast<const u8*>(m_keypair_saved_challenge.data()),
+                                        m_keypair_saved_challenge.size(),
+                                        reinterpret_cast<const u8*>(m_keypair_saved_signature.data()),
+                                        m_keypair_saved_signature.size(),
+                                        false /* is_server=false */);
+                                if (ok) {
+                                        m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
+                                        encryption_initialized = true;
+
+                                        enclog_activate("Client encryption initialized from keypair auth (activation queued)")
+                                                << EncLog::kv("session_id", m_encryption_state.session_id)
+                                                << EncLog::kv("fingerprint", m_encryption_state.server_fingerprint)
+                                                << EncLog::kv("role", "client")
+                                                << EncLog::kv("cipher", "AES-256-GCM")
+                                                << EncLog::kv("auth_method", "Ed25519")
+                                                << std::endl;
+
+                                        // Populate security info with Ed25519 auth method
+                                        {
+                                                Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+                                                bool enc_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+                                                bool ecdh_done = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+                                                u64 real_activated_at = m_con->GetPeerEncryptionActivatedAt(PEER_ID_SERVER);
+                                                if (real_activated_at == 0)
+                                                        real_activated_at = m_encryption_state.activated_at;
+                                                m_security_info = populateRealSecurityInfo(
+                                                        enc_active,
+                                                        ecdh_done,
+                                                        false /* fingerprint_pinned */,
+                                                        0 /* fingerprint_verify_result */,
+                                                        m_encryption_state.session_id,
+                                                        m_encryption_state.server_fingerprint,
+                                                        real_activated_at,
+                                                        m_proto_ver,
+                                                        m_address_name,
+                                                        remote.getPort(),
+                                                        PeerEncryptionState::KEY_ROTATION_SUPPORTED,
+                                                        ConnectionSecurityInfo::AUTH_ED25519);
+                                        }
+                                } else {
+                                        enclog_error("Failed to initialize encryption from keypair auth material")
+                                                << EncLog::kv("reason", "HKDF key derivation failed")
+                                                << std::endl;
+                                        m_encryption_state.disable();
+                                }
+                        } else {
+                                // Registration path: no challenge was exchanged yet.
+                                // Use the public key as shared material (same as server does).
+                                if (m_keypair_manager && m_keypair_manager->hasKeypair()) {
+                                        std::string pubkey = m_keypair_manager->getPublicKey();
+                                        bool ok = m_encryption_state.initFromKeypairAuth(
+                                                reinterpret_cast<const u8*>(pubkey.data()),
+                                                pubkey.size(),
+                                                reinterpret_cast<const u8*>(pubkey.data()),
+                                                pubkey.size(),
+                                                false /* is_server=false */);
+                                        if (ok) {
+                                                m_con->SetPeerEncryptionState(PEER_ID_SERVER, m_encryption_state);
+                                                encryption_initialized = true;
+
+                                                enclog_activate("Client encryption initialized from keypair registration (activation queued)")
+                                                        << EncLog::kv("session_id", m_encryption_state.session_id)
+                                                        << EncLog::kv("auth_method", "Ed25519")
+                                                        << std::endl;
+
+                                                {
+                                                        Address remote = m_con->GetPeerAddress(PEER_ID_SERVER);
+                                                        bool enc_active = m_con->IsPeerEncryptionActive(PEER_ID_SERVER);
+                                                        bool ecdh_done = m_con->IsPeerECDHCompleted(PEER_ID_SERVER);
+                                                        u64 real_activated_at = m_con->GetPeerEncryptionActivatedAt(PEER_ID_SERVER);
+                                                        if (real_activated_at == 0)
+                                                                real_activated_at = m_encryption_state.activated_at;
+                                                        m_security_info = populateRealSecurityInfo(
+                                                                enc_active,
+                                                                ecdh_done,
+                                                                false, 0,
+                                                                m_encryption_state.session_id,
+                                                                m_encryption_state.server_fingerprint,
+                                                                real_activated_at,
+                                                                m_proto_ver,
+                                                                m_address_name,
+                                                                remote.getPort(),
+                                                                PeerEncryptionState::KEY_ROTATION_SUPPORTED,
+                                                                ConnectionSecurityInfo::AUTH_ED25519);
+                                                }
+                                        } else {
+                                                enclog_error("Failed to initialize encryption from keypair registration")
+                                                        << std::endl;
+                                                m_encryption_state.disable();
+                                        }
+                                } else {
+                                        enclog_error("Keypair auth but no keypair manager or keypair available")
+                                                << std::endl;
+                                }
+                        }
+                        // Clear saved material (no longer needed after key derivation)
+                        m_keypair_saved_challenge.clear();
+                        m_keypair_saved_signature.clear();
+                } else {
+                        enclog_init("Auth mechanism does not use SRP or keypair, encryption not applicable")
+                                << EncLog::kv("auth_mech", (int)m_chosen_auth_mech)
+                                << std::endl;
+                }
         }
 
         if (!encryption_initialized) {
@@ -2409,6 +2528,10 @@ void Client::handleCommand_KeypairChallenge(NetworkPacket *pkt)
                 errorstream << "Client: Failed to sign challenge nonce" << std::endl;
                 return;
         }
+
+        // v9.33: Save challenge+signature for encryption key derivation in handleCommand_AuthAccept
+        m_keypair_saved_challenge = nonce;
+        m_keypair_saved_signature = signature;
 
         NetworkPacket resp_pkt(TOSERVER_KEYPAIR_RESPONSE, 0);
         resp_pkt << signature;

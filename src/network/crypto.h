@@ -412,6 +412,26 @@ public:
         /// @return true on success, false on failure
         bool initFromSRPSessionKey(const u8* session_key, size_t key_len, bool is_server);
 
+        /// v9.33: Initialize encryption from keypair auth material.
+        ///
+        /// Derives C2S key, S2C key, C2S nonce base, and S2C nonce base
+        /// using HKDF-SHA256 from a shared secret derived from the
+        /// challenge nonce and Ed25519 signature.
+        ///
+        /// Both sides compute: shared_secret = SHA-256(challenge || signature)
+        /// This produces 32 bytes of shared entropy that ONLY both authenticated
+        /// parties can compute (the signature proves possession of the private key,
+        /// and the challenge ensures freshness).
+        ///
+        /// @param challenge    The challenge nonce sent by the server
+        /// @param challenge_len Length of the challenge
+        /// @param signature    The Ed25519 signature from the client
+        /// @param signature_len Length of the signature
+        /// @param is_server    True if this is the server side
+        /// @return true on success, false on failure
+        bool initFromKeypairAuth(const u8* challenge, size_t challenge_len,
+                const u8* signature, size_t signature_len, bool is_server);
+
         /// Activate encryption after keys have been set.
         /// This should be called only after ensuring that any necessary
         /// plaintext packets (like AUTH_ACCEPT) have been queued/sent.
