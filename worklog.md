@@ -78,3 +78,47 @@ Work Log:
 Stage Summary:
 - 55 new unit tests covering all v9.1 features
 - Tests prove ECDH symmetry, key independence, pinning verification, score progression
+
+---
+Task ID: v9.35
+Agent: main
+Task: Enhanced keypair manager GUI with metadata + fix reconnection bug
+
+Work Log:
+- Explored codebase to understand keypair storage, GUI, and connection flow
+- Upgraded KeypairManager::ServerEntry to store username, created_at, last_used_at
+- Updated JSON format from plain strings to rich objects with backward compatibility
+- Updated Lua API keypair_get_server_list() to return new metadata fields
+- Redesigned dlg_keypair_manager.lua with 4-column table (Server, Username, Created, Last Used)
+- Fixed deleteAuthData() not handling AUTH_MECHANISM_KEYPAIR (was returning early when m_auth_data was NULL)
+- Fixed reconnection bug by resetting auth state in Client::connect() before new connection
+- Added keypair auth state cleanup in handleCommand_Hello when re-hello occurs
+- Added unit tests for metadata and legacy format backward compatibility
+- CI passed green on second attempt (first failed due to test using old ServerEntry API)
+
+Stage Summary:
+- Branch: clawtest-v9.35-keypair-gui-reconnection
+- Key files modified: src/util/keypair.h, src/util/keypair.cpp, src/client/client.cpp,
+  src/network/clientpackethandler.cpp, src/script/lua_api/l_mainmenu.cpp,
+  builtin/mainmenu/dlg_keypair_manager.lua, src/unittest/test_keypair.cpp
+- CI: SUCCESS
+
+---
+Task ID: v9.36
+Agent: main
+Task: Fix GUI overlapping/squished elements in connection panel
+
+Work Log:
+- Fixed overlapping Connect/Login buttons: Login button was always rendered even when
+  keypair_auth=true, causing it to overlap with the Connect button. Now inside else block.
+- Redesigned connection panel layout with better spacing
+- Shortened description box to give more room for auth fields
+- Made password field for legacy servers compact (label + field on same row)
+- Combined keypair auth status and last username on one row
+- Added tooltip to password field explaining it's only for legacy servers
+- CI passed green
+
+Stage Summary:
+- Branch: clawtest-v9.36-fix-gui-overlap
+- Key files modified: builtin/mainmenu/tab_online.lua
+- CI: SUCCESS
