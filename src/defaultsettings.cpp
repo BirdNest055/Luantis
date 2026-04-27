@@ -505,6 +505,7 @@ void set_default_settings()
         settings->setDefault("enable_mod_channels", "false");
         settings->setDefault("disallow_empty_password", "false");
         settings->setDefault("keypair_auth", "true");
+        settings->setDefault("keypair_show_manager", "true");
         settings->setDefault("anticheat_flags", flagdesc_anticheat,
                 AC_DIGGING | AC_INTERACTION | AC_MOVEMENT);
         settings->setDefault("anticheat_movement_tolerance", "1.0");
