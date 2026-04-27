@@ -985,6 +985,26 @@ verify_dependencies() {
         fi
     done
 
+    # ── Check OpenSSL version >= 3.0 (required for Ed25519 keypair auth + AES-256-GCM) ──
+    if pkg-config --exists openssl 2>/dev/null; then
+        local openssl_version
+        openssl_version="$(pkg-config --modversion openssl 2>/dev/null || echo "0.0.0")"
+        local openssl_major
+        openssl_major="$(echo "$openssl_version" | cut -d. -f1)"
+        if [[ "$openssl_major" -lt 3 ]]; then
+            error "OpenSSL ${openssl_version} found, but version 3.0+ is required!"
+            error "  Ed25519 keypair authentication and AES-256-GCM encryption need OpenSSL 3.0+."
+            error "  On Ubuntu 20.04: install from PPA or upgrade to 22.04+"
+            error "  On Fedora: dnf install openssl-devel >= 3.0"
+            error "  On Arch: pacman -S openssl (always latest)"
+            error ""
+            error "The build will continue but keypair auth and encryption will be DISABLED."
+            missing_required_libs+=("openssl>=3.0")
+        else
+            log "OpenSSL ${openssl_version} detected (>= 3.0 requirement satisfied)"
+        fi
+    fi
+
     # ── Check optional libraries (CMake has bundled fallbacks) ──
     # jsoncpp — always bundled in lib/jsoncpp/
     # luajit  — CMake falls back to bundled Lua if system LuaJIT not found

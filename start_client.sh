@@ -24,6 +24,8 @@
 #   --fullscreen           Start in fullscreen mode
 #   --windowed             Start in windowed mode
 #   --resolution WxH       Window resolution (e.g. 1280x720, 1920x1080)
+#   --keypair-auth on|off  Enable/disable Ed25519 keypair authentication (default: on)
+#   --no-keypair           Disable keypair auth (force password login)
 #   --config KEY=VALUE     Override a client setting (can be used multiple times)
 #   --list-servers         List known servers from server list
 #   --help                 Show this help message
@@ -74,6 +76,7 @@ DO_BUILD=0               # Whether to build before starting
 DO_FULLSCREEN=-1         # -1 = ask user, 1 = fullscreen, 0 = windowed
 RESOLUTION=""            # Empty = default
 DO_LIST_SERVERS=0        # List known servers and exit
+KEYPAIR_AUTH=""        # Keypair auth: "on"/"off"/"" (empty = default from config)
 CONFIG_OVERRIDES=()      # Array of KEY=VALUE config overrides
 
 # Temp config file
@@ -117,6 +120,8 @@ parse_args() {
             --fullscreen)   DO_FULLSCREEN=1 ;;
             --windowed)     DO_FULLSCREEN=0 ;;
             --resolution)   RESOLUTION="${2:?--resolution requires WxH}"; shift ;;
+            --keypair-auth) KEYPAIR_AUTH="${2:?--keypair-auth requires on|off}"; shift ;;
+            --no-keypair)   KEYPAIR_AUTH="off" ;;
             --config)       CONFIG_OVERRIDES+=("${2:?--config requires KEY=VALUE}"); shift ;;
             --list-servers) DO_LIST_SERVERS=1 ;;
             --help|-h)      show_help ;;
@@ -552,6 +557,26 @@ generate_temp_config() {
         echo "screen_h = ${h}" >> "$TEMP_CONFIG"
     fi
 
+    # v9.30: Keypair authentication
+    if [[ -n "$KEYPAIR_AUTH" ]]; then
+        echo "" >> "$TEMP_CONFIG"
+        case "$KEYPAIR_AUTH" in
+            on|true|1|yes)
+                echo "# v9.30: Keypair auth enabled by --keypair-auth" >> "$TEMP_CONFIG"
+                echo "keypair_auth = true" >> "$TEMP_CONFIG"
+                ;;
+            off|false|0|no)
+                echo "# v9.30: Keypair auth disabled by --keypair-auth/--no-keypair" >> "$TEMP_CONFIG"
+                echo "keypair_auth = false" >> "$TEMP_CONFIG"
+                ;;
+            *)
+                error "Invalid --keypair-auth value: '${KEYPAIR_AUTH}'. Use 'on' or 'off'."
+                cleanup_temp_config
+                return 1
+                ;;
+        esac
+    fi
+
     # Config overrides
     if [[ ${#CONFIG_OVERRIDES[@]} -gt 0 ]]; then
         echo "" >> "$TEMP_CONFIG"
@@ -767,6 +792,14 @@ main() {
         local enc_log_desc="${ENC_LOG_LEVEL:-action (default)}"
         echo -e "  ${CYAN}Logging:${RESET}    ${GREEN}ON${RESET} (enc level: ${enc_log_desc})"
     fi
+    # v9.30: Show keypair auth status
+    local kp_status=""
+    case "$KEYPAIR_AUTH" in
+        on|true|1|yes) kp_status="${GREEN}enabled${RESET}" ;;
+        off|false|0|no) kp_status="${YELLOW}disabled (password login)${RESET}" ;;
+        *) kp_status="${DIM}default (on)${RESET}" ;;
+    esac
+    echo -e "  ${CYAN}Keypair auth:${RESET} ${kp_status}"
     echo -e "  ${CYAN}Launch:${RESET}     $([ "$DO_GO" -eq 1 ] && echo "direct connect" || echo "main menu")"
     echo -e "  ${CYAN}Display:${RESET}    $([ "$DO_FULLSCREEN" -eq 1 ] && echo "fullscreen" || echo "windowed")"
     [[ -n "$RESOLUTION" ]] && echo -e "  ${CYAN}Resolution:${RESET}  ${RESOLUTION}"
