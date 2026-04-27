@@ -10,7 +10,7 @@
 
 local function format_date(iso_str)
 	if not iso_str or iso_str == "" then
-		return fgettext("Unknown")
+		return fgettext("N/A")
 	end
 	-- Parse ISO 8601: "2026-04-28T10:00:00Z" → "2026-04-28 10:00"
 	local date_part, time_part = iso_str:match("^(%d%d%d%d%-%d%d%-%d%d)T(%d%d:%d%d)")
@@ -18,6 +18,40 @@ local function format_date(iso_str)
 		return date_part .. " " .. time_part
 	end
 	return iso_str
+end
+
+--- Escape each cell individually, then join with commas.
+--- This is the correct pattern for Luanti formspec tables:
+--- commas between cells must NOT be escaped.
+local function escape_row(cells)
+	local escaped = {}
+	for i, cell in ipairs(cells) do
+		escaped[i] = core.formspec_escape(tostring(cell))
+	end
+	return table.concat(escaped, ",")
+end
+
+--- Given the server_list, compute the earliest created_at and
+--- latest last_used_at for each username across all servers.
+local function aggregate_keypair_dates(keypairs, server_list)
+	local dates = {}
+	for _, kp in ipairs(keypairs) do
+		dates[kp.username] = { created = "", last_used = "" }
+	end
+	for _, entry in ipairs(server_list) do
+		local u = entry.username
+		if dates[u] then
+			-- Keep earliest created_at
+			if dates[u].created == "" or (entry.created_at ~= "" and entry.created_at < dates[u].created) then
+				dates[u].created = entry.created_at
+			end
+			-- Keep latest last_used_at
+			if dates[u].last_used == "" or (entry.last_used_at ~= "" and entry.last_used_at > dates[u].last_used) then
+				dates[u].last_used = entry.last_used_at
+			end
+		end
+	end
+	return dates
 end
 
 --------------------------------------------------------------------------------
@@ -44,132 +78,148 @@ local function keypair_manager_formspec(dialogdata)
 
 	-- Truncate public key for display
 	local pubkey_display = current_pubkey_b64
-	if #pubkey_display > 28 then
-		pubkey_display = current_pubkey_b64:sub(1, 10) .. "..." .. current_pubkey_b64:sub(#current_pubkey_b64 - 9)
+	if #pubkey_display > 32 then
+		pubkey_display = current_pubkey_b64:sub(1, 16) .. "..." .. current_pubkey_b64:sub(#current_pubkey_b64 - 11)
 	end
 
-	-- Build keypairs table rows (2 columns: Username, Public Key)
+	-- Aggregate dates from server entries for each keypair username
+	local kp_dates = aggregate_keypair_dates(keypairs, server_list)
+
+	-- Build keypairs table rows (4 columns: Username, Public Key, First Seen, Last Used)
+	-- CRITICAL: escape each cell individually — do NOT wrap the whole row
+	-- in formspec_escape or the commas between cells get escaped too,
+	-- collapsing all columns into one cell.
 	local keypair_table_rows = {}
 	for i, kp in ipairs(keypairs) do
 		local pk_display = kp.public_key_base64 or ""
 		if #pk_display > 24 then
-			pk_display = pk_display:sub(1, 8) .. "..." .. pk_display:sub(#pk_display - 7)
+			pk_display = pk_display:sub(1, 10) .. "..." .. pk_display:sub(#pk_display - 9)
 		end
-		keypair_table_rows[#keypair_table_rows + 1] = core.formspec_escape(
-			kp.username .. "," .. pk_display
-		)
+		local d = kp_dates[kp.username] or {}
+		keypair_table_rows[#keypair_table_rows + 1] = escape_row({
+			kp.username,
+			pk_display,
+			format_date(d.created),
+			format_date(d.last_used),
+		})
 	end
 	local keypair_table_data = table.concat(keypair_table_rows, ",")
 
 	-- Build server list rows (4 columns: Server, Username, Created, Last Used)
 	local server_table_rows = {}
 	for i, entry in ipairs(server_list) do
-		server_table_rows[#server_table_rows + 1] = core.formspec_escape(
-			(entry.server or "") .. ","
-			.. (entry.username or "") .. ","
-			.. format_date(entry.created_at) .. ","
-			.. format_date(entry.last_used_at)
-		)
+		server_table_rows[#server_table_rows + 1] = escape_row({
+			entry.server,
+			entry.username,
+			format_date(entry.created_at),
+			format_date(entry.last_used_at),
+		})
 	end
 	local server_table_data = table.concat(server_table_rows, ",")
 
-	-- =============================================
-	-- Layout: calculate Y positions top-to-bottom
-	-- =============================================
-	local y = 0.6          -- start after top padding
-	local FORM_WIDTH = 12  -- total form width
+	------------------------------------------------------------------------
+	-- Dynamic layout: compute Y positions top-to-bottom
+	------------------------------------------------------------------------
+	local y = 0.5           -- starting Y
 
-	-- Section 1: Title
+	-- Title
 	local title_y = y
+	y = y + 0.7
+
+	-- Keypair auth disabled warning
+	local disabled_y = 0
+	if not keypair_auth_enabled then
+		disabled_y = y
+		y = y + 0.9
+	end
+
+	-- Current user status bar
+	local status_y = y
 	y = y + 0.8
 
-	-- Section 2: Status warnings (disabled / no keypair)
-	local warning_y = y
-	local has_warning = false
-
-	if not keypair_auth_enabled then
-		has_warning = true
-	end
+	-- No keypair warning (if needed)
+	local no_keypair_y = 0
 	if not current_user_has_key and keypair_auth_enabled and current_username ~= "" then
-		has_warning = true
+		no_keypair_y = y
+		y = y + 0.9
 	end
 
-	if has_warning then
-		y = y + 1.2  -- box + label height
-	end
-
-	-- Section 3: Current user status bar
-	local status_y = y
-	y = y + 1.0
-
-	-- Section 4: Public key display
+	-- Public key display
 	local pubkey_y = y
 	y = y + 1.6
 
-	-- Section 5: All keypairs table
-	local keypairs_y = y
-	local keypairs_section_height = 0
+	-- All Keypairs table
+	local keypair_table_y = 0
+	local keypair_table_h = 0
 	if #keypairs > 0 then
-		keypairs_section_height = 4.2  -- label + table + button + spacing
-		y = y + keypairs_section_height
+		keypair_table_y = y
+		-- Height: 1.2 base + 0.6 per keypair, capped at 3.5
+		keypair_table_h = math.min(1.2 + #keypairs * 0.6, 3.5)
+		y = y + keypair_table_h + 1.4   -- table + button + margin
 	end
 
-	-- Section 6: Server list
-	local servers_y = y
-	local servers_section_height = 0
+	-- Registered Servers table
+	local server_table_y = 0
+	local server_table_h = 0
 	if #server_list > 0 then
-		servers_section_height = 6.2  -- label + table + button + spacing
-		y = y + servers_section_height
-	else
-		servers_section_height = 0.6  -- just the "no servers" label
-		y = y + servers_section_height
+		server_table_y = y
+		server_table_h = math.min(1.2 + #server_list * 0.6, 4.5)
+		y = y + server_table_h + 1.4   -- table + button + margin
 	end
 
-	-- Section 7: Regenerate section
-	local regenerate_y = y + 0.4
-	y = regenerate_y + 1.8  -- separator + label + button row + spacing
+	-- Divider + Regenerate section
+	local divider_y = y
+	y = y + 0.5
+	local regenerate_y = y
+	y = y + 1.3
 
-	-- Warning / success messages extend below the regenerate section
+	local total_height = y + 0.3
+
+	------------------------------------------------------------------------
+	-- Warning / success messages for regeneration
+	------------------------------------------------------------------------
+	local warning_text = ""
 	if dialogdata.show_regenerate_warning then
-		y = y + 1.4
-	elseif dialogdata.show_regenerate_success then
-		y = y + 0.8
-	end
-
-	local total_height = y + 0.5  -- bottom padding
-
-	-- =============================================
-	-- Build formspec
-	-- =============================================
-	local formspec = {
-		"formspec_version[4]",
-		"size[", tostring(FORM_WIDTH), ",", tostring(total_height), "]",
-		TOUCH_GUI and "padding[0.01,0.01]" or "",
-
-		-- Title
-		"label[0.375,", tostring(title_y), ";", fgettext("Keypair Manager"), "]",
-	}
-
-	-- Disabled warning
-	if not keypair_auth_enabled then
-		table.insert_all(formspec, {
-			"box[0.375,", tostring(warning_y), ";11.25,0.6;#884400]",
-			"label[0.625,", tostring(warning_y + 0.3), ";",
-			core.formspec_escape(fgettext("Keypair authentication is disabled in settings.")),
+		warning_text = table.concat({
+			"box[0.375,", tostring(regenerate_y + 1.0), ";11.25,1.2;darkred]",
+			"label[0.625,", tostring(regenerate_y + 1.3), ";",
+			core.formspec_escape(fgettext("WARNING: Regenerating the keypair for '%s' will invalidate", current_username)),
+			"]",
+			"label[0.625,", tostring(regenerate_y + 1.7), ";",
+			core.formspec_escape(fgettext("ALL server registrations for that username! You will need to re-register.")),
 			"]",
 		})
 	end
 
-	-- No keypair warning
-	if not current_user_has_key and keypair_auth_enabled and current_username ~= "" then
-		local no_key_y = warning_y
-		if not keypair_auth_enabled then
-			no_key_y = warning_y + 0.8  -- below the disabled warning
-		end
+	local success_text = ""
+	if dialogdata.show_regenerate_success then
+		success_text = table.concat({
+			"box[0.375,", tostring(regenerate_y + 1.0), ";11.25,0.6;darkgreen]",
+			"label[0.625,", tostring(regenerate_y + 1.3), ";",
+			core.formspec_escape(fgettext("New keypair generated successfully for '%s'!", current_username)),
+			"]",
+		})
+	end
+
+	------------------------------------------------------------------------
+	-- Build formspec
+	------------------------------------------------------------------------
+	local formspec = {
+		"formspec_version[4]",
+		"size[12,", tostring(total_height), "]",
+		TOUCH_GUI and "padding[0.01,0.01]" or "",
+
+		-- Title
+		"label[0.375,", tostring(title_y + 0.3), ";",
+			fgettext("Keypair Manager"), "]",
+	}
+
+	-- Keypair auth disabled warning
+	if not keypair_auth_enabled then
 		table.insert_all(formspec, {
-			"box[0.375,", tostring(no_key_y), ";11.25,0.6;#884400]",
-			"label[0.625,", tostring(no_key_y + 0.3), ";",
-			core.formspec_escape(fgettext("No keypair for '%s'. One will be generated on first connect.", current_username)),
+			"box[0.375,", tostring(disabled_y), ";11.25,0.6;#884400]",
+			"label[0.625,", tostring(disabled_y + 0.3), ";",
+			core.formspec_escape(fgettext("Keypair authentication is disabled in settings.")),
 			"]",
 		})
 	end
@@ -184,54 +234,90 @@ local function keypair_manager_formspec(dialogdata)
 		"]",
 	})
 
-	-- Public key display
-	table.insert_all(formspec, {
-		"container[0.375,", tostring(pubkey_y), "]",
-		"label[0,0;", fgettext("Public Key for '%s' (Ed25519)", current_username), "]",
-		"box[0,0.4;11.25,0.6;#222222]",
-		"label[0.2,0.65;", core.formspec_escape(pubkey_display), "]",
-		"container_end[]",
-	})
-
-	-- All keypairs table
-	if #keypairs > 0 then
+	-- No keypair warning
+	if no_keypair_y > 0 then
 		table.insert_all(formspec, {
-			"container[0.375,", tostring(keypairs_y), "]",
-			"label[0,0;", fgettext("All Keypairs"), "]",
-			"tablecolumns[text,align=left,width=3;text,align=left,width=7]",
-			"table[0,0.4;11.25,2.4;keypair_table;",
-				"Username,Public Key,",
-				keypair_table_data, "]",
-			"button[0,3.0;5.5,0.8;btn_delete_keypair;", fgettext("Delete Selected Keypair"), "]",
-			"tooltip[btn_delete_keypair;", fgettext("Delete the keypair for the selected username"), "]",
-			"container_end[]",
+			"box[0.375,", tostring(no_keypair_y), ";11.25,0.6;#884400]",
+			"label[0.625,", tostring(no_keypair_y + 0.3), ";",
+			core.formspec_escape(fgettext("No keypair for '%s'. One will be generated when you connect.", current_username)),
+			"]",
 		})
 	end
 
-	-- Server list section
-	if #server_list > 0 then
+	-- Public key display — cleaner UX label
+	if current_user_has_key then
 		table.insert_all(formspec, {
-			"container[0.375,", tostring(servers_y), "]",
-			"label[0,0;", fgettext("Registered Servers"), "]",
-			"tablecolumns[text,align=left,width=3.5;text,align=left,width=2;text,align=left,width=2.5;text,align=left,width=2.5]",
-			"table[0,0.4;11.25,4.5;keypair_server_table;",
-				"Server,Username,Created,Last Used,",
-				server_table_data, "]",
-			"button[0,5.2;5.5,0.8;btn_forget_server;", fgettext("Forget Selected Server"), "]",
-			"tooltip[btn_forget_server;", fgettext("Remove the selected server registration"), "]",
+			"container[0.375,", tostring(pubkey_y), "]",
+			"label[0,0;", fgettext("Your Public Key"), "]",
+			"box[0,0.4;11.25,0.6;#222222]",
+			"label[0.2,0.65;", core.formspec_escape(pubkey_display), "]",
 			"container_end[]",
 		})
 	else
 		table.insert_all(formspec, {
-			"container[0.375,", tostring(servers_y), "]",
-			"label[0,0;", fgettext("No registered servers yet. Connect to a server to register."), "]",
+			"container[0.375,", tostring(pubkey_y), "]",
+			"label[0,0;", fgettext("Your Public Key"), "]",
+			"box[0,0.4;11.25,0.6;#222222]",
+			"label[0.2,0.65;", core.formspec_escape(fgettext("No key generated yet")), "]",
 			"container_end[]",
 		})
 	end
 
-	-- Separator line
+	-- All Keypairs table (4 columns: Username, Public Key, First Seen, Last Used)
+	if #keypairs > 0 then
+		table.insert_all(formspec, {
+			"container[0.375,", tostring(keypair_table_y), "]",
+			"label[0,0.3;", fgettext("All Keypairs"), "]",
+			"tablecolumns[",
+				"text,align=left,width=2.5;",     -- Username
+				"text,align=left,width=4;",        -- Public Key
+				"text,align=center,width=2.25;",   -- First Seen
+				"text,align=center,width=2.25",    -- Last Used
+			"]",
+			"table[0,0.6;11.25,", tostring(keypair_table_h), ";keypair_table;",
+				"Username,Public Key,First Seen,Last Used,",
+				keypair_table_data, "]",
+			"button[0,", tostring(keypair_table_h + 0.8), ";5.5,0.8;btn_delete_keypair;",
+				fgettext("Delete Selected Keypair"), "]",
+			"tooltip[btn_delete_keypair;",
+				fgettext("Delete the keypair for the selected username"), "]",
+			"container_end[]",
+		})
+	end
+
+	-- Registered Servers table
+	if #server_list > 0 then
+		table.insert_all(formspec, {
+			"container[0.375,", tostring(server_table_y), "]",
+			"label[0,0.3;", fgettext("Registered Servers"), "]",
+			"tablecolumns[",
+				"text,align=left,width=3.5;",      -- Server
+				"text,align=left,width=2;",        -- Username
+				"text,align=center,width=2.5;",    -- Created
+				"text,align=center,width=2.5",     -- Last Used
+			"]",
+			"table[0,0.6;11.25,", tostring(server_table_h), ";keypair_server_table;",
+				"Server,Username,Created,Last Used,",
+				server_table_data, "]",
+			"button[0,", tostring(server_table_h + 0.8), ";5.5,0.8;btn_forget_server;",
+				fgettext("Forget Selected Server"), "]",
+			"tooltip[btn_forget_server;",
+				fgettext("Remove the selected server registration"), "]",
+			"container_end[]",
+		})
+	else
+		table.insert_all(formspec, {
+			"container[0.375,", tostring(server_table_y > 0 and server_table_y or keypair_table_y + keypair_table_h + 1), "]",
+			"label[0,0.3;",
+			core.formspec_escape(fgettext("No registered servers yet. Connect to a server to register your keypair.")),
+			"]",
+			"container_end[]",
+		})
+	end
+
+	-- Divider line
 	table.insert_all(formspec, {
-		"box[0.375,", tostring(regenerate_y - 0.4), ";11.25,0.01;#444444]",
+		"box[0.375,", tostring(divider_y), ";11.25,0.01;#444444]",
 	})
 
 	-- Regenerate section
@@ -244,34 +330,14 @@ local function keypair_manager_formspec(dialogdata)
 				.. "This will invalidate all existing server registrations for that username!", current_username),
 		"]",
 
-		-- Close button (right-aligned)
+		-- Confirm/Cancel buttons for regeneration (hidden by default)
+		warning_text,
+		success_text,
+
+		-- Close button
 		"button[7.75,0.3;3.5,0.8;btn_close;", fgettext("Close"), "]",
 		"container_end[]",
 	})
-
-	-- Warning message for regeneration (appears below regenerate button)
-	if dialogdata.show_regenerate_warning then
-		table.insert_all(formspec, {
-			"box[0.375,", tostring(regenerate_y + 1.4), ";11.25,1.2;darkred]",
-			"label[0.625,", tostring(regenerate_y + 1.7), ";",
-			core.formspec_escape(fgettext("WARNING: Regenerating the keypair for '%s' will invalidate",
-				current_username)),
-			"]",
-			"label[0.625,", tostring(regenerate_y + 2.1), ";",
-			core.formspec_escape(fgettext("ALL server registrations for that username! You will need to re-register.")),
-			"]",
-		})
-	end
-
-	-- Success message after regeneration
-	if dialogdata.show_regenerate_success then
-		table.insert_all(formspec, {
-			"box[0.375,", tostring(regenerate_y + 1.4), ";11.25,0.6;darkgreen]",
-			"label[0.625,", tostring(regenerate_y + 1.7), ";",
-			core.formspec_escape(fgettext("New keypair generated successfully for '%s'!", current_username)),
-			"]",
-		})
-	end
 
 	return table.concat(formspec, "")
 end
