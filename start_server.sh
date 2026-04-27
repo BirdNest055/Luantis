@@ -29,6 +29,7 @@
 #   --status               Show running Luanti server processes
 #   --stop [PORT]          Stop a running server (default port: 30000)
 #   --logs [PORT]          Tail server logs (default port: 30000)
+#   --keypair-auth on|off  Enable/disable Ed25519 keypair authentication (default: on)
 #   --config KEY=VALUE     Override a server setting (can be used multiple times)
 #   --help                 Show this help message
 #
@@ -84,6 +85,7 @@ DO_STOP=0               # Stop a running server
 DO_LOGS=0               # Tail server logs
 DO_LIST_WORLDS=0        # List worlds and exit
 CREATE_WORLD=""         # World name to create (empty = don't create)
+KEYPAIR_AUTH=""        # Keypair auth: "on"/"off"/"" (empty = default from config)
 CONFIG_OVERRIDES=()     # Array of KEY=VALUE config overrides
 STOP_PORT=""            # Port for --stop
 LOGS_PORT=""            # Port for --logs
@@ -134,6 +136,7 @@ parse_args() {
             --status)       DO_STATUS=1 ;;
             --stop)         DO_STOP=1; STOP_PORT="${2:-}"; [[ "${STOP_PORT}" == --* ]] && STOP_PORT="" || { [[ -n "$STOP_PORT" ]] && shift; } ;;
             --logs)         DO_LOGS=1; LOGS_PORT="${2:-}"; [[ "${LOGS_PORT}" == --* ]] && LOGS_PORT="" || { [[ -n "$LOGS_PORT" ]] && shift; } ;;
+            --keypair-auth) KEYPAIR_AUTH="${2:?--keypair-auth requires on|off}"; shift ;;
             --config)       CONFIG_OVERRIDES+=("${2:?--config requires KEY=VALUE}"); shift ;;
             --help|-h)      show_help ;;
             *)              error "Unknown option: $1"; show_help ;;
@@ -349,6 +352,26 @@ generate_temp_config() {
     # Max players
     if [[ -n "$MAX_PLAYERS" ]]; then
         echo "max_users = ${MAX_PLAYERS}" >> "$TEMP_CONFIG"
+    fi
+
+    # v9.30: Keypair authentication
+    if [[ -n "$KEYPAIR_AUTH" ]]; then
+        echo "" >> "$TEMP_CONFIG"
+        case "$KEYPAIR_AUTH" in
+            on|true|1|yes)
+                echo "# v9.30: Keypair auth enabled by --keypair-auth" >> "$TEMP_CONFIG"
+                echo "keypair_auth = true" >> "$TEMP_CONFIG"
+                ;;
+            off|false|0|no)
+                echo "# v9.30: Keypair auth disabled by --keypair-auth" >> "$TEMP_CONFIG"
+                echo "keypair_auth = false" >> "$TEMP_CONFIG"
+                ;;
+            *)
+                error "Invalid --keypair-auth value: '${KEYPAIR_AUTH}'. Use 'on' or 'off'."
+                cleanup_temp_config
+                return 1
+                ;;
+        esac
     fi
 
     # Config overrides
@@ -980,6 +1003,14 @@ main() {
     [[ -n "$ADMIN_NAME" ]] && echo -e "  ${CYAN}Admin:${RESET}      ${ADMIN_NAME}"
     [[ -n "$MAX_PLAYERS" ]] && echo -e "  ${CYAN}Max players:${RESET} ${MAX_PLAYERS}"
     [[ -n "$MOTD" ]] && echo -e "  ${CYAN}MOTD:${RESET}       ${MOTD}"
+    # v9.30: Show keypair auth status in banner
+    local kp_status=""
+    case "$KEYPAIR_AUTH" in
+        on|true|1|yes) kp_status="${GREEN}enabled${RESET}" ;;
+        off|false|0|no) kp_status="${YELLOW}disabled${RESET}" ;;
+        *) kp_status="${DIM}default (on)${RESET}" ;;
+    esac
+    echo -e "  ${CYAN}Keypair auth:${RESET} ${kp_status}"
     [[ -n "$TEMP_CONFIG" ]] && echo -e "  ${CYAN}Conf file:${RESET}  ${TEMP_CONFIG}"
     echo ""
 
