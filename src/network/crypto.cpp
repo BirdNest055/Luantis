@@ -521,7 +521,9 @@ bool PeerEncryptionState::initFromKeypairAuth(const u8* challenge, size_t challe
         concat.insert(concat.end(), challenge, challenge + challenge_len);
         concat.insert(concat.end(), signature, signature + signature_len);
 
-        std::array<u8, SHA256_DIGEST_LENGTH> shared_secret;
+        // SHA-256 always produces 32 bytes
+        static constexpr size_t SHA256_SIZE = 32;
+        std::array<u8, SHA256_SIZE> shared_secret{};
 #if USE_OPENSSL
         unsigned int md_len = 0;
         EVP_MD_CTX *ctx = EVP_MD_CTX_new();
