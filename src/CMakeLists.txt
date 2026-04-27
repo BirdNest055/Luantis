@@ -257,8 +257,16 @@ if(ENABLE_OPENSSL)
         # First try to find any OpenSSL to report the version
         find_package(OpenSSL)
         if(OpenSSL_FOUND)
-                # Now check if it meets the minimum version
-                if(OpenSSL_VERSION VERSION_LESS "3.0")
+                # Use OPENSSL_VERSION as fallback (some CMake versions set this
+                # instead of OpenSSL_VERSION). Both variables may be present.
+                if(NOT OpenSSL_VERSION AND OPENSSL_VERSION)
+                        set(OpenSSL_VERSION "${OPENSSL_VERSION}")
+                endif()
+
+                # Now check if it meets the minimum version (3.0+)
+                # Use VERSION_GREATER_EQUAL for robust comparison when available,
+                # otherwise check that version is NOT less than 3.0.0
+                if(OpenSSL_VERSION VERSION_LESS "3.0.0")
                         set(USE_OPENSSL FALSE)
                         message(WARNING "OpenSSL ${OpenSSL_VERSION} found, but version 3.0+ is required!")
                         message(WARNING "  Ed25519 keypair authentication and AES-256-GCM encryption require OpenSSL 3.0+.")
