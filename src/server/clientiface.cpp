@@ -9,6 +9,7 @@
 #include "network/networkexceptions.h"
 #include "network/networkpacket.h"
 #include "network/serveropcodes.h"
+#include "util/auth.h"
 #include "porting.h" // porting::getTimeS
 #include "remoteplayer.h"
 #include "serialization.h" // SER_FMT_VER_INVALID
@@ -624,10 +625,16 @@ void RemoteClient::resetChosenMech()
 
 void RemoteClient::setEncryptedPassword(const std::string& pwd)
 {
-        FATAL_ERROR_IF(!str_starts_with(pwd, "#1#"), "must be srp");
-        enc_pwd = pwd;
-        // We just set SRP encrypted password, we accept only it now
-        allowed_auth_mechs = AUTH_MECHANISM_SRP;
+        if (is_keypair_auth(pwd)) {
+                // v9.29: Keypair auth format (#2# + base64 pubkey)
+                enc_pwd = pwd;
+                allowed_auth_mechs = AUTH_MECHANISM_KEYPAIR;
+        } else {
+                // SRP format (#1# + verifier + salt)
+                FATAL_ERROR_IF(!str_starts_with(pwd, "#1#"), "must be srp or keypair");
+                enc_pwd = pwd;
+                allowed_auth_mechs = AUTH_MECHANISM_SRP;
+        }
 }
 
 u64 RemoteClient::uptime() const
