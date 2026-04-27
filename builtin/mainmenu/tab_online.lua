@@ -187,6 +187,8 @@ local function get_formspec(tabview, name, tabdata)
         -- When keypair_auth is enabled: single "Connect" button spanning full width.
         -- When keypair_auth is disabled: "Login" and optionally "Register" buttons.
         -- The Login button is now inside an else block so it never overlaps Connect.
+        -- NOTE: keypair_auth must be re-read here as the earlier local was out of scope.
+        local keypair_auth = core.settings:get_bool("keypair_auth")
         if keypair_auth then
                 retval = retval .. "button[0.25,6.15;5.25,0.75;btn_mp_login;" .. fgettext("Connect") .. "]"
         else

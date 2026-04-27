@@ -51,7 +51,7 @@ local function keypair_manager_formspec(dialogdata)
 	local server_table_data = table.concat(server_table_rows, ",")
 
 	-- Determine if we need to show the "regenerate" section
-	local regenerate_y = 4.8
+	local regenerate_y = 6.2
 	if #server_list > 0 then
 		regenerate_y = 9.8
 	end
@@ -104,7 +104,7 @@ local function keypair_manager_formspec(dialogdata)
 	end
 
 	-- Base height
-	local total_height = 7.0
+	local total_height = 8.4
 	if #server_list > 0 then
 		total_height = 12.0
 	end
@@ -159,7 +159,10 @@ local function keypair_manager_formspec(dialogdata)
 	else
 		table.insert_all(formspec, {
 			"container[0.375,4.2]",
-			"label[0,0;", fgettext("No registered servers yet. Connect to a server to register your keypair."), "]",
+			"label[0,0;", fgettext("Registered Servers"), "]",
+			"box[0,0.4;11.25,1.2;#222222]",
+			"label[0.2,0.8;", core.formspec_escape(fgettext("No registered servers yet.")), "]",
+			"label[0.2,1.2;", core.formspec_escape(fgettext("Connect to a server to register your keypair.")), "]",
 			"container_end[]",
 		})
 	end
