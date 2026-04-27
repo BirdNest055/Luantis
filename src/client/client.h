@@ -502,7 +502,8 @@ private:
 
         void deleteAuthData();
         // helper method shared with clientpackethandler
-        static AuthMechanism choseAuthMech(const u32 mechs);
+        // (non-static since v9.29: needs access to m_keypair_manager)
+        AuthMechanism choseAuthMech(const u32 mechs);
 
         void sendInit(const std::string &playerName);
         void startAuth(AuthMechanism chosen_auth_mechanism);

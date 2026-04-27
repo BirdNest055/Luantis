@@ -1199,9 +1199,81 @@ bool mixECDHSecretIntoKeys(PeerEncryptionState &state,
         return false;
 }
 
-// FingerprintStore stubs (file I/O works without OpenSSL)
+// FingerprintStore stubs (file I/O works without OpenSSL but we still
+// need stubs for the non-OpenSSL build path so the linker is happy)
 // These are NOT stubs — FingerprintStore is pure file I/O and works
 // even without OpenSSL. The implementations are shared between both
 // #ifdef branches (already defined above the #else).
+
+std::string FingerprintStore::makeKey(const std::string &server_address, u16 port)
+{
+        return server_address + ":" + std::to_string(port);
+}
+
+bool FingerprintStore::load(const std::string &filepath)
+{
+        std::ifstream file(filepath);
+        if (!file.is_open())
+                return true;
+
+        std::string line;
+        while (std::getline(file, line)) {
+                if (line.empty() || line[0] == '#')
+                        continue;
+                size_t space_pos = line.find(' ');
+                if (space_pos == std::string::npos)
+                        continue;
+                std::string key = line.substr(0, space_pos);
+                std::string fingerprint = line.substr(space_pos + 1);
+                while (!fingerprint.empty() && (fingerprint.back() == '\r' || fingerprint.back() == ' '))
+                        fingerprint.pop_back();
+                if (!key.empty() && !fingerprint.empty())
+                        m_fingerprints[key] = fingerprint;
+        }
+        return true;
+}
+
+bool FingerprintStore::save(const std::string &filepath) const
+{
+        std::ofstream file(filepath);
+        if (!file.is_open())
+                return false;
+        file << "# Clawtest server fingerprint store\n";
+        file << "# Format: <address>:<port> <fingerprint>\n";
+        for (const auto &entry : m_fingerprints)
+                file << entry.first << " " << entry.second << "\n";
+        return true;
+}
+
+int FingerprintStore::verify(const std::string &server_address, u16 port,
+                const std::string &fingerprint) const
+{
+        auto it = m_fingerprints.find(makeKey(server_address, port));
+        if (it == m_fingerprints.end())
+                return 0;   // unknown
+        if (it->second == fingerprint)
+                return 1;   // match
+        return -1;          // mismatch
+}
+
+void FingerprintStore::record(const std::string &server_address, u16 port,
+                const std::string &fingerprint)
+{
+        m_fingerprints[makeKey(server_address, port)] = fingerprint;
+}
+
+std::string FingerprintStore::getStoredFingerprint(const std::string &server_address, u16 port) const
+{
+        auto it = m_fingerprints.find(makeKey(server_address, port));
+        if (it != m_fingerprints.end())
+                return it->second;
+        return "";
+}
+
+bool PeerEncryptionState::rotateKeys()
+{
+        // Cannot rotate without OpenSSL (no X25519 key generation available)
+        return false;
+}
 
 #endif // USE_OPENSSL
