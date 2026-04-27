@@ -649,6 +649,9 @@ private:
         // v9.29: Flag indicating if keypair auth should be registration (vs login)
         // Set in handleCommand_Hello based on whether FIRST_SRP was also offered
         bool m_keypair_is_registration = false;
+        // v9.33: Saved keypair auth material for encryption key derivation
+        std::string m_keypair_saved_challenge;
+        std::string m_keypair_saved_signature;
 
         // v9.29: Auth mechanisms offered by the server in TOCLIENT_HELLO
         // Used by startAuth() to determine registration vs login for keypair auth

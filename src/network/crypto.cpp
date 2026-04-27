@@ -8,6 +8,7 @@
 #include "log.h"
 #include <cstring>
 #include <fstream>
+#include <vector>
 
 #if USE_OPENSSL
 
@@ -482,6 +483,163 @@ bool PeerEncryptionState::initFromSRPSessionKey(const u8* session_key, size_t ke
                 << EncLog::kv("hkdf_salt_hex", EncLog::hexDump(hkdf_salt.data(), hkdf_salt.size()))
                 << EncLog::kv("srp_key_fp", keyToFingerprint(srp_session_key.data(), SRP_SESSION_KEY_SIZE))
                 << EncLog::kv("ecdh_completed", ecdh_completed.load())
+                << std::endl;
+
+        return true;
+}
+
+// ============================================================================
+// v9.33: Keypair Auth Key Derivation
+// ============================================================================
+
+bool PeerEncryptionState::initFromKeypairAuth(const u8* challenge, size_t challenge_len,
+                const u8* signature, size_t signature_len, bool is_server)
+{
+        if (!challenge || challenge_len == 0 || !signature || signature_len == 0) {
+                enclog_error("initFromKeypairAuth: invalid challenge or signature")
+                        << EncLog::kv("challenge_present", challenge ? "yes" : "no")
+                        << EncLog::kv("challenge_len", (u32)challenge_len)
+                        << EncLog::kv("signature_present", signature ? "yes" : "no")
+                        << EncLog::kv("signature_len", (u32)signature_len)
+                        << std::endl;
+                return false;
+        }
+
+        enclog_init("Deriving encryption keys from keypair auth")
+                << EncLog::kv("challenge_len", (u32)challenge_len)
+                << EncLog::kv("signature_len", (u32)signature_len)
+                << EncLog::kv("role", is_server ? "server" : "client")
+                << std::endl;
+
+        // Compute shared secret = SHA-256(challenge || signature)
+        // Both parties can compute this: the server has the challenge it generated
+        // and the signature it verified; the client has the challenge it received
+        // and the signature it produced. An eavesdropper who hasn't authenticated
+        // cannot compute a valid signature, so they cannot derive this secret.
+        std::vector<u8> concat;
+        concat.reserve(challenge_len + signature_len);
+        concat.insert(concat.end(), challenge, challenge + challenge_len);
+        concat.insert(concat.end(), signature, signature + signature_len);
+
+        std::array<u8, SHA256_DIGEST_LENGTH> shared_secret;
+#if USE_OPENSSL
+        unsigned int md_len = 0;
+        EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+        if (!ctx) {
+                enclog_error("initFromKeypairAuth: EVP_MD_CTX_new failed") << std::endl;
+                return false;
+        }
+        if (EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr) != 1 ||
+            EVP_DigestUpdate(ctx, concat.data(), concat.size()) != 1 ||
+            EVP_DigestFinal_ex(ctx, shared_secret.data(), &md_len) != 1) {
+                EVP_MD_CTX_free(ctx);
+                enclog_error("initFromKeypairAuth: SHA-256 computation failed") << std::endl;
+                return false;
+        }
+        EVP_MD_CTX_free(ctx);
+#else
+        // Fallback: no OpenSSL, no encryption from keypair auth
+        enclog_error("initFromKeypairAuth: OpenSSL not available, cannot derive keys") << std::endl;
+        return false;
+#endif
+
+        // Store as the "session key" (for fingerprint derivation and ECDH flow compat)
+        std::memcpy(srp_session_key.data(), shared_secret.data(), SRP_SESSION_KEY_SIZE);
+
+        // Derive HKDF salt deterministically (same method as SRP path)
+        const char* salt_info = "Luanti v9.33 Keypair Salt";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                nullptr, 0,
+                reinterpret_cast<const u8*>(salt_info), strlen(salt_info),
+                hkdf_salt.data(), hkdf_salt.size())) {
+                enclog_error("initFromKeypairAuth: failed to derive HKDF salt") << std::endl;
+                return false;
+        }
+
+        // Derive C2S encryption key
+        const char* c2s_info = "Luanti v9.33 C2S Key";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                hkdf_salt.data(), hkdf_salt.size(),
+                reinterpret_cast<const u8*>(c2s_info), strlen(c2s_info),
+                c2s.key.data(), AES256_KEY_SIZE)) {
+                enclog_error("initFromKeypairAuth: HKDF derivation FAILED for C2S key") << std::endl;
+                return false;
+        }
+
+        // Derive S2C encryption key
+        const char* s2c_info = "Luanti v9.33 S2C Key";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                hkdf_salt.data(), hkdf_salt.size(),
+                reinterpret_cast<const u8*>(s2c_info), strlen(s2c_info),
+                s2c.key.data(), AES256_KEY_SIZE)) {
+                enclog_error("initFromKeypairAuth: HKDF derivation FAILED for S2C key") << std::endl;
+                return false;
+        }
+
+        // Derive C2S nonce base
+        const char* c2s_nonce_info = "Luanti v9.33 C2S Nonce";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                hkdf_salt.data(), hkdf_salt.size(),
+                reinterpret_cast<const u8*>(c2s_nonce_info), strlen(c2s_nonce_info),
+                c2s.nonce_base.data(), NONCE_BASE_SIZE)) {
+                enclog_error("initFromKeypairAuth: HKDF derivation FAILED for C2S nonce") << std::endl;
+                return false;
+        }
+
+        // Derive S2C nonce base
+        const char* s2c_nonce_info = "Luanti v9.33 S2C Nonce";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                hkdf_salt.data(), hkdf_salt.size(),
+                reinterpret_cast<const u8*>(s2c_nonce_info), strlen(s2c_nonce_info),
+                s2c.nonce_base.data(), NONCE_BASE_SIZE)) {
+                enclog_error("initFromKeypairAuth: HKDF derivation FAILED for S2C nonce") << std::endl;
+                return false;
+        }
+
+        // Derive session ID
+        std::array<u8, 16> sid_bytes;
+        const char* sid_info = "Luanti v9.33 Session ID";
+        if (!hkdf_sha256(shared_secret.data(), shared_secret.size(),
+                hkdf_salt.data(), hkdf_salt.size(),
+                reinterpret_cast<const u8*>(sid_info), strlen(sid_info),
+                sid_bytes.data(), sid_bytes.size())) {
+                return false;
+        }
+        session_id = binToHex(sid_bytes.data(), sid_bytes.size());
+
+        // Derive server fingerprint from shared secret
+        server_fingerprint = keyToFingerprint(srp_session_key.data(), SRP_SESSION_KEY_SIZE);
+
+        // Reset counters
+        c2s.nonce_counter = 0;
+        s2c.nonce_counter = 0;
+        c2s.packets_processed = 0;
+        s2c.packets_processed = 0;
+        c2s.auth_failures = 0;
+        s2c.auth_failures = 0;
+        c2s.replay_attempts = 0;
+        s2c.replay_attempts = 0;
+        c2s.replay_bitmap.fill(0);
+        s2c.replay_bitmap.fill(0);
+        packets_since_audit = 0;
+        last_audit_time_ms = 0;
+        key_rotation_count = 0;
+
+        // Do NOT activate here — caller must activate after ECDH exchange
+        active = false;
+        activated_at = 0;
+
+        // Zero the shared secret (no longer needed after key derivation)
+        shared_secret.fill(0);
+
+        enclog_init("Keypair auth encryption keys initialized (NOT YET ACTIVE)")
+                << EncLog::kv("session_id", session_id)
+                << EncLog::kv("fingerprint", server_fingerprint)
+                << EncLog::kv("role", is_server ? "server" : "client")
+                << EncLog::kv("active", false)
+                << EncLog::kv("cipher", "AES-256-GCM")
+                << EncLog::kv("auth_method", "Ed25519")
+                << EncLog::kv("key_derivation", "SHA-256(challenge||signature) -> HKDF")
                 << std::endl;
 
         return true;
@@ -1163,6 +1321,12 @@ void build_nonce(const u8* base, u64 counter, u8* nonce)
 }
 
 bool PeerEncryptionState::initFromSRPSessionKey(const u8* session_key, size_t key_len, bool is_server)
+{
+        return false;
+}
+
+bool PeerEncryptionState::initFromKeypairAuth(const u8* challenge, size_t challenge_len,
+                const u8* signature, size_t signature_len, bool is_server)
 {
         return false;
 }

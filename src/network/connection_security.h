@@ -86,6 +86,7 @@ struct ConnectionSecurityInfo
         static constexpr int AUTH_NONE = 0;
         static constexpr int AUTH_SRP = 1;
         static constexpr int AUTH_ECDSA = 2;
+        static constexpr int AUTH_ED25519 = 3;  // v9.33: Ed25519 keypair authentication
 
         // Cipher suite constants
         static constexpr int CIPHER_NONE = 0;
@@ -483,6 +484,7 @@ struct ConnectionSecurityInfo
                 case AUTH_NONE:   return "None";
                 case AUTH_SRP:    return "SRP";
                 case AUTH_ECDSA:  return "ECDSA";
+                case AUTH_ED25519: return "Ed25519";
                 default:          return "Unknown";
                 }
         }
@@ -606,7 +608,8 @@ inline ConnectionSecurityInfo populateRealSecurityInfo(
         u16 protocol_version,
         const std::string &server_address,
         u16 server_port,
-        bool key_rotation_supported)
+        bool key_rotation_supported,
+        int auth_method)  // v9.33: AUTH_SRP, AUTH_ED25519, etc.
 {
         ConnectionSecurityInfo info;
 
@@ -614,7 +617,7 @@ inline ConnectionSecurityInfo populateRealSecurityInfo(
                 info.state = ConnectionSecurity::Encrypted;
                 info.encryption_algorithm = ConnectionSecurityInfo::ENCRYPTION_AES_256_GCM;
                 info.cipher_suite = ConnectionSecurityInfo::CIPHER_AES_256_GCM;
-                info.authentication = ConnectionSecurityInfo::AUTH_SRP;
+                info.authentication = auth_method;  // v9.33: Use actual auth method
                 info.replay_protection = true;
 
                 // v9.1: ECDH X25519 forward secrecy — HONEST assessment
@@ -701,8 +704,7 @@ inline ConnectionSecurityInfo populateRealSecurityInfo(
 }
 
 // v9.1: Backward-compatible 10-parameter populateRealSecurityInfo.
-// Delegates to the 11-parameter version with key_rotation_supported=false
-// for v9.1 compatibility (callers that don't know about key rotation).
+// Delegates to the 12-parameter version with defaults for backward compat.
 inline ConnectionSecurityInfo populateRealSecurityInfo(
         bool encryption_active,
         bool ecdh_completed,
@@ -719,5 +721,29 @@ inline ConnectionSecurityInfo populateRealSecurityInfo(
                 encryption_active, ecdh_completed, fingerprint_pinned,
                 fingerprint_verify_result, session_id, server_fingerprint,
                 activated_at, protocol_version, server_address, server_port,
-                false);  // key_rotation_supported defaults to false for v9.1 compat
+                false,  // key_rotation_supported defaults to false for v9.1 compat
+                ConnectionSecurityInfo::AUTH_SRP);  // default auth method
+}
+
+// v9.9: 11-parameter version with key_rotation_supported but no auth_method.
+// Delegates to the 12-parameter version with AUTH_SRP default for backward compat.
+inline ConnectionSecurityInfo populateRealSecurityInfo(
+        bool encryption_active,
+        bool ecdh_completed,
+        bool fingerprint_pinned,
+        int fingerprint_verify_result,
+        const std::string &session_id,
+        const std::string &server_fingerprint,
+        u64 activated_at,
+        u16 protocol_version,
+        const std::string &server_address,
+        u16 server_port,
+        bool key_rotation_supported)
+{
+        return populateRealSecurityInfo(
+                encryption_active, ecdh_completed, fingerprint_pinned,
+                fingerprint_verify_result, session_id, server_fingerprint,
+                activated_at, protocol_version, server_address, server_port,
+                key_rotation_supported,
+                ConnectionSecurityInfo::AUTH_SRP);  // default auth method
 }

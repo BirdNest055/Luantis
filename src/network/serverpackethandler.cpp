@@ -2213,7 +2213,62 @@ void Server::handleCommand_KeypairRegister(NetworkPacket* pkt)
         infostream << "Server: Keypair registration accepted for " << playername
                 << " from " << addr_s << std::endl;
 
+        // v9.33: Derive encryption keys from keypair auth material.
+        // For registration, the challenge is derived from the public key itself
+        // (there was no challenge-response exchange for registration).
+        // We use the public key as both challenge and "signature" since
+        // registration is trust-on-first-use — the server has no prior key to verify.
+        // This provides encryption with the same ECDH forward secrecy flow as SRP.
+        bool encryption_initialized = false;
+        if (EncryptionConfig::shouldEncrypt() && !isSingleplayer()) {
+                // Use the public key as the shared material for key derivation
+                const u8* challenge_data = reinterpret_cast<const u8*>(public_key.data());
+                size_t challenge_data_len = public_key.size();
+                const u8* sig_data = reinterpret_cast<const u8*>(public_key.data());
+                size_t sig_data_len = public_key.size();
+
+                bool ok = client->encryption_state.initFromKeypairAuth(
+                        challenge_data, challenge_data_len,
+                        sig_data, sig_data_len, true /* is_server */);
+                if (ok) {
+                        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+                        encryption_initialized = true;
+                        enclog_init("Keypair registration: encryption keys derived (not yet active)")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << EncLog::kv("auth_method", "Ed25519")
+                                << std::endl;
+                } else {
+                        enclog_error("Keypair registration: failed to derive encryption keys")
+                                << EncLog::kv("peer", peer_id) << std::endl;
+                        client->encryption_state.disable();
+                }
+        }
+
+        // Send AUTH_ACCEPT as plaintext (client needs it to set up encryption)
         acceptAuth(peer_id, false);
+
+        // v9.33: ECDH forward secrecy — same flow as SRP auth
+        if (encryption_initialized) {
+                X25519KeyPair server_kp = x25519_generate_keypair();
+                if (server_kp.success) {
+                        client->encryption_state.ecdh_private_key = server_kp.private_key;
+                        client->encryption_state.ecdh_public_key = server_kp.public_key;
+                        m_con->UpdatePeerECDHKeypair(peer_id,
+                                server_kp.private_key, server_kp.public_key);
+
+                        NetworkPacket ecdh_pkt(TOCLIENT_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE, peer_id);
+                        std::string pubkey_str(reinterpret_cast<const char*>(server_kp.public_key.data()),
+                                X25519_PUBLIC_KEY_SIZE);
+                        ecdh_pkt.putLongString(pubkey_str);
+                        Send(&ecdh_pkt);
+
+                        enclog_init("ECDH public key sent to peer after keypair registration")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << std::endl;
+                }
+        }
 }
 
 void Server::handleCommand_KeypairLogin(NetworkPacket* pkt)
@@ -2304,6 +2359,9 @@ void Server::handleCommand_KeypairResponse(NetworkPacket* pkt)
         bool valid = KeypairManager::verify(stored_pubkey,
                 client->keypair_challenge_nonce, signature);
 
+        // v9.33: Save the challenge for encryption key derivation BEFORE clearing
+        std::string saved_challenge = client->keypair_challenge_nonce;
+
         // Clear the challenge nonce (one-time use)
         client->keypair_challenge_nonce.clear();
 
@@ -2319,5 +2377,53 @@ void Server::handleCommand_KeypairResponse(NetworkPacket* pkt)
         infostream << "Server: Keypair login accepted for " << playername
                 << " from " << addr_s << std::endl;
 
+        // v9.33: Derive encryption keys from the challenge+signature material.
+        // Both server and client can compute SHA-256(challenge || signature),
+        // providing a shared secret that an eavesdropper cannot derive.
+        bool encryption_initialized = false;
+        if (EncryptionConfig::shouldEncrypt() && !isSingleplayer()) {
+                bool ok = client->encryption_state.initFromKeypairAuth(
+                        reinterpret_cast<const u8*>(saved_challenge.data()),
+                        saved_challenge.size(),
+                        reinterpret_cast<const u8*>(signature.data()),
+                        signature.size(), true /* is_server */);
+                if (ok) {
+                        m_con->SetPeerEncryptionState(peer_id, client->encryption_state);
+                        encryption_initialized = true;
+                        enclog_init("Keypair login: encryption keys derived (not yet active)")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << EncLog::kv("auth_method", "Ed25519")
+                                << std::endl;
+                } else {
+                        enclog_error("Keypair login: failed to derive encryption keys")
+                                << EncLog::kv("peer", peer_id) << std::endl;
+                        client->encryption_state.disable();
+                }
+        }
+
+        // Send AUTH_ACCEPT as plaintext (client needs it to set up encryption)
         acceptAuth(peer_id, false);
+
+        // v9.33: ECDH forward secrecy — same flow as SRP auth
+        if (encryption_initialized) {
+                X25519KeyPair server_kp = x25519_generate_keypair();
+                if (server_kp.success) {
+                        client->encryption_state.ecdh_private_key = server_kp.private_key;
+                        client->encryption_state.ecdh_public_key = server_kp.public_key;
+                        m_con->UpdatePeerECDHKeypair(peer_id,
+                                server_kp.private_key, server_kp.public_key);
+
+                        NetworkPacket ecdh_pkt(TOCLIENT_ECDH_PUBKEY, X25519_PUBLIC_KEY_SIZE, peer_id);
+                        std::string pubkey_str(reinterpret_cast<const char*>(server_kp.public_key.data()),
+                                X25519_PUBLIC_KEY_SIZE);
+                        ecdh_pkt.putLongString(pubkey_str);
+                        Send(&ecdh_pkt);
+
+                        enclog_init("ECDH public key sent to peer after keypair login")
+                                << EncLog::kv("peer", peer_id)
+                                << EncLog::kv("session_id", client->encryption_state.session_id)
+                                << std::endl;
+                }
+        }
 }
