@@ -1165,6 +1165,10 @@ disallow_empty_password (Disallow empty passwords) bool false
 #    Returning users prove identity by signing a server challenge.
 keypair_auth (Keypair authentication) bool true
 
+#    If enabled, shows a "Keys" button on the connect screen to manage the
+#    Ed25519 keypair (view public key, regenerate, manage remembered servers).
+keypair_show_manager (Show keypair manager button) bool true
+
 #    The privileges that new users automatically get.
 #    See /privs in game for a full list on your server and mod configuration.
 default_privs (Default privileges) string interact, shout

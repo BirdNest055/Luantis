@@ -157,6 +157,13 @@ private:
         static int l_keypair_get_server_user(lua_State *L);
         static int l_keypair_has_server_user(lua_State *L);
 
+        // v9.31: Keypair management GUI API
+        static int l_keypair_get_public_key_base64(lua_State *L);
+        static int l_keypair_regenerate(lua_State *L);
+        static int l_keypair_get_server_list(lua_State *L);
+        static int l_keypair_forget_server(lua_State *L);
+        static int l_keypair_keypair_exists(lua_State *L);
+
 public:
 
         /**

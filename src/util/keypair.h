@@ -6,6 +6,7 @@
 
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 /**
@@ -103,6 +104,31 @@ public:
          * Check whether a keypair is currently loaded in memory.
          */
         bool hasKeypair() const;
+
+        /**
+         * Check whether a keypair file exists on disk (without loading it).
+         */
+        bool keypairFileExists() const;
+
+        /**
+         * Regenerate the keypair (deleting the old one and creating a new one).
+         * WARNING: This will invalidate all server registrations that used the old key.
+         * Returns true on success.
+         */
+        bool regenerateKeypair();
+
+        /**
+         * Get all remembered server-username pairs.
+         * @return A vector of (server_address, username) pairs.
+         */
+        std::vector<std::pair<std::string, std::string>> getServerUserList() const;
+
+        /**
+         * Remove the remembered username for a given server address.
+         * @param server_address  The server address to forget.
+         * @return true if the entry existed and was removed.
+         */
+        bool forgetServerUser(const std::string &server_address);
 
         // ---- Per-server username memory ----
 

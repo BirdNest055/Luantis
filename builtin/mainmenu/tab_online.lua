@@ -139,9 +139,18 @@ local function get_formspec(tabview, name, tabdata)
 
         -- v9.29: When keypair auth is enabled, hide password field and show hints
         local keypair_auth = core.settings:get_bool("keypair_auth")
+        local show_key_manager = core.settings:get_bool("keypair_show_manager")
         if keypair_auth then
+                if show_key_manager then
+                        retval = retval ..
+                                "field[0.25,0.2;3.75,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]" ..
+                                "button[4,0.2;1.5,0.75;btn_keypair_manager;" .. fgettext("Keys") .. "]" ..
+                                "tooltip[btn_keypair_manager;" .. fgettext("Manage Ed25519 keypair and remembered servers") .. "]"
+                else
+                        retval = retval ..
+                                "field[0.25,0.2;5.25,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]"
+                end
                 retval = retval ..
-                        "field[0.25,0.2;5.25,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]" ..
                         "label[0.25,1.1;" .. core.formspec_escape(fgettext("Keypair authentication enabled (no password needed)")) .. "]"
 
                 -- Check if we have a remembered username for this server
@@ -619,6 +628,15 @@ local function main_button_handler(tabview, fields, name, tabdata)
 
         if fields.btn_mp_refresh then
                 serverlistmgr.sync()
+                return true
+        end
+
+        -- v9.31: Open keypair manager dialog
+        if fields.btn_keypair_manager then
+                local dlg = create_keypair_manager_dialog()
+                dlg:set_parent(tabview)
+                tabview:hide()
+                dlg:show()
                 return true
         end
 
