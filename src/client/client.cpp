@@ -185,12 +185,12 @@ Client::Client(
         // Add local player
         m_env.setLocalPlayer(new LocalPlayer(this, playername));
 
-        // v9.29: Initialize keypair manager for Ed25519 passwordless authentication
+        // v9.37: Initialize keypair manager with per-username keypairs
         if (g_settings->getBool("keypair_auth")) {
                 m_keypair_manager = std::make_unique<KeypairManager>(porting::path_user);
-                if (!m_keypair_manager->ensureKeypair()) {
-                        warningstream << "Client: Failed to initialize Ed25519 keypair, "
-                                << "keypair auth will not be available." << std::endl;
+                if (!m_keypair_manager->ensureKeypair(playername)) {
+                        warningstream << "Client: Failed to initialize Ed25519 keypair for '"
+                                << playername << "', keypair auth will not be available." << std::endl;
                         m_keypair_manager.reset();
                 }
         }

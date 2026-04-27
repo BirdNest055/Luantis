@@ -164,6 +164,10 @@ private:
         static int l_keypair_forget_server(lua_State *L);
         static int l_keypair_keypair_exists(lua_State *L);
 
+        // v9.37: Per-username keypair API
+        static int l_keypair_list_keypairs(lua_State *L);
+        static int l_keypair_delete_keypair(lua_State *L);
+
 public:
 
         /**

@@ -1097,12 +1097,20 @@ int ModApiMainMenu::l_keypair_is_enabled(lua_State *L)
 
 int ModApiMainMenu::l_keypair_has_keypair(lua_State *L)
 {
+        // v9.37: Accepts optional username parameter for per-username keypairs
+        std::string username = luaL_optstring(L, 1, "");
         if (!g_settings->getBool("keypair_auth")) {
                 lua_pushboolean(L, false);
                 return 1;
         }
-        KeypairManager km(porting::path_user);
-        lua_pushboolean(L, km.ensureKeypair() && km.hasKeypair());
+        if (username.empty()) {
+                // No username: check if any keypair exists
+                KeypairManager km(porting::path_user);
+                lua_pushboolean(L, !km.listKeypairs().empty());
+        } else {
+                KeypairManager km(porting::path_user);
+                lua_pushboolean(L, km.keypairFileExists(username));
+        }
         return 1;
 }
 
@@ -1135,29 +1143,44 @@ int ModApiMainMenu::l_keypair_has_server_user(lua_State *L)
 
 int ModApiMainMenu::l_keypair_get_public_key_base64(lua_State *L)
 {
+        // v9.37: Accepts optional username parameter
+        std::string username = luaL_optstring(L, 1, "");
         if (!g_settings->getBool("keypair_auth")) {
                 lua_pushstring(L, "");
                 return 1;
         }
         KeypairManager km(porting::path_user);
-        if (!km.ensureKeypair()) {
-                lua_pushstring(L, "");
-                return 1;
+        if (username.empty()) {
+                // No username: return pubkey of the first available keypair
+                auto keypairs = km.listKeypairs();
+                if (keypairs.empty()) {
+                        lua_pushstring(L, "");
+                        return 1;
+                }
+                username = keypairs[0];
         }
-        lua_pushstring(L, km.getPublicKeyBase64().c_str());
+        lua_pushstring(L, km.getPublicKeyBase64ForUser(username).c_str());
         return 1;
 }
 
 int ModApiMainMenu::l_keypair_regenerate(lua_State *L)
 {
-        if (!g_settings->getBool("keypair_auth")) {
+        // v9.37: Accepts optional username parameter
+        std::string username = luaL_optstring(L, 1, "");
+        if (!g_settings->getBool("keypair_auth") || username.empty()) {
                 lua_pushboolean(L, false);
                 return 1;
         }
         KeypairManager km(porting::path_user);
-        // Load existing keypair first (needed to delete it properly)
-        if (km.keypairFileExists()) {
-                km.ensureKeypair();
+        // Load existing keypair for this username first
+        if (km.keypairFileExists(username)) {
+                km.ensureKeypair(username);
+        } else {
+                // No keypair for this user, generate one
+                if (!km.ensureKeypair(username)) {
+                        lua_pushboolean(L, false);
+                        return 1;
+                }
         }
         lua_pushboolean(L, km.regenerateKeypair());
         return 1;
@@ -1203,12 +1226,58 @@ int ModApiMainMenu::l_keypair_forget_server(lua_State *L)
 
 int ModApiMainMenu::l_keypair_keypair_exists(lua_State *L)
 {
+        // v9.37: Accepts optional username parameter
+        std::string username = luaL_optstring(L, 1, "");
         if (!g_settings->getBool("keypair_auth")) {
                 lua_pushboolean(L, false);
                 return 1;
         }
         KeypairManager km(porting::path_user);
-        lua_pushboolean(L, km.keypairFileExists());
+        if (username.empty()) {
+                // Check if any keypair exists
+                lua_pushboolean(L, !km.listKeypairs().empty());
+        } else {
+                lua_pushboolean(L, km.keypairFileExists(username));
+        }
+        return 1;
+}
+
+/******************************************************************************/
+/* v9.37: Per-username keypair API */
+
+int ModApiMainMenu::l_keypair_list_keypairs(lua_State *L)
+{
+        if (!g_settings->getBool("keypair_auth")) {
+                lua_newtable(L);
+                return 1;
+        }
+        KeypairManager km(porting::path_user);
+        auto keypairs = km.listKeypairs();
+
+        lua_newtable(L);
+        int i = 1;
+        for (const auto &username : keypairs) {
+                lua_newtable(L);
+                lua_pushstring(L, username.c_str());
+                lua_setfield(L, -2, "username");
+                // Also include the public key for display
+                std::string pubkey_b64 = km.getPublicKeyBase64ForUser(username);
+                lua_pushstring(L, pubkey_b64.c_str());
+                lua_setfield(L, -2, "public_key_base64");
+                lua_rawseti(L, -2, i++);
+        }
+        return 1;
+}
+
+int ModApiMainMenu::l_keypair_delete_keypair(lua_State *L)
+{
+        std::string username = luaL_checkstring(L, 1);
+        if (!g_settings->getBool("keypair_auth") || username.empty()) {
+                lua_pushboolean(L, false);
+                return 1;
+        }
+        KeypairManager km(porting::path_user);
+        lua_pushboolean(L, km.deleteKeypair(username));
         return 1;
 }
 
@@ -1297,6 +1366,8 @@ void ModApiMainMenu::Initialize(lua_State *L, int top)
         API_FCT(keypair_get_server_list);
         API_FCT(keypair_forget_server);
         API_FCT(keypair_keypair_exists);
+        API_FCT(keypair_list_keypairs);
+        API_FCT(keypair_delete_keypair);
 
         lua_pushboolean(L, g_first_run);
         lua_setfield(L, top, "is_first_run");
