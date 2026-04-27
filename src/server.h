@@ -242,6 +242,9 @@ public:
         void handleCommand_HaveMedia(NetworkPacket *pkt);
         void handleCommand_UpdateClientInfo(NetworkPacket *pkt);
         void handleCommand_EcdhPubkey(NetworkPacket *pkt); // v9.11 forward secrecy
+        void handleCommand_KeypairRegister(NetworkPacket* pkt); // v9.29 keypair auth
+        void handleCommand_KeypairLogin(NetworkPacket* pkt); // v9.29 keypair auth
+        void handleCommand_KeypairResponse(NetworkPacket* pkt); // v9.29 keypair auth
 
         void ProcessData(NetworkPacket *pkt);
 

@@ -14,6 +14,7 @@
 #include "network/crypto.h"
 #include "network/networkprotocol.h" // multiple enums
 #include "network/peerhandler.h"
+#include "util/keypair.h"
 #include "util/numeric.h"
 #include "util/string.h" // StringMap
 
@@ -217,6 +218,7 @@ public:
         void handleCommand_SetLighting(NetworkPacket *pkt);
         void handleCommand_Camera(NetworkPacket* pkt);
         void handleCommand_EcdhPubkey(NetworkPacket *pkt); // v9.11 forward secrecy
+        void handleCommand_KeypairChallenge(NetworkPacket *pkt); // v9.29 keypair auth
 
         void ProcessData(NetworkPacket *pkt);
 
@@ -639,6 +641,17 @@ private:
 
         // Real encryption state (populated from SRP session key after auth)
         PeerEncryptionState m_encryption_state;
+
+        // v9.29: Keypair manager for Ed25519 passwordless authentication
+        std::unique_ptr<KeypairManager> m_keypair_manager;
+
+        // v9.29: Flag indicating if keypair auth should be registration (vs login)
+        // Set in handleCommand_Hello based on whether FIRST_SRP was also offered
+        bool m_keypair_is_registration = false;
+
+        // v9.29: Auth mechanisms offered by the server in TOCLIENT_HELLO
+        // Used by startAuth() to determine registration vs login for keypair auth
+        u32 m_offered_auth_mechs = 0;
 
         std::unique_ptr<ModChannelMgr> m_modchannel_mgr;
 

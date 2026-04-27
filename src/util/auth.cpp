@@ -16,15 +16,15 @@
 // blank, we send a blank password - this is for backwards
 // compatibility with password-less players).
 std::string translate_password(const std::string &name,
-	const std::string &password)
+        const std::string &password)
 {
-	if (password.length() == 0)
-		return "";
+        if (password.length() == 0)
+                return "";
 
-	std::string slt = name + password;
-	std::string digest = hashing::sha1(slt);
-	std::string pwd = base64_encode(digest);
-	return pwd;
+        std::string slt = name + password;
+        std::string digest = hashing::sha1(slt);
+        std::string pwd = base64_encode(digest);
+        return pwd;
 }
 
 // Call lower level SRP code to generate a verifier with the
@@ -32,87 +32,121 @@ std::string translate_password(const std::string &name,
 // and error checking common to all srp verifier generation code.
 // See docs of srp_create_salted_verification_key for more info.
 static inline void gen_srp_v(const std::string &name,
-	const std::string &password, char **salt, size_t *salt_len,
-	char **bytes_v, size_t *len_v)
+        const std::string &password, char **salt, size_t *salt_len,
+        char **bytes_v, size_t *len_v)
 {
-	std::string n_name = lowercase(name);
-	SRP_Result res = srp_create_salted_verification_key(SRP_SHA256, SRP_NG_2048,
-		n_name.c_str(), (const unsigned char *)password.c_str(),
-		password.size(), (unsigned char **)salt, salt_len,
-		(unsigned char **)bytes_v, len_v, NULL, NULL);
-	FATAL_ERROR_IF(res != SRP_OK, "Couldn't create salted SRP verifier");
+        std::string n_name = lowercase(name);
+        SRP_Result res = srp_create_salted_verification_key(SRP_SHA256, SRP_NG_2048,
+                n_name.c_str(), (const unsigned char *)password.c_str(),
+                password.size(), (unsigned char **)salt, salt_len,
+                (unsigned char **)bytes_v, len_v, NULL, NULL);
+        FATAL_ERROR_IF(res != SRP_OK, "Couldn't create salted SRP verifier");
 }
 
 /// Creates a verification key with given salt and password.
 std::string generate_srp_verifier(const std::string &name,
-	const std::string &password, const std::string &salt)
+        const std::string &password, const std::string &salt)
 {
-	size_t salt_len = salt.size();
-	// The API promises us that the salt doesn't
-	// get modified if &salt_ptr isn't NULL.
-	char *salt_ptr = (char *)salt.c_str();
+        size_t salt_len = salt.size();
+        // The API promises us that the salt doesn't
+        // get modified if &salt_ptr isn't NULL.
+        char *salt_ptr = (char *)salt.c_str();
 
-	char *bytes_v = nullptr;
-	size_t verifier_len = 0;
-	gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
-	std::string verifier = std::string(bytes_v, verifier_len);
-	free(bytes_v);
-	return verifier;
+        char *bytes_v = nullptr;
+        size_t verifier_len = 0;
+        gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
+        std::string verifier = std::string(bytes_v, verifier_len);
+        free(bytes_v);
+        return verifier;
 }
 
 /// Creates a verification key and salt with given password.
 void generate_srp_verifier_and_salt(const std::string &name,
-	const std::string &password, std::string *verifier,
-	std::string *salt)
+        const std::string &password, std::string *verifier,
+        std::string *salt)
 {
-	char *bytes_v = nullptr;
-	size_t verifier_len = 0;
-	char *salt_ptr = nullptr;
-	size_t salt_len = 0;
-	gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
-	*verifier = std::string(bytes_v, verifier_len);
-	*salt = std::string(salt_ptr, salt_len);
-	free(bytes_v);
-	free(salt_ptr);
+        char *bytes_v = nullptr;
+        size_t verifier_len = 0;
+        char *salt_ptr = nullptr;
+        size_t salt_len = 0;
+        gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
+        *verifier = std::string(bytes_v, verifier_len);
+        *salt = std::string(salt_ptr, salt_len);
+        free(bytes_v);
+        free(salt_ptr);
 }
 
 /// Gets an SRP verifier, generating a salt,
 /// and encodes it as DB-ready string.
 std::string get_encoded_srp_verifier(const std::string &name,
-	const std::string &password)
+        const std::string &password)
 {
-	std::string verifier;
-	std::string salt;
-	generate_srp_verifier_and_salt(name, password, &verifier, &salt);
-	return encode_srp_verifier(verifier, salt);
+        std::string verifier;
+        std::string salt;
+        generate_srp_verifier_and_salt(name, password, &verifier, &salt);
+        return encode_srp_verifier(verifier, salt);
 }
 
 /// Converts the passed SRP verifier into a DB-ready format.
 std::string encode_srp_verifier(const std::string &verifier,
-	const std::string &salt)
+        const std::string &salt)
 {
-	std::ostringstream ret_str;
-	ret_str << "#1#"
-		<< base64_encode(salt) << "#"
-		<< base64_encode(verifier);
-	return ret_str.str();
+        std::ostringstream ret_str;
+        ret_str << "#1#"
+                << base64_encode(salt) << "#"
+                << base64_encode(verifier);
+        return ret_str.str();
 }
 
 /// Reads the DB-formatted SRP verifier and gets the verifier
 /// and salt components.
 bool decode_srp_verifier_and_salt(const std::string &encoded,
-	std::string *verifier, std::string *salt)
+        std::string *verifier, std::string *salt)
 {
-	std::vector<std::string> components = str_split(encoded, '#');
+        std::vector<std::string> components = str_split(encoded, '#');
 
-	if ((components.size() != 4)
-			|| (components[1] != "1") // 1 means srp
-			|| !base64_is_valid(components[2])
-			|| !base64_is_valid(components[3]))
-		return false;
+        if ((components.size() != 4)
+                        || (components[1] != "1") // 1 means srp
+                        || !base64_is_valid(components[2])
+                        || !base64_is_valid(components[3]))
+                return false;
 
-	*salt = base64_decode(components[2]);
-	*verifier = base64_decode(components[3]);
-	return true;
+        *salt = base64_decode(components[2]);
+        *verifier = base64_decode(components[3]);
+        return true;
 
+}
+
+/// Encodes an Ed25519 public key into a DB-ready format.
+/// Format: "#2#" + base64(public_key)
+std::string encode_keypair_pubkey(const std::string &public_key)
+{
+        return "#2#" + base64_encode(public_key);
+}
+
+/// Reads the DB-formatted keypair public key.
+bool decode_keypair_pubkey(const std::string &encoded,
+        std::string *public_key)
+{
+        std::vector<std::string> components = str_split(encoded, '#');
+
+        // Format: "" (before first #) + "2" (type) + base64(pubkey)
+        // After split by '#': ["", "2", "<base64_pubkey>"]
+        if ((components.size() != 3)
+                        || (components[1] != "2") // 2 means keypair
+                        || !base64_is_valid(components[2]))
+                return false;
+
+        *public_key = base64_decode(components[2]);
+        return true;
+}
+
+/// Checks if an encoded password string uses keypair auth (#2# format).
+bool is_keypair_auth(const std::string &encoded)
+{
+        // Quick prefix check without full parsing
+        return encoded.size() >= 3
+                && encoded[0] == '#'
+                && encoded[1] == '2'
+                && encoded[2] == '#';
 }

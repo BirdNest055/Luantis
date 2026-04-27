@@ -185,6 +185,16 @@ Client::Client(
         // Add local player
         m_env.setLocalPlayer(new LocalPlayer(this, playername));
 
+        // v9.29: Initialize keypair manager for Ed25519 passwordless authentication
+        if (g_settings->getBool("keypair_auth")) {
+                m_keypair_manager = std::make_unique<KeypairManager>(porting::path_user);
+                if (!m_keypair_manager->ensureKeypair()) {
+                        warningstream << "Client: Failed to initialize Ed25519 keypair, "
+                                << "keypair auth will not be available." << std::endl;
+                        m_keypair_manager.reset();
+                }
+        }
+
         // Make the mod storage database and begin the save for later
         m_mod_storage_database =
                         new ModStorageDatabaseSQLite3(porting::path_user + DIR_DELIM + "client");
@@ -1356,6 +1366,10 @@ void Client::deleteAuthData()
 
 AuthMechanism Client::choseAuthMech(const u32 mechs)
 {
+        // v9.29: Prefer keypair auth if we have a keypair and the server supports it
+        if ((mechs & AUTH_MECHANISM_KEYPAIR) && m_keypair_manager && m_keypair_manager->hasKeypair())
+                return AUTH_MECHANISM_KEYPAIR;
+
         if (mechs & AUTH_MECHANISM_SRP)
                 return AUTH_MECHANISM_SRP;
 
@@ -1386,6 +1400,56 @@ void Client::startAuth(AuthMechanism chosen_auth_mechanism)
         std::string playername = m_env.getLocalPlayer()->getName();
 
         switch (chosen_auth_mechanism) {
+                case AUTH_MECHANISM_KEYPAIR: {
+                        // v9.29: Ed25519 keypair-based passwordless authentication.
+                        // The server determines what auth methods are available:
+                        // - New user (no account): server offers KEYPAIR + FIRST_SRP
+                        // - Existing keypair user: server offers KEYPAIR (no FIRST_SRP)
+                        // - Existing SRP user: server offers SRP (no KEYPAIR)
+                        //
+                        // We distinguish registration from login by checking whether
+                        // FIRST_SRP is also offered alongside KEYPAIR. This information
+                        // is stored in the handleCommand_Hello handler's auth_mechs.
+                        if (!m_keypair_manager || !m_keypair_manager->hasKeypair()) {
+                                errorstream << "Client: KEYPAIR auth chosen but no keypair "
+                                        << "available!" << std::endl;
+                                m_chosen_auth_mech = AUTH_MECHANISM_NONE;
+                                return;
+                        }
+
+                        // Check the stored auth_mechs from handleCommand_Hello to determine
+                        // if this is registration (FIRST_SRP also offered) or login.
+                        // If the user doesn't exist, the server will offer both KEYPAIR
+                        // and FIRST_SRP. We prefer KEYPAIR for registration.
+                        //
+                        // We store this in a simple heuristic: if we're allowed to register
+                        // AND the server offered FIRST_SRP alongside KEYPAIR, register.
+                        // Otherwise, login.
+                        // NOTE: The actual auth_mechs bitmask is available from the
+                        // handleCommand_Hello call, but we need to pass it here.
+                        // For simplicity, we always try LOGIN first. If the server has
+                        // no account, it will deny the login and we'll fall back to
+                        // registration. But a cleaner approach: send KEYPAIR_REGISTER
+                        // when FIRST_SRP was also offered (meaning new user).
+                        //
+                        // We detect this via the m_allow_login_or_register mode and
+                        // a helper flag set in handleCommand_Hello.
+                        if (m_keypair_is_registration) {
+                                // Registration: send our public key
+                                NetworkPacket pkt(TOSERVER_KEYPAIR_REGISTER, 0);
+                                pkt << m_keypair_manager->getPublicKey();
+                                Send(&pkt);
+                                infostream << "Client: Sent TOSERVER_KEYPAIR_REGISTER (new account)."
+                                        << std::endl;
+                        } else {
+                                // Login: request a challenge
+                                NetworkPacket pkt(TOSERVER_KEYPAIR_LOGIN, 0);
+                                Send(&pkt);
+                                infostream << "Client: Sent TOSERVER_KEYPAIR_LOGIN."
+                                        << std::endl;
+                        }
+                        break;
+                }
                 case AUTH_MECHANISM_FIRST_SRP: {
                         // v9 fix: Perform a full SRP exchange so we also derive a
                         // session key for encryption. Previously FIRST_SRP just sent

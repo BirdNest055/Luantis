@@ -229,6 +229,9 @@ public:
         void *auth_data = nullptr;
         u32 allowed_auth_mechs = 0;
 
+        // v9.29: Challenge nonce for keypair authentication
+        std::string keypair_challenge_nonce;
+
         // v9: Real encryption state (populated from SRP session key after auth)
         PeerEncryptionState encryption_state;
 

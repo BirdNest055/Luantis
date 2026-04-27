@@ -720,7 +720,15 @@ enum ToClientCommand : u16
                 u8[32] server_x25519_public_key
         */
 
-        TOCLIENT_NUM_MSG_TYPES = 0x66,
+        TOCLIENT_KEYPAIR_CHALLENGE = 0x66,
+        /*
+                v9.29: Server sends a challenge nonce for keypair authentication.
+                Sent when a client initiates keypair login for an existing account.
+
+                std::string nonce (32 bytes, cryptographically random)
+        */
+
+        TOCLIENT_NUM_MSG_TYPES = 0x67,
 };
 
 enum ToServerCommand : u16
@@ -936,7 +944,32 @@ enum ToServerCommand : u16
                 u8[32] client_x25519_public_key
         */
 
-        TOSERVER_NUM_MSG_TYPES = 0x55,
+        TOSERVER_KEYPAIR_REGISTER = 0x55,
+        /*
+                v9.29: Client registers a new account using its Ed25519 public key.
+                Belonging to AUTH_MECHANISM_KEYPAIR.
+
+                std::string public_key (32 bytes, Ed25519 public key)
+        */
+
+        TOSERVER_KEYPAIR_LOGIN = 0x56,
+        /*
+                v9.29: Client initiates keypair login for an existing account.
+                Belonging to AUTH_MECHANISM_KEYPAIR.
+                Server will respond with TOCLIENT_KEYPAIR_CHALLENGE.
+
+                (no payload — the username was already sent in TOSERVER_INIT)
+        */
+
+        TOSERVER_KEYPAIR_RESPONSE = 0x57,
+        /*
+                v9.29: Client sends its signature of the server's challenge nonce.
+                Belonging to AUTH_MECHANISM_KEYPAIR.
+
+                std::string signature (64 bytes, Ed25519 signature of the nonce)
+        */
+
+        TOSERVER_NUM_MSG_TYPES = 0x58,
 };
 
 enum AuthMechanism
@@ -952,6 +985,11 @@ enum AuthMechanism
 
         // Establishes a srp verification key, for first login and password changing
         AUTH_MECHANISM_FIRST_SRP = 1 << 2,
+
+        // Ed25519 keypair-based authentication (v9.29)
+        // Client proves ownership of private key by signing a challenge.
+        // Registration sends public key; login uses challenge-response.
+        AUTH_MECHANISM_KEYPAIR = 1 << 3,
 };
 
 enum AccessDeniedCode : u8 {
