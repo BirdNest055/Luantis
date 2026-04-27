@@ -131,43 +131,51 @@ local function get_formspec(tabview, name, tabdata)
 
                 -- Description Background
                 "label[0.25,1.6;" .. fgettext("Server Description") .. "]" ..
-                "box[0.25,1.85;5.25,2.7;#999999]"..
+                "box[0.25,1.85;5.25,2.1;#999999]"..
 
                 -- Name / Password
-                "container[0,4.8]" ..
+                "container[0,4.3]" ..
                 "label[0.25,0;" .. fgettext("Name") .. "]"
 
-        -- v9.34: Always show the password field for backwards compatibility.
-        -- When keypair auth is enabled, the password is optional and only
-        -- needed for legacy servers that don't support keypair auth.
-        -- If the server offers KEYPAIR, the password is ignored.
-        -- If the server only offers SRP, the password is used instead.
+        -- v9.36: Redesigned login area layout to fix overlapping elements.
+        -- When keypair_auth is enabled, we show Name + Keys button, then a
+        -- compact password field for legacy servers, then a single Connect button.
+        -- When keypair_auth is disabled, we show Name + Password side by side,
+        -- then Login (and optionally Register) button.
+        -- The description box is made shorter to give more room for auth fields.
         local keypair_auth = core.settings:get_bool("keypair_auth")
         local show_key_manager = core.settings:get_bool("keypair_show_manager")
         if keypair_auth then
+                -- Keypair auth enabled layout
                 if show_key_manager then
                         retval = retval ..
                                 "field[0.25,0.2;3.75,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]" ..
-                                "button[4,0.2;1.5,0.75;btn_keypair_manager;" .. fgettext("Keys") .. "]" ..
-                                "tooltip[btn_keypair_manager;" .. fgettext("Manage Ed25519 keypair and remembered servers") .. "]"
+                                "button[4.1,0.2;1.4,0.75;btn_keypair_manager;" .. fgettext("Keys") .. "]" ..
+                                "tooltip[btn_keypair_manager;" .. fgettext("Manage Ed25519 keypair and registered servers") .. "]"
                 else
                         retval = retval ..
                                 "field[0.25,0.2;5.25,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]"
                 end
-                -- v9.34: Show optional password field for legacy server compatibility
+
+                -- Compact password field for legacy server fallback
                 retval = retval ..
-                        "label[0.25,1.1;" .. fgettext("Password (legacy servers)") .. "]" ..
-                        "pwdfield[0.25,1.3;5.25,0.75;te_pwd;]" ..
-                        "label[0.25,2.2;" .. core.formspec_escape(fgettext("Keypair auth enabled — password only needed for legacy servers")) .. "]"
+                        "label[0.25,1.15;" .. fgettext("Password (legacy)") .. "]" ..
+                        "pwdfield[2.5,1.15;3,0.6;te_pwd;]" ..
+                        "tooltip[te_pwd;" .. fgettext("Optional: only needed for legacy servers without keypair support") .. "]"
+
+                -- Keypair auth status
+                retval = retval ..
+                        "label[0.25,1.85;" .. core.formspec_escape(fgettext("Keypair auth enabled")) .. "]"
 
                 -- Check if we have a remembered username for this server
                 local server_addr = core.settings:get("address") .. ":" .. core.settings:get("remote_port")
                 local last_user = core.keypair_get_server_user and core.keypair_get_server_user(server_addr) or ""
                 if last_user ~= "" then
                         retval = retval ..
-                                "label[0.25,2.6;" .. core.formspec_escape(fgettext("Last username: $1", last_user)) .. "]"
+                                "label[2.5,1.85;" .. core.formspec_escape(fgettext("Last: $1", last_user)) .. "]"
                 end
         else
+                -- Standard auth layout (no keypair)
                 retval = retval ..
                         "label[2.875,0;" .. fgettext("Password") .. "]" ..
                         "field[0.25,0.2;2.625,0.75;te_name;;" .. core.formspec_escape(core.settings:get("name")) .. "]" ..
@@ -175,18 +183,20 @@ local function get_formspec(tabview, name, tabdata)
         end
         retval = retval .. "container_end[]"
 
-        -- Connect
-        local keypair_auth = core.settings:get_bool("keypair_auth")
+        -- v9.36: Fix overlapping Connect/Login buttons.
+        -- When keypair_auth is enabled: single "Connect" button spanning full width.
+        -- When keypair_auth is disabled: "Login" and optionally "Register" buttons.
+        -- The Login button is now inside an else block so it never overlaps Connect.
         if keypair_auth then
-                -- v9.29: With keypair auth, just a single "Connect" button
-                -- No separate Register button needed — keypair handles both cases
-                retval = retval .. "button[0.25,6;5.25,0.75;btn_mp_login;" .. fgettext("Connect") .. "]"
-        elseif core.settings:get_bool("enable_split_login_register") then
-                -- TRANSLATORS: Register an account on a server
-                retval = retval .. "button[0.25,6;2.5,0.75;btn_mp_register;" .. fgettext("Register") .. "]"
+                retval = retval .. "button[0.25,6.15;5.25,0.75;btn_mp_login;" .. fgettext("Connect") .. "]"
+        else
+                if core.settings:get_bool("enable_split_login_register") then
+                        -- TRANSLATORS: Register an account on a server
+                        retval = retval .. "button[0.25,6.15;2.5,0.75;btn_mp_register;" .. fgettext("Register") .. "]"
+                end
+                -- TRANSLATORS: Login to server
+                retval = retval .. "button[3,6.15;2.5,0.75;btn_mp_login;" .. fgettext("Login") .. "]"
         end
-        -- TRANSLATORS: Login to server
-        retval = retval .. "button[3,6;2.5,0.75;btn_mp_login;" .. fgettext("Login") .. "]"
 
         local selected_server = find_selected_server()
 
