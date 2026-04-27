@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <ctime>
 
 /**
  * Ed25519 keypair management for passwordless authentication.
@@ -117,11 +118,18 @@ public:
          */
         bool regenerateKeypair();
 
+        /// Per-server entry with metadata
+        struct ServerEntry {
+                std::string username;
+                std::string created_at;   ///< ISO 8601 timestamp when first registered
+                std::string last_used_at; ///< ISO 8601 timestamp of last successful login
+        };
+
         /**
-         * Get all remembered server-username pairs.
-         * @return A vector of (server_address, username) pairs.
+         * Get all remembered server entries with metadata.
+         * @return A vector of (server_address, ServerEntry) pairs.
          */
-        std::vector<std::pair<std::string, std::string>> getServerUserList() const;
+        std::vector<std::pair<std::string, ServerEntry>> getServerUserList() const;
 
         /**
          * Remove the remembered username for a given server address.
@@ -200,8 +208,8 @@ private:
         /// Whether the keypair file was newly created (first registration)
         bool m_is_new_keypair = false;
 
-        /// Cached server → username mapping (mutable for lazy loading)
-        mutable std::map<std::string, std::string> m_server_users;
+        /// Cached server → ServerEntry mapping (mutable for lazy loading)
+        mutable std::map<std::string, ServerEntry> m_server_users;
 
         /// Whether m_server_users has been loaded from disk
         mutable bool m_server_users_loaded = false;

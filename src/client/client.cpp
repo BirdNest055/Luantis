@@ -473,6 +473,15 @@ void Client::connect(const Address &address, const std::string &address_name)
                 m_access_denied_reason.clear();
         }
 
+        // v9.35: Ensure all auth state is cleaned up before a new connection.
+        // This fixes the reconnection bug where switching usernames (hello → hello2 → hello)
+        // would fail because stale keypair auth state wasn't properly reset.
+        deleteAuthData();
+
+        // v9.35: Reset encryption state for a fresh connection
+        m_encryption_state.disable();
+        m_keypair_is_registration = false;
+
         m_address_name = address_name;
         m_con.reset(con::createMTP(CONNECTION_TIMEOUT, address.isIPv6(), this));
 
@@ -1340,6 +1349,15 @@ void Client::interact(InteractAction action, const PointedThing& pointed)
 
 void Client::deleteAuthData()
 {
+        // v9.35: Handle keypair auth first — it has no m_auth_data (no SRPUser),
+        // but we still need to reset m_chosen_auth_mech and clear keypair auth state.
+        if (m_chosen_auth_mech == AUTH_MECHANISM_KEYPAIR) {
+                m_keypair_saved_challenge.clear();
+                m_keypair_saved_signature.clear();
+                m_chosen_auth_mech = AUTH_MECHANISM_NONE;
+                return;
+        }
+
         if (!m_auth_data)
                 return;
 
