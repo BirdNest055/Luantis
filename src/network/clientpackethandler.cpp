@@ -36,6 +36,7 @@
 #include "util/serialize.h"
 #include "util/srp.h"
 #include "util/hashing.h"
+#include "util/keypair.h"
 #include "porting.h"
 #include "tileanimation.h"
 #include "gettext.h"
@@ -149,6 +150,14 @@ void Client::handleCommand_Hello(NetworkPacket* pkt)
                         << ", forward_secrecy=" << (m_security_info.forward_secrecy ? "yes" : "no")
                         << ", replay_protection=" << (m_security_info.replay_protection ? "yes" : "no")
                         << ". Doing auth with mech " << chosen_auth_mechanism << std::endl;
+
+        // v9.29: Store the offered auth mechanisms and determine keypair mode
+        m_offered_auth_mechs = auth_mechs;
+        // If FIRST_SRP is offered alongside KEYPAIR, the user doesn't exist yet
+        // → keypair auth will be a registration (send public key)
+        // If only KEYPAIR is offered, user exists with keypair → login (challenge-response)
+        m_keypair_is_registration = (auth_mechs & AUTH_MECHANISM_KEYPAIR) &&
+                (auth_mechs & AUTH_MECHANISM_FIRST_SRP);
 
         if (!ser_ver_supported_read(serialization_ver)) {
                 infostream << "Client: TOCLIENT_HELLO: Server sent "
@@ -2372,4 +2381,46 @@ void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         infostream << "Client::handleCommand_EcdhPubkey: ECDH forward secrecy established"
                 << " (session_id=" << m_encryption_state.session_id
                 << ", score=" << m_security_info.getSecurityScoreString() << ")" << std::endl;
+}
+
+void Client::handleCommand_KeypairChallenge(NetworkPacket *pkt)
+{
+        if (m_chosen_auth_mech != AUTH_MECHANISM_KEYPAIR) {
+                errorstream << "Client: Received TOCLIENT_KEYPAIR_CHALLENGE but not in keypair auth mode" << std::endl;
+                return;
+        }
+
+        std::string nonce;
+        *pkt >> nonce;
+
+        if (nonce.size() != KEYPAIR_CHALLENGE_SIZE) {
+                errorstream << "Client: Invalid keypair challenge nonce size ("
+                        << nonce.size() << ", expected " << KEYPAIR_CHALLENGE_SIZE << ")" << std::endl;
+                return;
+        }
+
+        if (!m_keypair_manager || !m_keypair_manager->hasKeypair()) {
+                errorstream << "Client: No keypair available to sign challenge" << std::endl;
+                return;
+        }
+
+        std::string signature = m_keypair_manager->sign(nonce);
+        if (signature.empty()) {
+                errorstream << "Client: Failed to sign challenge nonce" << std::endl;
+                return;
+        }
+
+        NetworkPacket resp_pkt(TOSERVER_KEYPAIR_RESPONSE, 0);
+        resp_pkt << signature;
+        Send(&resp_pkt);
+
+        infostream << "Client: Sent TOSERVER_KEYPAIR_RESPONSE (signed challenge)." << std::endl;
+
+        // Remember the username for this server
+        if (m_keypair_manager && m_con) {
+                std::string server_addr = m_address_name;
+                Address addr = m_con->GetPeerAddress(PEER_ID_SERVER);
+                server_addr += ":" + std::to_string(addr.getPort());
+                m_keypair_manager->rememberServerUser(server_addr, m_playername);
+        }
 }

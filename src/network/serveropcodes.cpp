@@ -96,6 +96,9 @@ const ToServerCommandHandler toServerCommandTable[TOSERVER_NUM_MSG_TYPES] =
         { "TOSERVER_SRP_BYTES_M",              TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_SrpBytesM }, // 0x52
         { "TOSERVER_UPDATE_CLIENT_INFO",       TOSERVER_STATE_INGAME, &Server::handleCommand_UpdateClientInfo }, // 0x53
         { "TOSERVER_ECDH_PUBKEY",              TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_EcdhPubkey }, // 0x54, v9.11 forward secrecy
+        { "TOSERVER_KEYPAIR_REGISTER",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairRegister }, // 0x55, v9.29 keypair auth
+        { "TOSERVER_KEYPAIR_LOGIN",            TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairLogin }, // 0x56, v9.29 keypair auth
+        { "TOSERVER_KEYPAIR_RESPONSE",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairResponse }, // 0x57, v9.29 keypair auth
 };
 
 const static ClientCommandFactory null_command_factory = { nullptr, 0, false };
@@ -215,4 +218,5 @@ const ClientCommandFactory clientCommandFactoryTable[TOCLIENT_NUM_MSG_TYPES] =
         { "TOCLIENT_SET_LIGHTING",             0, true }, // 0x63
         { "TOCLIENT_SPAWN_PARTICLE_BATCH",     0, true }, // 0x64
         { "TOCLIENT_ECDH_PUBKEY",              0, true }, // 0x65, v9.11 forward secrecy
+        { "TOCLIENT_KEYPAIR_CHALLENGE",        0, true }, // 0x66, v9.29 keypair auth
 };

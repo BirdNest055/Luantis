@@ -28,6 +28,7 @@
 #include "server/serverinventorymgr.h"
 #include "util/auth.h"
 #include "util/base64.h"
+#include "util/keypair.h"
 #include "util/pointedthing.h"
 #include "util/srp.h"
 #include "network/connection_security.h"
@@ -216,31 +217,40 @@ void Server::handleCommand_Init(NetworkPacket* pkt)
         client->chosen_mech = AUTH_MECHANISM_NONE;
 
         if (has_auth) {
-                std::vector<std::string> pwd_components = str_split(encpwd, '#');
-                if (pwd_components.size() == 4) {
-                        if (pwd_components[1] == "1") { // 1 means srp
-                                auth_mechs |= AUTH_MECHANISM_SRP;
+                // v9.29: Check for keypair auth (#2# prefix) before SRP (#1# prefix)
+                if (is_keypair_auth(encpwd)) {
+                        auth_mechs |= AUTH_MECHANISM_KEYPAIR;
+                        client->enc_pwd = encpwd;
+                } else {
+                        std::vector<std::string> pwd_components = str_split(encpwd, '#');
+                        if (pwd_components.size() == 4) {
+                                if (pwd_components[1] == "1") { // 1 means srp
+                                        auth_mechs |= AUTH_MECHANISM_SRP;
+                                        client->enc_pwd = encpwd;
+                                } else {
+                                        actionstream << "User " << playername << " tried to log in, "
+                                                "but password field was invalid (unknown mechcode)." <<
+                                                std::endl;
+                                        DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
+                                        return;
+                                }
+                        } else if (base64_is_valid(encpwd)) {
+                                auth_mechs |= AUTH_MECHANISM_LEGACY_PASSWORD;
                                 client->enc_pwd = encpwd;
                         } else {
-                                actionstream << "User " << playername << " tried to log in, "
-                                        "but password field was invalid (unknown mechcode)." <<
-                                        std::endl;
+                                actionstream << "User " << playername << " tried to log in, but "
+                                        "password field was invalid (invalid base64)." << std::endl;
                                 DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
                                 return;
                         }
-                } else if (base64_is_valid(encpwd)) {
-                        auth_mechs |= AUTH_MECHANISM_LEGACY_PASSWORD;
-                        client->enc_pwd = encpwd;
-                } else {
-                        actionstream << "User " << playername << " tried to log in, but "
-                                "password field was invalid (invalid base64)." << std::endl;
-                        DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
-                        return;
                 }
         } else {
                 std::string default_password = g_settings->get("default_password");
                 if (isSingleplayer() || default_password.length() == 0) {
                         auth_mechs |= AUTH_MECHANISM_FIRST_SRP;
+                        // v9.29: Also offer keypair auth for new accounts if enabled
+                        if (g_settings->getBool("keypair_auth"))
+                                auth_mechs |= AUTH_MECHANISM_KEYPAIR;
                 } else {
                         // Take care of default passwords.
                         client->enc_pwd = get_encoded_srp_verifier(playerName, default_password);
@@ -2144,4 +2154,170 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 
         infostream << "Server::handleCommand_EcdhPubkey: ECDH forward secrecy established for peer "
                 << peer_id << " (session_id=" << client->encryption_state.session_id << ")" << std::endl;
+}
+
+void Server::handleCommand_KeypairRegister(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemoteClient *client = getClient(peer_id, CS_Invalid);
+        ClientState cstate = client->getState();
+        const std::string playername = client->getName();
+
+        std::string public_key;
+        *pkt >> public_key;
+
+        std::string addr_s = client->getAddress().serializeString();
+
+        verbosestream << "Server: Got TOSERVER_KEYPAIR_REGISTER from " << addr_s
+                << " (pubkey_len=" << public_key.size() << ")" << std::endl;
+
+        if (cstate != CS_HelloSent) {
+                infostream << "Server: Ignoring TOSERVER_KEYPAIR_REGISTER from "
+                        << addr_s << ": Client has wrong state " << cstate << "." << std::endl;
+                return;
+        }
+
+        if (!client->isMechAllowed(AUTH_MECHANISM_KEYPAIR)) {
+                actionstream << "Server: Client from " << addr_s
+                        << " tried to register keypair without being "
+                        << "allowed to use keypair auth." << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_UNEXPECTED_DATA);
+                return;
+        }
+
+        // Validate public key size
+        if (public_key.size() != ED25519_PUBLIC_KEY_SIZE) {
+                actionstream << "Server: " << playername
+                        << " supplied invalid public key size from " << addr_s << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_UNEXPECTED_DATA);
+                return;
+        }
+
+        // Store the public key as a keypair auth entry (#2# format)
+        std::string encpwd = encode_keypair_pubkey(public_key);
+
+        // Check if account already exists (race condition protection)
+        if (m_script->getAuth(playername, nullptr, nullptr)) {
+                actionstream << "Server: Client from " << addr_s
+                        << " tried to register " << playername << " a second time."
+                        << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_ALREADY_CONNECTED);
+                return;
+        }
+
+        m_script->createAuth(playername, encpwd);
+        client->setEncryptedPassword(encpwd);
+
+        m_script->on_authplayer(playername, addr_s, true);
+
+        infostream << "Server: Keypair registration accepted for " << playername
+                << " from " << addr_s << std::endl;
+
+        acceptAuth(peer_id, false);
+}
+
+void Server::handleCommand_KeypairLogin(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemoteClient *client = getClient(peer_id, CS_Invalid);
+        ClientState cstate = client->getState();
+        const std::string playername = client->getName();
+
+        std::string addr_s = client->getAddress().serializeString();
+
+        verbosestream << "Server: Got TOSERVER_KEYPAIR_LOGIN from " << addr_s << std::endl;
+
+        if (cstate != CS_HelloSent) {
+                infostream << "Server: Ignoring TOSERVER_KEYPAIR_LOGIN from "
+                        << addr_s << ": Client has wrong state " << cstate << "." << std::endl;
+                return;
+        }
+
+        if (!client->isMechAllowed(AUTH_MECHANISM_KEYPAIR)) {
+                actionstream << "Server: Client from " << addr_s
+                        << " tried keypair login without being "
+                        << "allowed to use keypair auth." << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_UNEXPECTED_DATA);
+                return;
+        }
+
+        // Decode the stored public key from the password field
+        std::string stored_pubkey;
+        if (!decode_keypair_pubkey(client->enc_pwd, &stored_pubkey)) {
+                actionstream << "Server: " << playername
+                        << " has invalid keypair auth entry from " << addr_s << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
+                return;
+        }
+
+        // Generate a challenge nonce and send it
+        std::string nonce = KeypairManager::generateChallenge();
+        if (nonce.empty()) {
+                errorstream << "Server: Failed to generate keypair challenge nonce" << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
+                return;
+        }
+
+        // Store the nonce in the client for later verification
+        client->keypair_challenge_nonce = nonce;
+
+        // Send the challenge
+        NetworkPacket challenge_pkt(TOCLIENT_KEYPAIR_CHALLENGE, 0, peer_id);
+        challenge_pkt << nonce;
+        Send(&challenge_pkt);
+
+        infostream << "Server: Sent TOCLIENT_KEYPAIR_CHALLENGE to " << playername
+                << " from " << addr_s << std::endl;
+}
+
+void Server::handleCommand_KeypairResponse(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemoteClient *client = getClient(peer_id, CS_Invalid);
+        const std::string playername = client->getName();
+
+        std::string signature;
+        *pkt >> signature;
+
+        std::string addr_s = client->getAddress().serializeString();
+
+        verbosestream << "Server: Got TOSERVER_KEYPAIR_RESPONSE from " << addr_s
+                << " (sig_len=" << signature.size() << ")" << std::endl;
+
+        if (client->keypair_challenge_nonce.empty()) {
+                actionstream << "Server: " << playername
+                        << " sent keypair response without a challenge from " << addr_s << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_UNEXPECTED_DATA);
+                return;
+        }
+
+        // Decode the stored public key
+        std::string stored_pubkey;
+        if (!decode_keypair_pubkey(client->enc_pwd, &stored_pubkey)) {
+                actionstream << "Server: " << playername
+                        << " has invalid keypair auth entry from " << addr_s << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_SERVER_FAIL);
+                return;
+        }
+
+        // Verify the signature against the challenge nonce
+        bool valid = KeypairManager::verify(stored_pubkey,
+                client->keypair_challenge_nonce, signature);
+
+        // Clear the challenge nonce (one-time use)
+        client->keypair_challenge_nonce.clear();
+
+        if (!valid) {
+                actionstream << "Server: " << playername
+                        << " failed keypair authentication from " << addr_s << std::endl;
+                DenyAccess(peer_id, SERVER_ACCESSDENIED_WRONG_PASSWORD);
+                return;
+        }
+
+        m_script->on_authplayer(playername, addr_s, true);
+
+        infostream << "Server: Keypair login accepted for " << playername
+                << " from " << addr_s << std::endl;
+
+        acceptAuth(peer_id, false);
 }
