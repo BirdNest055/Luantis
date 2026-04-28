@@ -133,6 +133,8 @@ jobs:
 
       - name: Configure CMake
         run: |
+          # Clean stale build directory (may have cached CMakeCache from different path)
+          rm -rf build
           CMAKE_ARGS=(
             -B build
             -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}"
