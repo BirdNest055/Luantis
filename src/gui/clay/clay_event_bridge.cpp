@@ -2,9 +2,8 @@
 Luantis — Clay Event Bridge Implementation
 */
 
-#include "clay_event_bridge.h"
-
 #include <irrlicht.h>
+#include "clay_event_bridge.h"
 
 ClayEventBridge::ClayEventBridge()
 {
@@ -27,7 +26,7 @@ bool ClayEventBridge::onEvent(const irr::SEvent &event)
 			m_pointer_down = false;
 			return true;
 		case irr::EMIE_MOUSE_WHEEL:
-			m_scroll_delta.y += event.MouseInput.Wheel * -50.0f; // Scale wheel to pixels
+			m_scroll_delta.y += event.MouseInput.Wheel * -50.0f;
 			return true;
 		default:
 			break;

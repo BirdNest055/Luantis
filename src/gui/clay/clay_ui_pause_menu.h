@@ -1,13 +1,15 @@
 /*
 Luantis — Clay Pause Menu
 A Clay-based replacement for the formspec pause menu.
+
+Note: Does NOT include clay.h in the header. The .cpp includes it.
 */
 
 #pragma once
 
 #include "clay_integration.h"
-#include <clay.h>
 #include <string>
+#include <cstdint>
 
 class Client;
 

@@ -1,6 +1,9 @@
 /*
 Luantis — Clay Pause Menu Implementation
+Compiled with C++20 for Clay designated initializer support.
 */
+
+#include <clay.h>
 
 #include "clay_ui_pause_menu.h"
 #include "clay_text_measurer.h"
@@ -51,13 +54,12 @@ void ClayPauseMenu::menuButton(const char *id, const char *label, float scale)
 		(u32)(BUTTON_TEXT_SIZE * scale));
 
 	Clay_Color btn_bg = {0.15f, 0.15f, 0.2f, 0.9f};
-	Clay_Color btn_hover = {0.25f, 0.25f, 0.35f, 0.95f};
 	Clay_Color btn_text_color = {0.9f, 0.9f, 0.95f, 1.0f};
 
-	// Check hover state
+	// Check hover state for visual feedback
 	bool hovered = Clay_Hovered();
 	if (hovered) {
-		btn_bg = btn_hover;
+		btn_bg = {0.25f, 0.25f, 0.35f, 0.95f};
 	}
 
 	CLAY(CLAY_ID(id), {
@@ -72,12 +74,12 @@ void ClayPauseMenu::menuButton(const char *id, const char *label, float scale)
 		.backgroundColor = btn_bg,
 		.cornerRadius = {6 * scale, 6 * scale, 6 * scale, 6 * scale}
 	}) {
-		Clay_OnHover([](Clay_ElementId elementId, Clay_PointerData pointerData, uintptr_t userData) {
-			// Hover handler — just marks the element as hovered for visual feedback
+		Clay_OnHover([](Clay_ElementId elementId, Clay_PointerData pointerData, void *userData) {
+			// Hover handler — marks element for visual feedback
 		}, 0);
 
 		CLAY_TEXT(CLAY_STRING(label), CLAY_TEXT_CONFIG({
-			.fontSize = (u16)(BUTTON_TEXT_SIZE * scale),
+			.fontSize = (uint16_t)(BUTTON_TEXT_SIZE * scale),
 			.textColor = btn_text_color,
 			.userData = font_spec
 		}));
@@ -90,8 +92,6 @@ void ClayPauseMenu::buildLayout()
 		return;
 
 	float scale = 1.0f;
-	// TODO: Get actual HUD scaling from settings
-	// float scale = g_settings->getFloat("hud_scaling", 0.5f, 20.0f);
 
 	uintptr_t title_font = ClayTextMeasurer::encodeFontSpec((u32)(TITLE_SIZE * scale));
 	uintptr_t subtitle_font = ClayTextMeasurer::encodeFontSpec((u32)(SUBTITLE_SIZE * scale));
@@ -110,7 +110,7 @@ void ClayPauseMenu::buildLayout()
 			.layout = {
 				.sizing = {
 					.width = CLAY_SIZING_FIXED(PANEL_WIDTH * scale),
-					.height = CLAY_SIZING_FIXED(0) // auto-height
+					.height = CLAY_SIZING_FIXED(0)
 				},
 				.padding = {
 					PANEL_PADDING * scale, PANEL_PADDING * scale,
@@ -124,14 +124,14 @@ void ClayPauseMenu::buildLayout()
 		}) {
 			// Title
 			CLAY_TEXT(CLAY_STRING("Luanti"), CLAY_TEXT_CONFIG({
-				.fontSize = (u16)(TITLE_SIZE * scale),
+				.fontSize = (uint16_t)(TITLE_SIZE * scale),
 				.textColor = {0.95f, 0.95f, 1.0f, 1.0f},
 				.userData = title_font
 			}));
 
 			// Subtitle
 			CLAY_TEXT(CLAY_STRING("Game Paused"), CLAY_TEXT_CONFIG({
-				.fontSize = (u16)(SUBTITLE_SIZE * scale),
+				.fontSize = (uint16_t)(SUBTITLE_SIZE * scale),
 				.textColor = {0.6f, 0.6f, 0.7f, 1.0f},
 				.userData = subtitle_font
 			}));
@@ -141,7 +141,7 @@ void ClayPauseMenu::buildLayout()
 				.layout = {.sizing = {.width = CLAY_SIZING_GROW(0), .height = CLAY_SIZING_FIXED(12 * scale)}}
 			}) {};
 
-			// Continue button (always shown)
+			// Continue button
 			menuButton("btn_continue", strgettext("Continue"), scale);
 
 			// Change Password button (multiplayer only)
@@ -177,7 +177,7 @@ void ClayPauseMenu::buildLayout()
 			}
 
 			CLAY_TEXT(CLAY_STRING(info_text.c_str()), CLAY_TEXT_CONFIG({
-				.fontSize = (u16)(INFO_TEXT_SIZE * scale),
+				.fontSize = (uint16_t)(INFO_TEXT_SIZE * scale),
 				.textColor = {0.5f, 0.5f, 0.55f, 1.0f},
 				.userData = info_font
 			}));
@@ -187,7 +187,6 @@ void ClayPauseMenu::buildLayout()
 
 void ClayPauseMenu::onLayoutComplete()
 {
-	// Post-layout processing — currently nothing needed
 }
 
 bool ClayPauseMenu::handleClick(const Clay_ElementId &element_id)

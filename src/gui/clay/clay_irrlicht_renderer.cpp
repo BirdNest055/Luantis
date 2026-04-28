@@ -3,14 +3,14 @@ Luantis — Clay Irrlicht Renderer Implementation
 Translates Clay render commands to Irrlicht video::IVideoDriver calls.
 */
 
+// This file is compiled with C++20 for Clay designated initializer support
+#include <clay.h>
+
 #include "clay_irrlicht_renderer.h"
 
 #include <irrlicht.h>
 #include "client/fontengine.h"
 #include "log.h"
-
-// Clay header — implementation is in clay_gui_manager.cpp
-#include <clay.h>
 
 /// Convert Clay_Color {r,g,b,a in 0.0-1.0} to Irrlicht SColor
 static inline irr::video::SColor clayToSColor(Clay_Color c)
@@ -98,7 +98,6 @@ void ClayIrrlichtRenderer::renderText(const Clay_RenderCommand &cmd)
 	// Get the font from FontEngine based on userData (font spec encoding)
 	irr::gui::IGUIFont *font = nullptr;
 	if (m_font_engine) {
-		// userData encodes: bits 0-10 = size, bits 11-12 = mode, bit 13 = bold, bit 14 = italic
 		u32 font_size = (cmd.userData & 0x7FF);
 		if (font_size == 0)
 			font_size = 16; // default
@@ -113,7 +112,7 @@ void ClayIrrlichtRenderer::renderText(const Clay_RenderCommand &cmd)
 	}
 
 	if (font) {
-		// Clay_String is not null-terminated, so we need to copy it
+		// Clay_StringSlice is not null-terminated, so we need to copy it
 		std::string text(text_data.stringContents.chars, text_data.stringContents.length);
 		std::wstring wtext = utf8_to_wide(text);
 		font->draw(wtext.c_str(), rect, color, false, false, clip);
@@ -122,8 +121,6 @@ void ClayIrrlichtRenderer::renderText(const Clay_RenderCommand &cmd)
 
 void ClayIrrlichtRenderer::renderImage(const Clay_RenderCommand &cmd)
 {
-	// For now, render a placeholder rectangle
-	// Full image support will be added when needed for specific UI panels
 	const Clay_ImageRenderData &img_data = cmd.renderData.image;
 	irr::video::SColor tint = clayToSColor(img_data.backgroundColor);
 	irr::core::rect<irr::s32> rect = clayToRect(cmd.boundingBox);
@@ -151,34 +148,29 @@ void ClayIrrlichtRenderer::renderBorder(const Clay_RenderCommand &cmd)
 	const irr::core::rect<irr::s32> *clip = m_scissor_stack.empty()
 		? nullptr : &m_scissor_stack.back();
 
-	// Clay borders: top, right, bottom, left widths
 	float top = border.width.top;
 	float right = border.width.right;
 	float bottom = border.width.bottom;
 	float left = border.width.left;
 
-	// Top border
 	if (top > 0) {
 		m_driver->draw2DRectangle(color,
 			irr::core::rect<irr::s32>(rect.UpperLeftCorner.X, rect.UpperLeftCorner.Y,
 				rect.LowerRightCorner.X, rect.UpperLeftCorner.Y + (irr::s32)top),
 			clip);
 	}
-	// Bottom border
 	if (bottom > 0) {
 		m_driver->draw2DRectangle(color,
 			irr::core::rect<irr::s32>(rect.UpperLeftCorner.X, rect.LowerRightCorner.Y - (irr::s32)bottom,
 				rect.LowerRightCorner.X, rect.LowerRightCorner.Y),
 			clip);
 	}
-	// Left border
 	if (left > 0) {
 		m_driver->draw2DRectangle(color,
 			irr::core::rect<irr::s32>(rect.UpperLeftCorner.X, rect.UpperLeftCorner.Y,
 				rect.UpperLeftCorner.X + (irr::s32)left, rect.LowerRightCorner.Y),
 			clip);
 	}
-	// Right border
 	if (right > 0) {
 		m_driver->draw2DRectangle(color,
 			irr::core::rect<irr::s32>(rect.LowerRightCorner.X - (irr::s32)right, rect.UpperLeftCorner.Y,
@@ -190,9 +182,8 @@ void ClayIrrlichtRenderer::renderBorder(const Clay_RenderCommand &cmd)
 void ClayIrrlichtRenderer::renderCustom(const Clay_RenderCommand &cmd)
 {
 	// Custom elements are rendered by their owning IClayPanel
-	// The Clay_RenderCommand.userData contains a pointer to custom render data
 	// For now, draw a debug rectangle
-	irr::video::SColor debug_color(128, 255, 0, 255); // semi-transparent green
+	irr::video::SColor debug_color(128, 255, 0, 255);
 	irr::core::rect<irr::s32> rect = clayToRect(cmd.boundingBox);
 	const irr::core::rect<irr::s32> *clip = m_scissor_stack.empty()
 		? nullptr : &m_scissor_stack.back();
@@ -204,7 +195,6 @@ void ClayIrrlichtRenderer::pushScissor(const Clay_RenderCommand &cmd)
 	irr::core::rect<irr::s32> new_rect = clayToRect(cmd.boundingBox);
 
 	if (!m_scissor_stack.empty()) {
-		// Intersect with parent scissor
 		new_rect.clipAgainst(m_scissor_stack.back());
 	}
 

@@ -1,6 +1,10 @@
 /*
 Luantis — Clay GUI Manager
 Lifecycle manager for Clay UI: init, per-frame update, rendering, event routing.
+
+Note: This header does NOT include clay.h because Clay requires C++20
+(designated initializers). The Clay types are forward-declared here.
+The actual Clay API is used only in the .cpp files which are compiled with C++20.
 */
 
 #pragma once
@@ -8,6 +12,7 @@ Lifecycle manager for Clay UI: init, per-frame update, rendering, event routing.
 #include <memory>
 #include <vector>
 #include <string>
+#include <cstdint>
 
 namespace irr {
 namespace video { class IVideoDriver; }
@@ -19,6 +24,11 @@ class IClayPanel;
 class ClayIrrlichtRenderer;
 class ClayTextMeasurer;
 class ClayEventBridge;
+
+// Forward declarations for Clay types (matching clay.h definitions)
+struct Clay_ElementId;
+struct Clay_ErrorData;
+struct Clay_RenderCommandArray;
 
 /// Central orchestrator for the Clay UI system.
 /// Owns the Clay memory arena, drives the per-frame layout/render cycle,
@@ -33,7 +43,7 @@ public:
 	void init(size_t arena_size = 1 << 22);
 
 	/// Called when the window is resized.
-	void onResize(irr::u32 width, irr::u32 height);
+	void onResize(uint32_t width, uint32_t height);
 
 	/// Per-frame update: feed input to Clay, run layout, render all visible panels.
 	/// @param dtime  Delta time in seconds since last frame
@@ -70,8 +80,8 @@ private:
 
 	std::vector<IClayPanel *> m_panels;
 
-	irr::u32 m_screen_width = 0;
-	irr::u32 m_screen_height = 0;
+	uint32_t m_screen_width = 0;
+	uint32_t m_screen_height = 0;
 	bool m_initialized = false;
 	bool m_left_click_consumed = false;
 };

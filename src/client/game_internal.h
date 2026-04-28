@@ -328,6 +328,7 @@ private:
         // Clay UI system (v9.46)
         std::unique_ptr<class ClayGUIManager> m_clay_gui;
         class ClayPauseMenu *m_clay_pause_menu = nullptr;
+        float m_last_dtime = 0.0f;
 
         // Map server hud ids to client hud ids
         std::unordered_map<u32, u32> m_hud_server_to_client;

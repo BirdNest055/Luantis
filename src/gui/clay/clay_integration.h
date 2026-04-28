@@ -10,14 +10,15 @@ outputs renderer-agnostic render commands that we translate to Irrlicht
 driver calls.
 
 This header is the master include for all Clay integration classes.
+It does NOT include clay.h (which requires C++20).
 */
 
 #pragma once
 
 #include <string>
-#include <vector>
+#include <cstdint>
 
-// Forward declaration — Clay_ElementId is defined in clay.h
+/// Forward declaration of Clay element ID (defined in clay.h)
 struct Clay_ElementId;
 
 /// Interface for a Clay-based UI panel.

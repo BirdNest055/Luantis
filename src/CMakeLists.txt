@@ -746,6 +746,16 @@ if(BUILD_CLIENT)
                 "$<$<PLATFORM_ID:Android>:${SDL2_LIBRARIES}>"
         )
         target_compile_definitions(${PROJECT_NAME} PRIVATE "MT_BUILDTARGET=1")
+
+        # Clay UI files require C++20 for designated initializers (used by clay.h)
+        set_property(SOURCE
+                ${CMAKE_CURRENT_SOURCE_DIR}/gui/clay/clay_irrlicht_renderer.cpp
+                ${CMAKE_CURRENT_SOURCE_DIR}/gui/clay/clay_gui_manager.cpp
+                ${CMAKE_CURRENT_SOURCE_DIR}/gui/clay/clay_text_measurer.cpp
+                ${CMAKE_CURRENT_SOURCE_DIR}/gui/clay/clay_event_bridge.cpp
+                ${CMAKE_CURRENT_SOURCE_DIR}/gui/clay/clay_ui_pause_menu.cpp
+                PROPERTY COMPILE_FEATURES cxx_std_20
+        )
         if(NOT USE_LUAJIT)
                 set_target_properties(${PROJECT_NAME} PROPERTIES
                         # This is necessary for dynamic Lua modules

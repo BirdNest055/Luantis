@@ -1,21 +1,28 @@
 /*
 Luantis — Clay Irrlicht Renderer
 Translates Clay render commands to Irrlicht video::IVideoDriver calls.
+
+Note: Does NOT include clay.h. Uses forward declarations only.
 */
 
 #pragma once
 
 #include <vector>
-#include <unordered_map>
+#include <cstdint>
 
 namespace irr {
 namespace video { class IVideoDriver; }
 namespace gui { class IGUIFont; }
+class SEvent;
 }
 
 class FontEngine;
+
+// Forward declarations for Clay types
 struct Clay_RenderCommand;
 struct Clay_RenderCommandArray;
+struct Clay_BoundingBox;
+struct Clay_Color;
 
 /// Renders Clay's output command list using Irrlicht's 2D drawing API.
 /// Call render() once per frame after Clay_EndLayout().

@@ -3460,6 +3460,9 @@ void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
         TimeTaker tt_update("Game::updateFrame()");
         LocalPlayer *player = client->getEnv().getLocalPlayer();
 
+        // v9.46: Store dtime for Clay UI rendering
+        m_last_dtime = dtime;
+
         /*
                 Frame time
         */
@@ -3786,9 +3789,8 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         // v9.46: Render Clay UI overlays in a separate scene pass.
         // Clay needs its own beginScene/endScene for proper alpha blending.
         if (m_clay_gui && m_clay_gui->hasVisiblePanels()) {
-                float dtime = runData.dtime;
                 this->driver->beginScene(false, false, video::SColor(0, 0, 0, 0));
-                m_clay_gui->update(dtime);
+                m_clay_gui->update(m_last_dtime);
                 this->driver->endScene();
         }
 
