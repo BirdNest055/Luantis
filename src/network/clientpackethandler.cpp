@@ -4,6 +4,10 @@
 
 #include "client/client.h"
 
+#include "config.h"
+#if USE_VOICE_CHAT
+#include "client/voice_chat.h"
+#endif
 #include "exceptions.h"
 #include "irr_v2d.h"
 #include "util/base64.h"
