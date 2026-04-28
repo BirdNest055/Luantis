@@ -16,7 +16,6 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/kdf.h>
-#include <openssl/params.h>
 #endif
 
 #include <cstring>
@@ -420,15 +419,31 @@ void VoiceChatManager::generateEphemeralKeypair()
         }
         EVP_PKEY_CTX_free(ctx);
 
-        // Extract raw public key
-        size_t pub_len = 32;
-        EVP_PKEY_get_octet_string_param(pkey, OSSL_PKEY_PARAM_PUB_KEY,
-                m_local_pubkey.data(), pub_len, &pub_len);
+        // Extract raw public key (X25519 uses the same raw API as Ed25519)
+        size_t pub_len = 0;
+        if (EVP_PKEY_get_raw_public_key(pkey, nullptr, &pub_len) != 1 || pub_len != 32) {
+                errorstream << "VoiceChat: Failed to query X25519 public key size" << std::endl;
+                EVP_PKEY_free(pkey);
+                return;
+        }
+        if (EVP_PKEY_get_raw_public_key(pkey, m_local_pubkey.data(), &pub_len) != 1) {
+                errorstream << "VoiceChat: Failed to extract X25519 public key" << std::endl;
+                EVP_PKEY_free(pkey);
+                return;
+        }
 
         // Extract raw private key
-        size_t priv_len = 32;
-        EVP_PKEY_get_octet_string_param(pkey, OSSL_PKEY_PARAM_PRIV_KEY,
-                m_local_privkey.data(), priv_len, &priv_len);
+        size_t priv_len = 0;
+        if (EVP_PKEY_get_raw_private_key(pkey, nullptr, &priv_len) != 1 || priv_len != 32) {
+                errorstream << "VoiceChat: Failed to query X25519 private key size" << std::endl;
+                EVP_PKEY_free(pkey);
+                return;
+        }
+        if (EVP_PKEY_get_raw_private_key(pkey, m_local_privkey.data(), &priv_len) != 1) {
+                errorstream << "VoiceChat: Failed to extract X25519 private key" << std::endl;
+                EVP_PKEY_free(pkey);
+                return;
+        }
 
         EVP_PKEY_free(pkey);
 
@@ -474,53 +489,24 @@ bool VoiceChatManager::deriveSessionKey(u16 peer_id)
         if (peer.peer_pubkey.size() != 32 || m_local_privkey.size() != 32)
                 return false;
 
-        // Create EVP_PKEY from our private key
-        EVP_PKEY *priv_pkey = nullptr;
-        OSSL_PARAM params[] = {
-                OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PRIV_KEY,
-                        m_local_privkey.data(), 32),
-                OSSL_PARAM_construct_end()
-        };
-        EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name(nullptr, "X25519", nullptr);
-        if (!ctx)
-                return false;
-
-        if (EVP_PKEY_fromdata_init(ctx) <= 0) {
-                EVP_PKEY_CTX_free(ctx);
+        // Create EVP_PKEY from our private key (using raw key API, same as keypair.cpp)
+        EVP_PKEY *priv_pkey = EVP_PKEY_new_raw_private_key(
+                EVP_PKEY_X25519, nullptr,
+                m_local_privkey.data(), 32);
+        if (!priv_pkey) {
+                errorstream << "VoiceChat: Failed to create X25519 private key EVP_PKEY" << std::endl;
                 return false;
         }
-
-        if (EVP_PKEY_fromdata(ctx, &priv_pkey, EVP_PKEY_PRIVATE_KEY, params) <= 0) {
-                EVP_PKEY_CTX_free(ctx);
-                return false;
-        }
-        EVP_PKEY_CTX_free(ctx);
 
         // Create EVP_PKEY from peer's public key
-        EVP_PKEY *pub_pkey = nullptr;
-        OSSL_PARAM pub_params[] = {
-                OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PUB_KEY,
-                        peer.peer_pubkey.data(), 32),
-                OSSL_PARAM_construct_end()
-        };
-        ctx = EVP_PKEY_CTX_new_from_name(nullptr, "X25519", nullptr);
-        if (!ctx) {
+        EVP_PKEY *pub_pkey = EVP_PKEY_new_raw_public_key(
+                EVP_PKEY_X25519, nullptr,
+                peer.peer_pubkey.data(), 32);
+        if (!pub_pkey) {
+                errorstream << "VoiceChat: Failed to create X25519 public key EVP_PKEY" << std::endl;
                 EVP_PKEY_free(priv_pkey);
                 return false;
         }
-
-        if (EVP_PKEY_fromdata_init(ctx) <= 0) {
-                EVP_PKEY_CTX_free(ctx);
-                EVP_PKEY_free(priv_pkey);
-                return false;
-        }
-
-        if (EVP_PKEY_fromdata(ctx, &pub_pkey, EVP_PKEY_PUBLIC_KEY, pub_params) <= 0) {
-                EVP_PKEY_CTX_free(ctx);
-                EVP_PKEY_free(priv_pkey);
-                return false;
-        }
-        EVP_PKEY_CTX_free(ctx);
 
         // Derive shared secret
         EVP_PKEY_CTX *derive_ctx = EVP_PKEY_CTX_new(priv_pkey, nullptr);
