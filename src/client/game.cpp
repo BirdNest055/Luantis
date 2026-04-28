@@ -1448,6 +1448,8 @@ void Game::processKeyInput()
 #endif
                 if (!gui_chat_console->isOpenInhibited()) {
                         m_game_formspec.showPauseMenu();
+                } else {
+                        infostream << "Game: ESC pressed but chat console open inhibited" << std::endl;
                 }
         } else if (wasKeyDown(KeyType::CHAT)) {
                 openConsole(0.2, L"");

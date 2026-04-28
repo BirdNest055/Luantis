@@ -157,6 +157,26 @@ bool MyEventReceiver::OnEvent(const SEvent &event)
         if (event.EventType == EET_KEY_INPUT_EVENT) {
                 KeyPress keyCode(event.KeyInput);
 
+                // Direct Irrlicht KEY_ESCAPE keycode fallback (MUST be first).
+                // This catches ESC even when the scancode-based keysListenedFor
+                // lookup fails (e.g., scancode mismatch on some platforms) or
+                // when input->clear() ate keyWasDown during a focus hiccup.
+                // We use the Irrlicht keycode directly instead of the scancode.
+                // This is placed before the fullscreen check so that ESC is
+                // never silently consumed without our knowledge.
+                if (event.KeyInput.Key == KEY_ESCAPE && event.KeyInput.PressedDown) {
+                        m_direct_esc_was_pressed = true;
+                        // Diagnostic: check if the scancode-based EscapeKey matches
+                        // the event's keyCode. A mismatch means the scancode system
+                        // is broken for ESC on this platform.
+                        if (keyCode != EscapeKey) {
+                                infostream << "Input: ESC scancode mismatch! "
+                                          << "event scancode=" << keyCode.getScancode()
+                                          << " EscapeKey scancode=" << EscapeKey.getScancode()
+                                          << std::endl;
+                        }
+                }
+
                 if (keySettingHasMatch("keymap_fullscreen", keyCode)) {
                         if (event.KeyInput.PressedDown && !fullscreen_is_down) {
                                 IrrlichtDevice *device = RenderingEngine::get_raw_device();
