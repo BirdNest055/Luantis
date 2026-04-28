@@ -46,6 +46,18 @@ public:
 	// in the subsequent iteration of Game::processPlayerInteraction
 	bool WasKeyReleased(GameKeyType key) const { return keyWasReleased[key]; }
 
+	// Check and consume the direct ESC keycode fallback flag.
+	// Returns true if ESC was detected by the direct Irrlicht keycode,
+	// bypassing the scancode-based keysListenedFor system.
+	bool consumeDirectEsc()
+	{
+		if (m_direct_esc_was_pressed) {
+			m_direct_esc_was_pressed = false;
+			return true;
+		}
+		return false;
+	}
+
 	void reloadKeybindings();
 
 	s32 getMouseWheel()
@@ -236,10 +248,8 @@ public:
 		// when the scancode-based keysListenedFor lookup fails, or when
 		// input->clear() ate keyWasDown during a focus hiccup.
 		bool result = wasKeyDown(KeyType::ESC);
-		if (!result && m_receiver->m_direct_esc_was_pressed) {
-			m_receiver->m_direct_esc_was_pressed = false;
-			result = true;
-		}
+		if (!result)
+			result = m_receiver->consumeDirectEsc();
 		return result;
 	}
 
