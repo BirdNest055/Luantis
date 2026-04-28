@@ -2,10 +2,11 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Luanti-Secure</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.28-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.40-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
+    <img src="https://img.shields.io/badge/voice-E2EE-brightgreen.svg" alt="Voice">
 </div>
 <br>
 
@@ -56,6 +57,12 @@ Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 | Gitignore media folder | v9.26+ | `media/` directory added to `.gitignore` to prevent server-downloaded textures/sounds from overwhelming git |
 | Project rename | v9.27+ | Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files |
 | Minecraft-like keybinds | v9.28+ | Default keybindings changed to match Minecraft: E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom |
+| Server info overlay | v9.38+ | In-game Tab overlay showing server name, player list, ping, uptime, and extensible Lua sections |
+| Voice chat with E2EE | v9.39+ | Opus voice chat with X25519 ECDH key exchange and AES-256-GCM encryption; push-to-talk and toggle modes |
+| Keypair authentication | v9.39+ | X25519 keypair auth mechanism for client identity verification alongside SRP |
+| Sprint toggle | v9.39+ | Ctrl sprint changed from hold-to-run to toggle; press once to sprint, press again to stop |
+| Tab overlay toggle | v9.39+ | Tab key changed from hold-to-show to toggle; press once to show overlay, press again to hide |
+| Consolidated docs | v9.40+ | All documentation consolidated from `doc/` into `docs/` directory; comprehensive docs index with Luantis-specific guides |
 
 Encryption Architecture
 -----------------------
@@ -157,7 +164,7 @@ Default keybindings are set to Minecraft-like defaults (changed in v9.28):
 | W, A, S, D                    | Move                                                           |
 | Space                         | Jump/move up                                                   |
 | Left Shift                    | Sneak/move down                                                |
-| Left Ctrl                     | Sprint / Aux1 (Move fast in fast mode. Games may add special features) |
+| Left Ctrl                     | Sprint toggle (press once to start/stop. Move fast in fast mode. Games may add special features) |
 | Q                             | Drop itemstack                                                 |
 | Shift + Q                     | Drop single item                                               |
 | Left mouse button             | Dig/punch/use                                                  |
@@ -169,7 +176,9 @@ Default keybindings are set to Minecraft-like defaults (changed in v9.28):
 | C                             | Zoom (needs zoom privilege)                                    |
 | T                             | Chat                                                           |
 | /                             | Command                                                        |
+| Tab                           | Toggle server info overlay (player list, ping, uptime)                          |
 | Esc                           | Pause menu/abort/exit (pauses only singleplayer game)          |
+| ~ (backtick/tilde)            | Voice chat push-to-talk (hold to transmit, v9.39+)             |
 | +                             | Increase view range                                            |
 | -                             | Decrease view range                                            |
 | K                             | Enable/disable fly mode (needs fly privilege)                  |
@@ -369,9 +378,9 @@ Version scheme
 Luanti-Secure uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.28)
+2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.40)
 
-The full version string is `5.16.1-v9.28-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.40-dev`, displayed via `--version` and in the UI.
 
 The Luanti-Secure version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -398,5 +407,9 @@ The Luanti-Secure version tracks encryption feature development:
 - v9.26: Gitignore `media/` folder — prevents server-downloaded media files from overwhelming git
 - v9.27: Project rename — Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files
 - v9.28: Minecraft-like default keybindings — E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom
+- v9.29–v9.37: Internal development iterations — build system improvements, CI refinements, code quality
+- v9.38: Server info overlay — Tab key shows in-game overlay with server name, player list, ping, uptime, and extensible Lua section system
+- v9.39: Voice chat with E2EE — Opus codec voice chat with X25519 ECDH key exchange and AES-256-GCM encryption; push-to-talk (~ key) and toggle modes; keypair authentication mechanism (AUTH_MECHANISM_KEYPAIR); Ctrl sprint changed to toggle; Tab overlay changed to toggle
+- v9.40: Documentation consolidation — all docs moved from `doc/` to `docs/`; fixed voice_chat.lua crash (register_on_connect replaced with register_on_joinplayer); fixed Tab overlay not toggling (wasKeyPressed check moved from drawScene to processKeyInput); comprehensive docs index with Luantis-specific guides
 
-Git tags follow the pattern `luanti-secure-v9.28`.
+Git tags follow the pattern `luanti-secure-v9.40`.
