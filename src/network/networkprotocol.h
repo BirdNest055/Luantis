@@ -1059,11 +1059,13 @@ enum ToServerCommand : u16
                 std::string signature (64 bytes, Ed25519 signature of the nonce)
         */
 
-        TOSERVER_VOICE_ENABLE = 0x58,
+        TOSERVER_VOICE_OPT_OUT = 0x58,
         /*
-                v9.39: Client toggles its own voice chat on/off.
+                v9.44: Client opts out of (or back into) receiving voice.
+                Server controls whether voice chat is ON; client can only
+                choose to mute incoming audio.
 
-                u8 enabled (bool)
+                u8 opt_out (1 = client opts out, 0 = client opts in)
         */
 
         TOSERVER_VOICE_START = 0x59,

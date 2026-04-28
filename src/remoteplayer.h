@@ -133,7 +133,7 @@ public:
         void onSuccessfulSave();
 
         // v9.39: Voice chat state per-player on server side
-        bool voice_chat_enabled = false;     // Client has voice enabled
+        bool voice_chat_enabled = true;      // Client has opted into voice (default: opted in when server allows)
         bool voice_is_talking = false;       // Currently transmitting
         u8 voice_channel = 0;                // Active voice channel (0=global, >0=group)
         std::vector<u8> voice_pubkey;        // X25519 public key for voice E2EE (32 bytes)

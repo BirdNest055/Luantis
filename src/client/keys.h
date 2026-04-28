@@ -47,7 +47,7 @@ public:
                 INC_VOLUME,
                 DEC_VOLUME,
                 VOICE_PTT,        // v9.39: Push-to-talk (hold to transmit)
-                VOICE_TOGGLE,     // v9.39: Toggle voice chat on/off
+                VOICE_MUTE_ALL,   // v9.44: Mute/unmute all incoming voice (client opt-out)
                 CINEMATIC,
                 SCREENSHOT,
                 SERVERINFO,
