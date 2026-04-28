@@ -14,6 +14,7 @@ voice.self_talking_hud = nil -- "YOU ARE TALKING" indicator
 voice.peer_states = {}       -- peer_id -> { name, talking, muted, enabled }
 voice.is_local_talking = false
 voice.local_enabled = false
+voice.hud_initialized = false -- track if HUD has been set up
 
 -- Positioning constants
 local HUD_MARGIN_TOP = 40
@@ -30,6 +31,8 @@ local COLOR_OFF     = 0xFF888888   -- Gray when voice off
 
 -- Initialize voice chat HUD
 function voice.init()
+        if not core.localplayer then return end
+
         -- Create PTT status indicator (top-right)
         voice.ptt_hud_id = core.localplayer:hud_add({
                 hud_elem_type = "text",
@@ -307,17 +310,44 @@ local function on_step(dtime)
 end
 
 -- Register the step function
-core.register_globalstep(on_step)
+core.register_globalstep(function(dtime)
+        -- Initialize HUD once localplayer becomes available (client-side)
+        if not voice.hud_initialized and core.localplayer then
+                voice.local_enabled = core.settings:get_bool("enable_voice_chat")
+                voice.init()
+                voice.hud_initialized = true
+        end
+        if voice.hud_initialized then
+                on_step(dtime)
+        end
+end)
 
--- Initialize when game starts
-core.register_on_connect(function()
-        voice.local_enabled = core.settings:get_bool("enable_voice_chat")
-        -- HUD will be initialized when localplayer becomes available
-        core.after(1, function()
-                if core.localplayer then
-                        voice.init()
+-- Initialize voice state for joining players (server-side)
+core.register_on_joinplayer(function(player)
+        if player then
+                local name = player:get_player_name()
+                -- Track the player in peer states
+                voice.peer_states[name] = {
+                        name = name,
+                        talking = false,
+                        muted = false,
+                        enabled = true,
+                }
+        end
+end)
+
+-- Clean up when players leave
+core.register_on_leaveplayer(function(player)
+        if player then
+                local name = player:get_player_name()
+                voice.peer_states[name] = nil
+                -- Remove HUD elements for departed player
+                if voice.hud_ids[name] then
+                        core.localplayer:hud_remove(voice.hud_ids[name].name_id)
+                        core.localplayer:hud_remove(voice.hud_ids[name].indicator_id)
+                        voice.hud_ids[name] = nil
                 end
-        end)
+        end
 end)
 
 return voice
