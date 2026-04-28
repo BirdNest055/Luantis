@@ -61,6 +61,10 @@ enum class SSCMMode {
 #include "util/string.h"
 #include "version.h"
 
+#if USE_VOICE_CHAT
+#include "client/voice_chat.h"
+#endif
+
 // CPCSM
 #include "content/mod_configuration.h"
 #include "content/mods.h"
@@ -194,6 +198,11 @@ Client::Client(
                         m_keypair_manager.reset();
                 }
         }
+
+#if USE_VOICE_CHAT
+        // v9.39: Initialize voice chat manager
+        m_voice_chat = std::make_unique<VoiceChatManager>();
+#endif
 
         // Make the mod storage database and begin the save for later
         m_mod_storage_database =
@@ -459,6 +468,14 @@ Client::~Client()
         for (auto &csp : m_sounds_client_to_server)
                 m_sound->freeId(csp.first);
         m_sounds_client_to_server.clear();
+
+#if USE_VOICE_CHAT
+        // v9.39: Clean up voice chat
+        if (m_voice_chat) {
+                m_voice_chat->deinit();
+                m_voice_chat.reset();
+        }
+#endif
 }
 
 void Client::connect(const Address &address, const std::string &address_name)
@@ -1799,6 +1816,88 @@ void Client::sendReady()
         Send(&pkt);
 }
 
+#if USE_VOICE_CHAT
+// v9.39: Initialize voice chat manager and wire up send functions
+void Client::initVoiceChat()
+{
+        if (!m_voice_chat)
+                return;
+
+        m_voice_chat->init();
+
+        // Wire up send functions — these create and send the appropriate
+        // network packets when the voice chat manager needs to transmit
+        m_voice_chat->sendVoiceStart = [this](u8 channel_id) {
+                NetworkPacket pkt(TOSERVER_VOICE_START, 1);
+                pkt << channel_id;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceData = [this](u8 channel_id, u16 seq_num,
+                        const std::vector<u8> &opus_data, bool e2ee, const std::vector<u8> &nonce) {
+                NetworkPacket pkt(TOSERVER_VOICE_DATA, 1 + 2 + 2 + opus_data.size() + (e2ee ? 12 : 0));
+                pkt << channel_id << seq_num << (u16)opus_data.size();
+                pkt.putRawString((const char*)opus_data.data(), opus_data.size());
+                if (e2ee && nonce.size() == 12)
+                        pkt.putRawString((const char*)nonce.data(), 12);
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceStop = [this](u8 channel_id) {
+                NetworkPacket pkt(TOSERVER_VOICE_STOP, 1);
+                pkt << channel_id;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceEnable = [this](bool enabled) {
+                NetworkPacket pkt(TOSERVER_VOICE_ENABLE, 1);
+                pkt << (u8)(enabled ? 1 : 0);
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceMute = [this](u16 peer_id, bool muted) {
+                NetworkPacket pkt(TOSERVER_VOICE_MUTE, 3);
+                pkt << peer_id << (u8)(muted ? 1 : 0);
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceGroupCreate = [this](const std::string &name) {
+                NetworkPacket pkt(TOSERVER_VOICE_GROUP_CREATE, 2 + name.size());
+                pkt << name;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceGroupInvite = [this](u32 group_id, u16 peer_id) {
+                NetworkPacket pkt(TOSERVER_VOICE_GROUP_INVITE, 6);
+                pkt << group_id << peer_id;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceGroupJoin = [this](u32 group_id) {
+                NetworkPacket pkt(TOSERVER_VOICE_GROUP_JOIN, 4);
+                pkt << group_id;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceGroupLeave = [this](u32 group_id) {
+                NetworkPacket pkt(TOSERVER_VOICE_GROUP_LEAVE, 4);
+                pkt << group_id;
+                Send(&pkt);
+        };
+
+        m_voice_chat->sendVoiceKeyExchange = [this](const u8 pubkey[32]) {
+                NetworkPacket pkt(TOSERVER_VOICE_KEY_EXCHANGE, 32);
+                pkt.putRawString((const char*)pubkey, 32);
+                Send(&pkt);
+        };
+
+        // Auto-enable voice chat if the setting is on
+        if (g_settings->getBool("enable_voice_chat")) {
+                m_voice_chat->setEnabled(true);
+        }
+}
+#endif
+
 void Client::sendPlayerPos()
 {
         LocalPlayer *player = m_env.getLocalPlayer();
@@ -2297,6 +2396,11 @@ void Client::afterContentReceived()
 
         m_state = LC_Ready;
         sendReady();
+
+#if USE_VOICE_CHAT
+        // v9.39: Initialize voice chat after connection is fully established
+        initVoiceChat();
+#endif
 
         if (m_mods_loaded)
                 m_script->on_client_ready(m_env.getLocalPlayer());

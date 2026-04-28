@@ -263,6 +263,12 @@ keymap_drop (Drop item) key SYSTEM_SCANCODE_20
 
 keymap_zoom (Zoom) key SYSTEM_SCANCODE_6
 
+#    v9.39: Hold this key to transmit voice audio (push-to-talk).
+keymap_voice_ptt (Voice chat push-to-talk) key SYSTEM_SCANCODE_41
+
+#    v9.39: Press to toggle voice chat on/off.
+keymap_voice_toggle (Voice chat toggle) key
+
 keymap_camera_yaw_left (Look left) key
 keymap_camera_yaw_right (Look right) key
 keymap_camera_pitch_up (Look up) key
@@ -854,6 +860,59 @@ sound_volume_unfocused (Volume when unfocused) float 0.3 0.0 1.0
 #    In-game, you can toggle the mute state with the mute key or by using the
 #    pause menu.
 mute_sound (Mute sound) bool false
+
+[**Voice Chat]
+
+#    v9.39: Enable voice chat. Requires server support and Opus codec.
+enable_voice_chat (Enable voice chat) bool false
+
+#    v9.39: Voice chat volume (0.0 to 1.0).
+voice_chat_volume (Voice chat volume) float 0.8 0.0 1.0
+
+#    v9.39: Voice chat input mode. "ptt" = push-to-talk (hold key), "toggle" = press to toggle.
+voice_chat_mode (Voice chat mode) enum ptt,ptt,toggle
+
+#    v9.39: Enable end-to-end encryption for voice chat.
+#    When enabled, voice data is encrypted with AES-256-GCM using
+#    per-peer session keys derived via X25519 ECDH + HKDF.
+#    The server cannot listen to encrypted voice conversations.
+voice_chat_e2ee (End-to-end encryption) bool true
+
+#    v9.39: Enable noise suppression for voice chat input.
+voice_chat_noise_suppression (Noise suppression) bool true
+
+#    v9.39: Voice activity detection threshold (0.0 to 1.0).
+#    Audio below this energy level will not be transmitted.
+voice_chat_vad_threshold (VAD threshold) float 0.3 0.0 1.0
+
+#    v9.39: Opus codec bitrate in bits per second.
+#    Higher values provide better audio quality but use more bandwidth.
+voice_chat_bitrate (Opus bitrate) int 32000 6000 510000
+
+#    v9.39: Show voice indicator on HUD when players are talking.
+voice_chat_indicator (Show voice indicator) bool true
+
+#    v9.39: Audio input device name. Leave empty for default.
+voice_chat_input_device (Input device) string
+
+#    v9.39: Audio output device name. Leave empty for default.
+voice_chat_output_device (Output device) string
+
+[**Voice Chat Server]
+
+#    v9.39: Allow voice chat on this server. When disabled, clients
+#    cannot use voice chat features.
+enable_voice_chat_server (Enable voice chat (server)) bool true
+
+#    v9.39: Require E2EE for voice chat. When enabled, only encrypted
+#    voice data is accepted by the server.
+voice_chat_e2ee_required (Require E2EE) bool false
+
+#    v9.39: Maximum number of concurrent voice groups.
+voice_chat_max_groups (Max voice groups) int 10 1 100
+
+#    v9.39: Maximum members per voice group.
+voice_chat_group_max_members (Max group members) int 8 2 32
 
 [*User Interfaces]
 

@@ -2551,3 +2551,225 @@ void Client::handleCommand_KeypairChallenge(NetworkPacket *pkt)
                 m_keypair_manager->rememberServerUser(server_addr, m_playername);
         }
 }
+
+// ============================================================
+// v9.39 Voice Chat Packet Handlers
+// ============================================================
+
+void Client::handleCommand_VoiceState(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u8 voice_enabled;
+        u8 e2ee_required;
+        u16 voice_port;
+
+        *pkt >> voice_enabled >> e2ee_required >> voice_port;
+
+        infostream << "Client: Voice state received: enabled=" << (int)voice_enabled
+                   << ", e2ee_required=" << (int)e2ee_required
+                   << ", port=" << voice_port << std::endl;
+
+        // If server requires E2EE, force it on
+        if (e2ee_required && !g_settings->getBool("voice_chat_e2ee")) {
+                g_settings->setBool("voice_chat_e2ee", true);
+        }
+#else
+        infostream << "Client: Received voice state but voice chat is not compiled in" << std::endl;
+#endif
+}
+
+void Client::handleCommand_VoicePeerStart(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u16 peer_id;
+        u8 channel_id;
+        std::string peer_name;
+
+        *pkt >> peer_id >> channel_id >> peer_name;
+
+        infostream << "Client: Peer " << peer_name << " (id=" << peer_id
+                   << ") started talking on channel " << (int)channel_id << std::endl;
+
+        if (m_voice_chat) {
+                m_voice_chat->setPeerTalking(peer_id, true);
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoicePeerStop(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u16 peer_id;
+        *pkt >> peer_id;
+
+        infostream << "Client: Peer " << peer_id << " stopped talking" << std::endl;
+
+        if (m_voice_chat) {
+                m_voice_chat->setPeerTalking(peer_id, false);
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoiceData(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u16 peer_id;
+        u8 channel_id;
+        u16 seq_num;
+        u16 data_length;
+
+        *pkt >> peer_id >> channel_id >> seq_num >> data_length;
+
+        std::vector<u8> opus_data(data_length);
+        pkt->readRawString((char*)opus_data.data(), data_length);
+
+        // If E2EE, read nonce and decrypt
+        std::vector<u8> nonce;
+        bool has_e2ee = g_settings->getBool("voice_chat_e2ee");
+        if (has_e2ee && pkt->getRemainingBytes() >= 12) {
+                nonce.resize(12);
+                pkt->readRawString((char*)nonce.data(), 12);
+        }
+
+        if (m_voice_chat) {
+                // Decrypt if E2EE
+                if (has_e2ee && !nonce.empty()) {
+                        m_voice_chat->decryptVoiceData(opus_data, peer_id, nonce);
+                }
+                // Queue for playback
+                m_voice_chat->queueReceivedAudio(peer_id, channel_id, opus_data, seq_num);
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoicePeerList(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u16 count;
+        *pkt >> count;
+
+        infostream << "Client: Received voice peer list with " << count << " peers" << std::endl;
+
+        if (m_voice_chat) {
+                std::vector<VoicePeerState> peers;
+                for (u16 i = 0; i < count; i++) {
+                        u16 peer_id;
+                        u8 voice_enabled;
+                        u8 is_muted;
+                        u8 is_talking;
+                        std::string peer_name;
+
+                        *pkt >> peer_id >> voice_enabled >> is_muted >> is_talking >> peer_name;
+
+                        VoicePeerState state;
+                        state.peer_id = peer_id;
+                        state.name = peer_name;
+                        state.voice_enabled = voice_enabled != 0;
+                        state.is_muted = is_muted != 0;
+                        state.is_talking = is_talking != 0;
+                        peers.push_back(state);
+                }
+                m_voice_chat->updatePeerList(peers);
+        } else {
+                // Skip data even if voice chat not initialized
+                for (u16 i = 0; i < count; i++) {
+                        u16 peer_id;
+                        u8 voice_enabled;
+                        u8 is_muted;
+                        u8 is_talking;
+                        std::string peer_name;
+                        *pkt >> peer_id >> voice_enabled >> is_muted >> is_talking >> peer_name;
+                }
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoiceGroupInvite(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u32 group_id;
+        std::string group_name;
+        u16 inviter_peer_id;
+        std::string inviter_name;
+
+        *pkt >> group_id >> group_name >> inviter_peer_id >> inviter_name;
+
+        infostream << "Client: Voice group invite: '" << group_name
+                   << "' from " << inviter_name << " (group_id=" << group_id << ")" << std::endl;
+
+        if (m_voice_chat) {
+                m_voice_chat->handleGroupUpdate(group_id, 0, {});
+                // Show invite as a chat message (user can accept via voice chat UI)
+                std::wstring msg = L"[Voice] " + utf8_to_wide(inviter_name)
+                        + L" invited you to voice group '" + utf8_to_wide(group_name) + L"'";
+                pushToChatQueue(new ChatMessage(CHATMESSAGE_TYPE_SYSTEM, msg));
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoiceGroupUpdate(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u32 group_id;
+        u8 update_type;
+        u16 member_count;
+
+        *pkt >> group_id >> update_type >> member_count;
+
+        std::vector<std::pair<u16, std::string>> members;
+        for (u16 i = 0; i < member_count; i++) {
+                u16 peer_id;
+                std::string name;
+                *pkt >> peer_id >> name;
+                members.emplace_back(peer_id, name);
+        }
+
+        if (m_voice_chat) {
+                m_voice_chat->handleGroupUpdate(group_id, update_type, members);
+
+                // Notify the Lua HUD layer about the group change
+                if (update_type == 0) {
+                        // Group created
+                        std::wstring msg = L"[Voice] Voice group created";
+                        pushToChatQueue(new ChatMessage(CHATMESSAGE_TYPE_SYSTEM, msg));
+                } else if (update_type == 3) {
+                        // Group disbanded
+                        std::wstring msg = L"[Voice] Voice group disbanded";
+                        pushToChatQueue(new ChatMessage(CHATMESSAGE_TYPE_SYSTEM, msg));
+                }
+        }
+#else
+        (void)pkt;
+#endif
+}
+
+void Client::handleCommand_VoiceKeyExchange(NetworkPacket *pkt)
+{
+#if USE_VOICE_CHAT
+        u16 peer_id;
+        *pkt >> peer_id;
+
+        std::vector<u8> pubkey(32);
+        pkt->readRawString((char*)pubkey.data(), 32);
+
+        infostream << "Client: Received voice E2EE key from peer " << peer_id << std::endl;
+
+        if (m_voice_chat) {
+                u8 pk[32];
+                memcpy(pk, pubkey.data(), 32);
+                m_voice_chat->handlePeerKeyExchange(peer_id, pk);
+        }
+#else
+        (void)pkt;
+#endif
+}

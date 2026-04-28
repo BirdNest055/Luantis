@@ -143,6 +143,15 @@ struct MinimapMode {
         u16 scale = 1;
 };
 
+// v9.39: Server-side voice group tracking
+struct VoiceGroupState {
+        u32 group_id = 0;
+        std::string name;
+        u16 owner_peer_id = 0;
+        std::vector<u16> members;  // peer_ids of group members
+        bool active = true;
+};
+
 // structure for everything getClientInfo returns, for convenience
 struct ClientInfo {
         ClientState state;
@@ -245,6 +254,18 @@ public:
         void handleCommand_KeypairRegister(NetworkPacket* pkt); // v9.29 keypair auth
         void handleCommand_KeypairLogin(NetworkPacket* pkt); // v9.29 keypair auth
         void handleCommand_KeypairResponse(NetworkPacket* pkt); // v9.29 keypair auth
+
+        // v9.39 Voice chat handlers
+        void handleCommand_VoiceEnable(NetworkPacket* pkt);
+        void handleCommand_VoiceStart(NetworkPacket* pkt);
+        void handleCommand_VoiceData(NetworkPacket* pkt);
+        void handleCommand_VoiceStop(NetworkPacket* pkt);
+        void handleCommand_VoiceMute(NetworkPacket* pkt);
+        void handleCommand_VoiceGroupCreate(NetworkPacket* pkt);
+        void handleCommand_VoiceGroupInvite(NetworkPacket* pkt);
+        void handleCommand_VoiceGroupJoin(NetworkPacket* pkt);
+        void handleCommand_VoiceGroupLeave(NetworkPacket* pkt);
+        void handleCommand_VoiceKeyExchange(NetworkPacket* pkt);
 
         void ProcessData(NetworkPacket *pkt);
 
@@ -822,6 +843,12 @@ private:
         // Particles to send this server step
         // [playername] = list of params, empty playername for broadcast
         std::unordered_map<std::string, std::vector<ParticleParameters>> m_particles_to_send;
+
+        // v9.39: Voice group tracking (server-side)
+        std::unordered_map<u32, VoiceGroupState> m_voice_groups;
+        u32 m_voice_group_next_id = 1;
+        void sendVoicePeerListToAll();
+        void sendVoiceGroupUpdate(u32 group_id, u8 update_type);
 };
 
 /*

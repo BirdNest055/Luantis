@@ -728,7 +728,97 @@ enum ToClientCommand : u16
                 std::string nonce (32 bytes, cryptographically random)
         */
 
-        TOCLIENT_NUM_MSG_TYPES = 0x67,
+        TOCLIENT_VOICE_STATE = 0x67,
+        /*
+                v9.39: Server informs client about voice chat state/config.
+                Sent after authentication when voice chat is available.
+
+                u8 voice_chat_enabled (bool — server allows voice chat)
+                u8 e2ee_required (bool — server requires E2EE for voice)
+                u16 voice_port (0 = use same connection, >0 = separate UDP port)
+        */
+
+        TOCLIENT_VOICE_PEER_START = 0x68,
+        /*
+                v9.39: Another peer has started talking.
+
+                u16 peer_id
+                u8 channel_id (0 = global, >0 = voice group)
+                std::string peer_name
+        */
+
+        TOCLIENT_VOICE_PEER_STOP = 0x69,
+        /*
+                v9.39: Another peer has stopped talking.
+
+                u16 peer_id
+        */
+
+        TOCLIENT_VOICE_DATA = 0x6a,
+        /*
+                v9.39: Incoming voice audio from a peer.
+                Audio is Opus-encoded. If E2EE is active, the opus_data
+                is encrypted with AES-256-GCM using a per-peer session key
+                derived via X25519 ECDH + HKDF.
+
+                u16 peer_id
+                u8 channel_id (0 = global, >0 = voice group)
+                u16 seq_num
+                u16 opus_data_length
+                u8[opus_data_length] opus_data (encrypted if E2EE active)
+                // If E2EE active, appended after opus_data:
+                u8[12] nonce
+                // (16-byte GCM auth tag is embedded within opus_data)
+        */
+
+        TOCLIENT_VOICE_PEER_LIST = 0x6b,
+        /*
+                v9.39: Full list of peers with voice chat enabled.
+                Sent on connect and when peers toggle voice.
+
+                u16 count
+                for each peer:
+                        u16 peer_id
+                        u8 voice_enabled (bool)
+                        u8 is_muted_by_us (bool — we muted them)
+                        u8 is_talking (bool)
+                        std::string peer_name
+        */
+
+        TOCLIENT_VOICE_GROUP_INVITE = 0x6c,
+        /*
+                v9.39: Invitation to join a voice group.
+
+                u32 group_id
+                std::string group_name
+                u16 inviter_peer_id
+                std::string inviter_name
+        */
+
+        TOCLIENT_VOICE_GROUP_UPDATE = 0x6d,
+        /*
+                v9.39: Update about a voice group (members changed, etc).
+
+                u32 group_id
+                u8 update_type (0=created, 1=member_joined, 2=member_left, 3=disbanded)
+                u16 member_count
+                for each member:
+                        u16 peer_id
+                        std::string member_name
+        */
+
+        TOCLIENT_VOICE_KEY_EXCHANGE = 0x6e,
+        /*
+                v9.39: Server relays a peer's X25519 public key for voice E2EE.
+                Each client generates an ephemeral X25519 keypair for voice.
+                The shared secret is derived via ECDH, then HKDF is used to
+                derive the AES-256-GCM session key for voice packet encryption.
+
+                u16 peer_id
+                u8[32] peer_x25519_public_key
+        */
+
+        TOCLIENT_NUM_MSG_TYPES = 0x6f,
 };
 
 enum ToServerCommand : u16
@@ -969,7 +1059,89 @@ enum ToServerCommand : u16
                 std::string signature (64 bytes, Ed25519 signature of the nonce)
         */
 
-        TOSERVER_NUM_MSG_TYPES = 0x58,
+        TOSERVER_VOICE_ENABLE = 0x58,
+        /*
+                v9.39: Client toggles its own voice chat on/off.
+
+                u8 enabled (bool)
+        */
+
+        TOSERVER_VOICE_START = 0x59,
+        /*
+                v9.39: Client starts transmitting voice audio.
+
+                u8 channel_id (0 = global, >0 = voice group)
+        */
+
+        TOSERVER_VOICE_DATA = 0x5a,
+        /*
+                v9.39: Client sends a frame of Opus-encoded voice audio.
+                If E2EE is active, the opus_data is encrypted with
+                AES-256-GCM using a per-peer session key.
+
+                u8 channel_id (0 = global, >0 = voice group)
+                u16 seq_num
+                u16 opus_data_length
+                u8[opus_data_length] opus_data (encrypted if E2EE active)
+                // If E2EE active, appended after opus_data:
+                u8[12] nonce
+        */
+
+        TOSERVER_VOICE_STOP = 0x5b,
+        /*
+                v9.39: Client stops transmitting voice audio.
+
+                u8 channel_id (0 = global, >0 = voice group)
+        */
+
+        TOSERVER_VOICE_MUTE = 0x5c,
+        /*
+                v9.39: Client mutes/unmutes another peer.
+
+                u16 peer_id
+                u8 muted (bool)
+        */
+
+        TOSERVER_VOICE_GROUP_CREATE = 0x5d,
+        /*
+                v9.39: Client requests creation of a voice group.
+
+                std::string group_name
+        */
+
+        TOSERVER_VOICE_GROUP_INVITE = 0x5e,
+        /*
+                v9.39: Client invites a peer to a voice group.
+
+                u32 group_id
+                u16 peer_id
+        */
+
+        TOSERVER_VOICE_GROUP_JOIN = 0x5f,
+        /*
+                v9.39: Client accepts invitation to join a voice group.
+
+                u32 group_id
+        */
+
+        TOSERVER_VOICE_GROUP_LEAVE = 0x60,
+        /*
+                v9.39: Client leaves a voice group.
+
+                u32 group_id
+        */
+
+        TOSERVER_VOICE_KEY_EXCHANGE = 0x61,
+        /*
+                v9.39: Client sends its ephemeral X25519 public key for voice E2EE.
+                This is sent when the client enables voice chat with E2EE.
+                Server relays it to all other voice-enabled peers via
+                TOCLIENT_VOICE_KEY_EXCHANGE.
+
+                u8[32] client_x25519_public_key
+        */
+
+        TOSERVER_NUM_MSG_TYPES = 0x62,
 };
 
 enum AuthMechanism
