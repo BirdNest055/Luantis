@@ -19,6 +19,7 @@ Generated automatically from code comments.
 | BUG FIX | 1 (v9.25 encryption log autocreate bug — FIXED) |
 | BUG FIX | 1 (v9.42 ESC key not opening pause menu — FIXED) |
 | BUG FIX | 1 (v9.43 settingtypes parentheses parsing error — FIXED) |
+| BUG FIX | 1 (v9.45 keybind settings nil crash — FIXED) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -70,6 +71,14 @@ This bug was discovered and fixed during v9.43 development:
 | File | Bug | Root Cause | Fix | Status |
 |------|-----|-----------|-----|--------|
 | `builtin/settingtypes.txt:905` | `ERROR[Main]: Invalid line in settingtypes.txt "enable_voice_chat_server (Enable voice chat (server)) bool true"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:134`) uses the Lua pattern `%(([^%)]*)%)` to match the readable name. This pattern captures all characters that are NOT `)`, then expects `)`. When the readable name contains nested parentheses like `Enable voice chat (server)`, the pattern matches `(Enable voice chat ` — stopping at the first `)` — and the remaining text `server)) bool true` does not match the expected format, causing the "Invalid line" error. | Changed the readable name from `(Enable voice chat (server))` to `(Enable voice chat on server)` — removing the nested parentheses that break the parser. This is the same class of bug as the v9.24 settingtypes context error. | Fixed |
+
+## Luanti-Secure v9.45 Bug Fix
+
+This bug was discovered and fixed during v9.45 development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `builtin/common/settings/components.lua:462`, `src/defaultsettings.cpp`, `builtin/settingtypes.txt` | "Access denied" Lua runtime error when clicking keyboard shortcut change buttons in settings: `attempt to index a nil value` at `get_key_setting()` line `core.settings:get(name):split("|")` | Two related issues: (1) `keymap_voice_toggle` was declared in `settingtypes.txt` with no default value and had NO corresponding `settings->setDefault("keymap_voice_toggle", "")` in `defaultsettings.cpp`. When `core.settings:get("keymap_voice_toggle")` is called and the user hasn't manually set it, it returns `nil` instead of `""`, and `nil:split("|")` crashes. Other key settings with empty defaults (like `keymap_autoforward`, `keymap_cinematic`) all have `settings->setDefault("keyname", "")` entries, which causes `core.settings:get()` to return `""` instead of `nil`. (2) `keymap_voice_mute_all` was added to `defaultsettings.cpp` in v9.44 but was missing from `settingtypes.txt`, so it wouldn't appear in the settings UI at all. | (1) Added `settings->setDefault("keymap_voice_toggle", "")` to `defaultsettings.cpp` so `core.settings:get()` returns `""` instead of `nil`. (2) Added `keymap_voice_mute_all (Mute all voice) key` entry to `settingtypes.txt` so the keybind is visible and configurable in the settings dialog. | Fixed |
 
 ## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 

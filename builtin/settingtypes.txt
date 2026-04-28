@@ -269,6 +269,9 @@ keymap_voice_ptt (Voice chat push-to-talk) key SYSTEM_SCANCODE_41
 #    v9.39: Press to toggle voice chat on/off.
 keymap_voice_toggle (Voice chat toggle) key
 
+#    v9.44: Press to mute/unmute all incoming voice audio.
+keymap_voice_mute_all (Mute all voice) key
+
 keymap_camera_yaw_left (Look left) key
 keymap_camera_yaw_right (Look right) key
 keymap_camera_pitch_up (Look up) key

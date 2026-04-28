@@ -175,7 +175,8 @@ void set_default_settings()
         settings->setDefault("keymap_increase_volume", "");
         settings->setDefault("keymap_decrease_volume", "");
         settings->setDefault("keymap_voice_ptt", "SYSTEM_SCANCODE_41"); // KEY_BACKQUOTE (~ / ` key, hold-to-talk)
-        settings->setDefault("keymap_voice_mute_all", "");  // v9.44: Mute all incoming voice // No default — set by user
+        settings->setDefault("keymap_voice_toggle", "");  // v9.39: Toggle voice chat on/off — no default key
+        settings->setDefault("keymap_voice_mute_all", "");  // v9.44: Mute all incoming voice — no default key
         settings->setDefault("keymap_cinematic", "");
         settings->setDefault("keymap_toggle_block_bounds", "");
         settings->setDefault("keymap_toggle_hud", "SYSTEM_SCANCODE_58"); // KEY_F1
