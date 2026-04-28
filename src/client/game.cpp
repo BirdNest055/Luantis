@@ -3737,11 +3737,16 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         }
 
         /*
-                v9.38: Server Info Overlay — shown while Tab is held.
+                v9.39: Server Info Overlay — toggled by pressing Tab.
                 Only show when no formspec or menu is active (Tab is used for
                 field navigation in formspecs).
         */
-        if (isKeyDown(KeyType::SERVERINFO) && !isMenuActive()) {
+        if (wasKeyPressed(KeyType::SERVERINFO) && !isMenuActive())
+                m_serverinfo_overlay_toggled = !m_serverinfo_overlay_toggled;
+        // Hide when a menu opens or formspec is active
+        if (isMenuActive())
+                m_serverinfo_overlay_toggled = false;
+        if (m_serverinfo_overlay_toggled) {
                 drawServerInfoOverlay(screensize);
         }
 

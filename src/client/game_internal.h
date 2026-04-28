@@ -384,6 +384,7 @@ private:
         bool m_is_paused = false;
 
         bool m_touch_simulate_aux1 = false;
+        bool m_serverinfo_overlay_toggled = false; // v9.39: Tab overlay toggle state
         bool isTouchShootlineUsed() const;
 #ifdef __ANDROID__
         bool m_android_chat_open;
