@@ -137,11 +137,13 @@ These headers form the backbone of the codebase — included by the most other f
 | `start_client.sh` | Interactive client start script with secure/insecure mode selection | `bin/luanti` |
 | `test_build_linux.sh` | TDD test suite for build_linux.sh (53 tests) | `build_linux.sh`, `CMakeLists.txt` |
 | `test_encryption_toggle.sh` | TDD test suite for encryption toggle (14 tests) | `bin/luantiserver`, `bin/luanti` |
-| `V9_PLAN.md` | v9 encryption implementation plan with progress tracker | — |
-| `ai-agent-instructions.md` | Conventions and rules for AI agents | — |
-| `ai-codebase-reference.md` | Current codebase state summary | — |
-| `TODO_FIXME_LIST.md` | Auto-generated list of TODO/FIXME/HACK comments | — |
-| `OPENSECURE_GUIDE.md` | OpenSecure CLI guide | — |
+| `docs/V9_PLAN.md` | v9 encryption implementation plan with progress tracker | — |
+| `docs/ai-agent-instructions.md` | Conventions and rules for AI agents | — |
+| `docs/ai-codebase-reference.md` | Current codebase state summary | — |
+| `docs/TODO_FIXME_LIST.md` | Auto-generated list of TODO/FIXME/HACK comments | — |
+| `docs/OPENSECURE_GUIDE.md` | OpenSecure CLI guide | — |
+| `docs/ENCRYPTION_DATA_FLOW.md` | Comprehensive encryption data flow guide | — |
+| `docs/GUI_EDITING_GUIDE.md` | GUI editing reference | — |
 
 ---
 

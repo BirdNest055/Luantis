@@ -314,7 +314,7 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.3 | `clawtest-v9.3` | Modular encryption architecture, interactive start scripts, version numbering |
 | v9.8 | `clawtest-v9.8` | VS Code tasks for build and run |
 | v9.9 | `clawtest-v9.9` | TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes |
-| v9.10 | `clawtest-v9.10` | Documentation update, ENCRYPTION_DATA_FLOW.md, all MDs updated |
+| v9.10 | `clawtest-v9.10` | Documentation update, docs/ENCRYPTION_DATA_FLOW.md, all MDs updated |
 | v9.11 | `clawtest-v9.11` | ECDH X25519 forward secrecy with TDD — wire protocol, salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes |
 | v9.12 | `clawtest-v9.12` | Encryption activation race condition fix — client defers until server's first encrypted packet |
 | v9.19 | `clawtest-v9.19` | GCM auth spam fix — prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes |
@@ -341,16 +341,20 @@ Luanti-Secure/
 +-- VERSION                                    <- "9.3"
 +-- CMakeLists.txt                             <- VERSION_EXTRA = "v9.3"
 +-- README.md                                  <- Updated for Luanti-Secure
-+-- V9_PLAN.md                                 <- Updated progress tracker
-+-- ai-agent-instructions.md                   <- Updated conventions
-+-- ai-codebase-reference.md                   <- THIS FILE
-+-- luanti-project-map.md                      <- Full project map
++-- docs/
+|   +-- V9_PLAN.md                             <- Updated progress tracker
+|   +-- ai-agent-instructions.md               <- Updated conventions
+|   +-- ai-codebase-reference.md               <- THIS FILE
+|   +-- luanti-project-map.md                  <- Full project map
+|   +-- ENCRYPTION_DATA_FLOW.md               <- v9.10: Comprehensive encryption data flow guide
+|   +-- TODO_FIXME_LIST.md                    <- Auto-generated TODO/FIXME/HACK list
+|   +-- OPENSECURE_GUIDE.md                   <- OpenSecure CLI guide
+|   +-- GUI_EDITING_GUIDE.md                  <- GUI editing reference
 +-- build_linux.sh                             <- Build script
 +-- build_env.sh                               <- Build environment setup
 +-- start_server.sh                            <- Interactive server script
 +-- start_client.sh                            <- Interactive client script
 +-- test_encryption_toggle.sh                  <- Encryption toggle tests (14 tests)
-+-- ENCRYPTION_DATA_FLOW.md                     <- v9.10: Comprehensive encryption data flow guide
 +-- .vscode/
 |   +-- tasks.json                              <- v9.8: VS Code tasks
 +-- builtin/
@@ -449,5 +453,5 @@ When bumping the version number, update ALL of these:
 4. **start_server.sh potential crash** — may still have edge cases; pause-on-exit helps debug
 5. **Crypto layer reconciliation** — X25519 ECDH is now fully integrated; two parallel crypto APIs remain in `src/network/crypto/` (P-256/ECDSA) not yet integrated
 6. **Key rotation wire protocol** — `rotateKeys()` exists but requires a protocol exchange to coordinate with the peer; no TOSERVER_KEY_ROTATION / TOCLIENT_KEY_ROTATION packet types yet
-7. **Compiler warnings in test files** (sign compare, unused variables) — see TODO_FIXME_LIST.md
+7. **Compiler warnings in test files** (sign compare, unused variables) — see docs/TODO_FIXME_LIST.md
 8. **Encryption log spam (SOLVED in v9.23+v9.24)** — Verbose per-packet `[ENC:TRACE]` logging previously generated 180MB log files and caused game slowdown. Fixed with `--no-log`/`--log` toggle in start scripts (prevents any log data generation when off) and `encryption_log_level` setting (none/error/action/trace). The `encryption_log_level` setting's context annotation was also fixed from `[server,client]` to `[common]` in v9.24 because the Luanti settingtypes parser only accepts single context values (`common`, `client`, `server`, `world_creation`).

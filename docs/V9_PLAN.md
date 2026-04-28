@@ -340,7 +340,7 @@ Previously, `secure_connection = false` only set UI flags but AES-256-GCM encryp
 ### v9.10: Documentation & Encryption Data Flow
 
 - Updated all project documentation for v9.10
-- Created `ENCRYPTION_DATA_FLOW.md` — comprehensive guide to encryption system
+- Created `docs/ENCRYPTION_DATA_FLOW.md` — comprehensive guide to encryption system
 - Updated version in VERSION, CMakeLists.txt, and all MD files
 
 ### v9.11: ECDH X25519 Forward Secrecy
@@ -383,7 +383,7 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.8: VS Code tasks | DONE | .vscode/tasks.json with Start Server, Build Both, Start Client |
 | v9.9: Bonus encryption scoring | DONE | TOFU acknowledged, key rotation, salted HKDF, exact replay, integrity |
 | v9.9: Build error fixes | DONE | i64→s64, overload ordering, deterministic HKDF salt |
-| v9.10: Documentation update | DONE | All MDs updated, ENCRYPTION_DATA_FLOW.md created |
+| v9.10: Documentation update | DONE | All MDs updated, docs/ENCRYPTION_DATA_FLOW.md created |
 | v9.11: ECDH X25519 forward secrecy | DONE | Real PFS via ECDH handshake, deferred encryption activation |
 | v9.11: ECDH wire protocol | DONE | TOCLIENT_ECDH_PUBKEY (0x65), TOSERVER_ECDH_PUBKEY (0x54) |
 | v9.11: ECDH salt bug fixes | DONE | mixECDHSecretIntoKeys unsalted HKDF, rotateKeys random salt |

@@ -236,20 +236,20 @@ For passing data from C++ to the Lua settings dialog:
 
 ## 7. Documentation Rules
 
-### 7.1 Project Map (`luanti-project-map.md`)
+### 7.1 Project Map (`docs/luanti-project-map.md`)
 
 - This is the **living document** — it MUST be updated every time a file is added, renamed, or its purpose changes
 - It contains ~1,460 lines covering every file in the project
 - When adding a new file, add it to the correct section with purpose and key dependencies
 - Update the "Last Updated" date and "Map Version" when making changes
 
-### 7.2 AI Codebase Reference (`ai-codebase-reference.md`)
+### 7.2 AI Codebase Reference (`docs/ai-codebase-reference.md`)
 
 - Read this file to understand the current state of all modifications
 - It summarizes what changed in each version, the data flow, and key file descriptions
 - Update it when adding new features or making significant changes
 
-### 7.3 This File (`ai-agent-instructions.md`)
+### 7.3 This File (`docs/ai-agent-instructions.md`)
 
 - Contains ALL rules and guidelines that AI agents must follow
 - Update when adding new conventions, patterns, or rules
@@ -296,12 +296,12 @@ When adding a new feature to this project, ensure ALL of these are done:
 - [ ] `minetest.conf.example` updated (if new settings needed)
 - [ ] `src/unittest/CMakeLists.txt` updated (if new test files added)
 - [ ] `src/network/CMakeLists.txt` updated (if new network source files added)
-- [ ] `luanti-project-map.md` updated (file list, dependencies)
-- [ ] `ai-codebase-reference.md` updated (new feature summary)
+- [ ] `docs/luanti-project-map.md` updated (file list, dependencies)
+- [ ] `docs/ai-codebase-reference.md` updated (new feature summary)
 - [ ] `VERSION` file updated (version bump)
 - [ ] `CMakeLists.txt` `VERSION_EXTRA` updated (version bump)
-- [ ] `ENCRYPTION_DATA_FLOW.md` updated (if encryption behavior changes)
-- [ ] `V9_PLAN.md` updated (progress tracker and feature descriptions)
+- [ ] `docs/ENCRYPTION_DATA_FLOW.md` updated (if encryption behavior changes)
+- [ ] `docs/V9_PLAN.md` updated (progress tracker and feature descriptions)
 - [ ] New test files registered in `src/unittest/CMakeLists.txt`
 - [ ] Git commit with descriptive message referencing the version
 
