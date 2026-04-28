@@ -1392,6 +1392,10 @@ void Client::deleteAuthData()
                         srp_user_delete((SRPUser *) m_auth_data);
                         m_auth_data = NULL;
                         break;
+                case AUTH_MECHANISM_KEYPAIR:
+                        // Keypair auth doesn't allocate m_auth_data
+                        m_auth_data = NULL;
+                        break;
                 case AUTH_MECHANISM_NONE:
                         break;
         }

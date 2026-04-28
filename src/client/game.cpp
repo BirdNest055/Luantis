@@ -17,6 +17,9 @@
 #include "clientmap.h"
 #include "clientmedia.h" // For clientMediaUpdateCacheCopy
 #include "config.h"
+#if USE_VOICE_CHAT
+#include "voice_chat.h"
+#endif
 #include "content_cao.h"
 #include "content/subgames.h"
 #include "client/event_manager.h"
