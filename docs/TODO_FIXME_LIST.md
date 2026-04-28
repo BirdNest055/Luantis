@@ -17,6 +17,8 @@ Generated automatically from code comments.
 | BUG FIX | 2 (v9.11 ECDH salt bugs — FIXED) |
 | BUG FIX | 1 (v9.24 settingtypes context bug — FIXED) |
 | BUG FIX | 1 (v9.25 encryption log autocreate bug — FIXED) |
+| BUG FIX | 1 (v9.42 ESC key not opening pause menu — FIXED) |
+| BUG FIX | 1 (v9.43 settingtypes parentheses parsing error — FIXED) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -52,6 +54,22 @@ This bug was discovered and fixed during v9.25 development:
 | File | Bug | Root Cause | Fix | Status |
 |------|-----|-----------|-----|--------|
 | `src/network/encryption_trace.cpp` | `encryption_trace.log` not created when logging is toggled ON with `--log` (default "action" level). Manually deleting the file and restarting does not recreate it. | `ensureTraceFileOpen()` only opened the file when `shouldLog(ENC_LOG_TRACE)` was true (i.e., level >= trace). At the default "action" level, the file was never opened. Additionally, `g_trace_disabled` permanently prevented reopening even if conditions changed. | (1) Changed guard from `shouldLog(ENC_LOG_TRACE)` to `shouldLog(ENC_LOG_ERROR)` — file is created at any non-none level. (2) Removed `g_trace_disabled` — file can be opened on subsequent calls. (3) All `enclog_*` macros now write to trace file via `EncLogLine` class, making it the single destination for all encryption events. | Fixed |
+
+## Luanti-Secure v9.42 Bug Fix
+
+This bug was discovered and fixed during v9.42 development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `src/client/inputhandler.cpp`, `src/client/inputhandler.h`, `src/client/game.cpp` | ESC key does not open the pause menu when pressed. No visible response in-game. | Two failure modes identified: (1) **Scancode mismatch**: The `keysListenedFor` lookup uses scancodes from `KeyPress`, but on some platforms the scancode from the key event (`SystemKeyCode`) may not match the scancode stored for `EscapeKey` (derived from `getScancodeFromKey`). This causes `setKeyDown()` to skip ESC entirely, so `keyWasDown[ESC]` is never set. (2) **Focus-loss clearing**: `input->clear()` in `processUserInput()` clears `keyWasDown[ESC]` when `device->isWindowActive()` returns false. Some window managers briefly report the window as inactive when ESC is pressed, eating the flag before `processKeyInput()` can check it. | Added `m_direct_esc_was_pressed` flag in `MyEventReceiver` that is set directly from the Irrlicht `KEY_ESCAPE` keycode in `OnEvent()`, bypassing the scancode-based `keysListenedFor` system entirely. This flag is placed before the fullscreen key check so ESC is never silently consumed. It is NOT cleared by `input->clear()`, making it immune to focus-loss clearing. Added public `consumeDirectEsc()` method for safe access. `cancelPressed()` now checks both `keyWasDown[ESC]` and the direct fallback. Added diagnostic logging for scancode mismatches. | Fixed |
+
+## Luanti-Secure v9.43 Bug Fix
+
+This bug was discovered and fixed during v9.43 development:
+
+| File | Bug | Root Cause | Fix | Status |
+|------|-----|-----------|-----|--------|
+| `builtin/settingtypes.txt:905` | `ERROR[Main]: Invalid line in settingtypes.txt "enable_voice_chat_server (Enable voice chat (server)) bool true"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:134`) uses the Lua pattern `%(([^%)]*)%)` to match the readable name. This pattern captures all characters that are NOT `)`, then expects `)`. When the readable name contains nested parentheses like `Enable voice chat (server)`, the pattern matches `(Enable voice chat ` — stopping at the first `)` — and the remaining text `server)) bool true` does not match the expected format, causing the "Invalid line" error. | Changed the readable name from `(Enable voice chat (server))` to `(Enable voice chat on server)` — removing the nested parentheses that break the parser. This is the same class of bug as the v9.24 settingtypes context error. | Fixed |
 
 ## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 

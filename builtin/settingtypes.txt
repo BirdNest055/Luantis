@@ -902,7 +902,7 @@ voice_chat_output_device (Output device) string
 
 #    v9.39: Allow voice chat on this server. When disabled, clients
 #    cannot use voice chat features.
-enable_voice_chat_server (Enable voice chat (server)) bool true
+enable_voice_chat_server (Enable voice chat on server) bool true
 
 #    v9.39: Require E2EE for voice chat. When enabled, only encrypted
 #    voice data is accepted by the server.
