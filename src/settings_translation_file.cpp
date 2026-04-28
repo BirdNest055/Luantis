@@ -767,7 +767,7 @@ fake_function() {
         gettext("Measure time samples");
         gettext("Disable if you only want to instrument with Tracy.");
         gettext("Capture Tracy zones");
-        gettext("Capture Tracy zones with the profiler's instrumentation.\nYou need to build with Tracy to use this, see doc/developing/profiling.md\nfor details.");
+        gettext("Capture Tracy zones with the profiler's instrumentation.\nYou need to build with Tracy to use this, see docs/developing/profiling.md\nfor details.");
         gettext("Default report format");
         gettext("The default format in which profiles are being saved,\nwhen calling `/profiler save [format]` without format.");
         gettext("Report path");

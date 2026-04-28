@@ -26,5 +26,5 @@ See also: https://www.mkdocs.org/user-guide/cli/
 
 Output directories:
 
-* Markdown files: `doc/mkdocs/docs/`
+* Markdown files: `docs/mkdocs/docs/`
 * HTML (for browsers): `public/index.html`

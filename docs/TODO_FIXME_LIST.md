@@ -254,7 +254,7 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | TODO | 3 | builtin/game/register.lua | 468 | it's not clear if this needs to be allowed at all? | Open |
 | TODO | 3 | builtin/game/tests/test_moveaction.lua | 111 | would be nice to check the dropped count here too | Open |
 | TODO | 3 | builtin/mainmenu/content/contentdb.lua | 639 | use Android API to determine size of cut outs | Open |
-| TODO | 3 | doc/fst_api.txt | 57 | cbf_events         = function(tabview, event, tabname),           -- callback for events | Open |
+| TODO | 3 | docs/fst_api.txt | 57 | cbf_events         = function(tabview, event, tabname),           -- callback for events | Open |
 | TODO | 3 | games/devtest/mods/testnodes/textures.lua | 263 | Types 1, 2 & 10 should have two test nodes each (i.e. bottom-top | Open |
 | TODO | 3 | irr/include/IEventReceiver.h | 170 | Remove this once SDL headers are available in Luanti | Open |
 | TODO | 3 | irr/include/SkinnedMesh.h | 93 | ideally we shouldn't be forced to implement this | Open |
@@ -309,7 +309,7 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | TODO | 3 | luanti/builtin/game/register.lua | 468 | it's not clear if this needs to be allowed at all? | Open |
 | TODO | 3 | luanti/builtin/game/tests/test_moveaction.lua | 111 | would be nice to check the dropped count here too | Open |
 | TODO | 3 | luanti/builtin/mainmenu/content/contentdb.lua | 639 | use Android API to determine size of cut outs | Open |
-| TODO | 3 | luanti/doc/fst_api.txt | 57 | cbf_events         = function(tabview, event, tabname),           -- callback for events | Open |
+| TODO | 3 | luanti/docs/fst_api.txt | 57 | cbf_events         = function(tabview, event, tabname),           -- callback for events | Open |
 | TODO | 3 | luanti/games/devtest/mods/testnodes/textures.lua | 263 | Types 1, 2 & 10 should have two test nodes each (i.e. bottom-top | Open |
 | TODO | 3 | luanti/irr/include/IEventReceiver.h | 170 | Remove this once SDL headers are available in Luanti | Open |
 | TODO | 3 | luanti/irr/include/SkinnedMesh.h | 93 | ideally we shouldn't be forced to implement this | Open |

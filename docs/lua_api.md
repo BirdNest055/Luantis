@@ -7189,7 +7189,7 @@ Environment access
 Mod channels
 ------------
 
-You can find mod channels communication scheme in `doc/mod_channels.png`.
+You can find mod channels communication scheme in `docs/mod_channels.png`.
 
 * `core.mod_channel_join(channel_name)`
     * Server joins channel `channel_name`, and creates it if necessary. You
@@ -12531,7 +12531,7 @@ Tracy Profiler
 Luanti can be built with support for the Tracy profiler, which can also be
 useful for profiling mods and is exposed to Lua as the global `tracy`.
 
-See doc/developing/misc.md for details.
+See docs/developing/misc.md for details.
 
 Note: This is a development feature and not covered by compatibility promises.
 

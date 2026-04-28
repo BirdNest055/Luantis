@@ -1139,7 +1139,7 @@ Contains **`devtest/`** — the built-in Development Test game with 24+ test mod
 | `preview/example.lua` | Loads example files |
 | `preview/settingtypes.txt` | CSM settings UI definition |
 
-### doc/ — Documentation
+### docs/ — Documentation
 | File | Purpose |
 |---|---|
 | `lua_api.md` | **Main Lua API reference** for modding |
