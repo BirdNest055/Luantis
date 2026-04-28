@@ -131,6 +131,13 @@ private:
 	bool close_world_down = false;
 	bool esc_down = false;
 
+	// Direct Irrlicht KEY_ESCAPE keycode detection fallback.
+	// This is set in OnEvent when KEY_ESCAPE is detected by keycode,
+	// bypassing the scancode-based keysListenedFor lookup.
+	// It provides a reliable ESC detection even when the scancode
+	// system fails (e.g., scancode mismatch on some platforms).
+	bool m_direct_esc_was_pressed = false;
+
 	PointerType last_pointer_type = PointerType::Mouse;
 };
 
@@ -224,7 +231,16 @@ public:
 
 	virtual bool cancelPressed()
 	{
-		return wasKeyDown(KeyType::ESC);
+		// Check both the standard keyWasDown[ESC] flag and the direct
+		// Irrlicht keycode fallback. The direct check catches ESC even
+		// when the scancode-based keysListenedFor lookup fails, or when
+		// input->clear() ate keyWasDown during a focus hiccup.
+		bool result = wasKeyDown(KeyType::ESC);
+		if (!result && m_receiver->m_direct_esc_was_pressed) {
+			m_receiver->m_direct_esc_was_pressed = false;
+			result = true;
+		}
+		return result;
 	}
 
 	virtual void clearWasKeyPressed()
