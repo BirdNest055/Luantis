@@ -1546,6 +1546,9 @@ void Game::processKeyInput()
                 quicktune->inc();
         } else if (wasKeyDown(KeyType::QUICKTUNE_DEC)) {
                 quicktune->dec();
+        } else if (wasKeyPressed(KeyType::SERVERINFO)) {
+                if (!isMenuActive())
+                        m_serverinfo_overlay_toggled = !m_serverinfo_overlay_toggled;
         }
 
         if (!isKeyDown(KeyType::JUMP) && runData.reset_jump_timer) {
@@ -3738,11 +3741,8 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
 
         /*
                 v9.39: Server Info Overlay — toggled by pressing Tab.
-                Only show when no formspec or menu is active (Tab is used for
-                field navigation in formspecs).
+                Toggle is handled in processKeyInput(), this only handles display.
         */
-        if (wasKeyPressed(KeyType::SERVERINFO) && !isMenuActive())
-                m_serverinfo_overlay_toggled = !m_serverinfo_overlay_toggled;
         // Hide when a menu opens or formspec is active
         if (isMenuActive())
                 m_serverinfo_overlay_toggled = false;
