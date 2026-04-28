@@ -52,6 +52,8 @@
 #include "version.h"
 #include "script/scripting_client.h"
 #include "hud.h"
+#include "gui/clay/clay_gui_manager.h"
+#include "gui/clay/clay_ui_pause_menu.h"
 #include <AnimatedMeshSceneNode.h>
 #include <ICameraSceneNode.h>
 #include "util/tracy_wrapper.h"
@@ -963,6 +965,17 @@ bool Game::initGui()
         if (shouldShowTouchControls())
                 g_touchcontrols = new TouchControls(device, texture_src);
 
+        // Initialize Clay UI system (v9.46)
+        v2u32 screensize = driver->getScreenSize();
+        m_clay_gui = std::make_unique<ClayGUIManager>(driver, g_fontengine);
+        m_clay_gui->init();
+        m_clay_gui->onResize(screensize.X, screensize.Y);
+
+        // Register Clay pause menu panel
+        m_clay_pause_menu = new ClayPauseMenu(client, client->m_simple_singleplayer_mode);
+        m_clay_gui->addPanel(m_clay_pause_menu);
+        m_game_formspec.setClayPauseMenu(m_clay_pause_menu);
+
         return true;
 }
 
@@ -1383,7 +1396,8 @@ void Game::processUserInput(f32 dtime)
         }
 
         // Reset input if window not active or some menu is active
-        if (!device->isWindowActive() || isMenuActive() || guienv->hasFocus(gui_chat_console.get())) {
+        bool clay_menu_active = m_clay_pause_menu && m_clay_pause_menu->isVisible();
+        if (!device->isWindowActive() || isMenuActive() || clay_menu_active || guienv->hasFocus(gui_chat_console.get())) {
                 if (m_game_focused) {
                         m_game_focused = false;
                         infostream << "Game lost focus" << std::endl;
@@ -3768,6 +3782,15 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         }
 
         this->driver->endScene();
+
+        // v9.46: Render Clay UI overlays in a separate scene pass.
+        // Clay needs its own beginScene/endScene for proper alpha blending.
+        if (m_clay_gui && m_clay_gui->hasVisiblePanels()) {
+                float dtime = runData.dtime;
+                this->driver->beginScene(false, false, video::SColor(0, 0, 0, 0));
+                m_clay_gui->update(dtime);
+                this->driver->endScene();
+        }
 
         stats->drawtime = tt_draw.stop(true);
         g_profiler->graphAdd("Draw scene [us]", stats->drawtime);

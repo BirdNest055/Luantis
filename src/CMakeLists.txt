@@ -738,6 +738,7 @@ if(BUILD_CLIENT)
                 ${LUA_BIT_LIBRARY}
                 lstrpack
                 sha256
+                clay
                 ${FREETYPE_LIBRARY}
                 ${PLATFORM_LIBS}
                 # on Android, Luanti depends on SDL2 directly

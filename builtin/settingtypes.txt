@@ -927,6 +927,10 @@ language (Language) enum   ,be,bg,ca,cs,da,de,el,en,eo,es,et,eu,fi,fr,gd,gl,hu,i
 
 [**GUI]
 
+#    v9.46: Use Clay-based pause menu instead of the formspec-based one.
+#    The Clay UI provides a more responsive and modern layout system.
+clay_pause_menu (Use Clay pause menu) bool true
+
 #    When enabled, the GUI is optimized to be more usable on touchscreens.
 #    Whether this is enabled by default depends on your hardware form-factor.
 touch_gui (Optimize GUI for touchscreens) bool false

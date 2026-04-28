@@ -325,6 +325,10 @@ private:
         Minimap *mapper = nullptr;
         GameFormSpec m_game_formspec;
 
+        // Clay UI system (v9.46)
+        std::unique_ptr<class ClayGUIManager> m_clay_gui;
+        class ClayPauseMenu *m_clay_pause_menu = nullptr;
+
         // Map server hud ids to client hud ids
         std::unordered_map<u32, u32> m_hud_server_to_client;
 

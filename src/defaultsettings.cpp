@@ -114,6 +114,9 @@ void set_default_settings()
         settings->setDefault("voice_chat_output_device", ""); // Empty = default
         settings->setDefault("voice_chat_bitrate", "32000"); // Opus bitrate in bps
         settings->setDefault("voice_chat_indicator", "true"); // Show voice indicator on HUD
+
+        // Clay UI (v9.46)
+        settings->setDefault("clay_pause_menu", "true"); // Use Clay-based pause menu instead of formspec
         settings->setDefault("mesh_generation_interval", "0");
         settings->setDefault("mesh_generation_threads", "0");
         settings->setDefault("mesh_buffer_min_vertices", "300");

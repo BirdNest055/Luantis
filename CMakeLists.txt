@@ -16,7 +16,7 @@ set(CLANG_MINIMUM_VERSION "7.0.1")
 set(VERSION_MAJOR 5)
 set(VERSION_MINOR 16)
 set(VERSION_PATCH 1)
-set(VERSION_EXTRA "v9.45" CACHE STRING "Stuff to append to version string")
+set(VERSION_EXTRA "v9.46" CACHE STRING "Stuff to append to version string")
 
 # Change to false for releases
 set(DEVELOPMENT_BUILD TRUE)
@@ -296,6 +296,7 @@ if(BUILD_UNITTESTS OR BUILD_BENCHMARKS)
 endif()
 
 add_subdirectory(lib/tiniergltf)
+add_subdirectory(lib/clay)
 
 # Subdirectories
 # Be sure to add all relevant definitions above this

@@ -23,46 +23,52 @@ It includes:
  */
 struct GameFormSpec
 {
-	void init(Client *client, RenderingEngine *rendering_engine, InputHandler *input);
+        void init(Client *client, RenderingEngine *rendering_engine, InputHandler *input);
 
-	~GameFormSpec() { reset(); }
+        ~GameFormSpec() { reset(); }
 
-	void showFormSpec(const std::string &formspec, const std::string &formname);
-	void showCSMFormSpec(const std::string &formspec, const std::string &formname);
-	// Used by the Lua pause menu environment to show formspecs.
-	// Currently only used for the in-game settings menu.
-	void showPauseMenuFormSpec(const std::string &formspec, const std::string &formname);
-	void showNodeFormspec(const std::string &formspec, const v3s16 &nodepos);
-	/// If `!fs_override`: Uses `player->inventory_formspec`.
-	/// If ` fs_override`: Uses a temporary formspec until an update is received.
-	void showPlayerInventory(const std::string *fs_override);
-	void showDeathFormspecLegacy();
-	// Shows the hardcoded "main" pause menu.
-	void showPauseMenu();
+        void showFormSpec(const std::string &formspec, const std::string &formname);
+        void showCSMFormSpec(const std::string &formspec, const std::string &formname);
+        // Used by the Lua pause menu environment to show formspecs.
+        // Currently only used for the in-game settings menu.
+        void showPauseMenuFormSpec(const std::string &formspec, const std::string &formname);
+        void showNodeFormspec(const std::string &formspec, const v3s16 &nodepos);
+        /// If `!fs_override`: Uses `player->inventory_formspec`.
+        /// If ` fs_override`: Uses a temporary formspec until an update is received.
+        void showPlayerInventory(const std::string *fs_override);
+        void showDeathFormspecLegacy();
+        // Shows the hardcoded "main" pause menu.
+        // When clay_pause_menu is true, uses Clay UI instead of formspec.
+        void showPauseMenu();
 
-	void update();
-	void disableDebugView();
+        /// Set the Clay pause menu pointer (owned by Game class)
+        void setClayPauseMenu(class ClayPauseMenu *p) { m_clay_pause_menu = p; }
 
-	bool handleCallbacks();
-	void reset();
+        void update();
+        void disableDebugView();
+
+        bool handleCallbacks();
+        void reset();
 
 #ifdef __ANDROID__
-	// Returns false if no formspec open
-	bool handleAndroidUIInput();
+        // Returns false if no formspec open
+        bool handleAndroidUIInput();
 #endif
 
 private:
-	Client *m_client;
-	RenderingEngine *m_rendering_engine;
-	InputHandler *m_input;
-	std::unique_ptr<PauseMenuScripting> m_pause_script;
+        Client *m_client;
+        RenderingEngine *m_rendering_engine;
+        InputHandler *m_input;
+        std::unique_ptr<PauseMenuScripting> m_pause_script;
 
-	/// The currently open formspec that is not a submenu of the pause menu
-	/// Layering is already managed by `GUIModalMenu` (`g_menumgr`).
-	/// TODO: Remove this in long-term - it's now redundant.
-	GUIFormSpecMenu *m_formspec = nullptr;
+        /// The currently open formspec that is not a submenu of the pause menu
+        /// Layering is already managed by `GUIModalMenu` (`g_menumgr`).
+        /// TODO: Remove this in long-term - it's now redundant.
+        GUIFormSpecMenu *m_formspec = nullptr;
 
-	bool handleEmptyFormspec(const std::string &formspec, const std::string &formname);
+        bool handleEmptyFormspec(const std::string &formspec, const std::string &formname);
 
-	void deleteFormspec();
+        void deleteFormspec();
+
+        class ClayPauseMenu *m_clay_pause_menu = nullptr;
 };
