@@ -13,7 +13,8 @@ voice.ptt_hud_id = nil       -- PTT status indicator
 voice.self_talking_hud = nil -- "YOU ARE TALKING" indicator
 voice.peer_states = {}       -- peer_id -> { name, talking, muted, enabled }
 voice.is_local_talking = false
-voice.local_enabled = false
+voice.server_allowed = false   -- v9.44: Server controls whether voice is ON
+voice.receive_enabled = true   -- v9.44: Client can opt out of receiving
 voice.hud_initialized = false -- track if HUD has been set up
 
 -- Positioning constants
@@ -144,9 +145,13 @@ function voice.update_hud()
         -- Update PTT status text
         if voice.ptt_hud_id then
                 local mode = core.settings:get("voice_chat_mode") or "ptt"
-                if not voice.local_enabled then
+                if not voice.server_allowed then
                         core.localplayer:hud_change(voice.ptt_hud_id, "text",
-                                "[Voice: OFF]")
+                                "[Voice: SERVER OFF]")
+                        core.localplayer:hud_change(voice.ptt_hud_id, "number", COLOR_MUTED)
+                elseif not voice.receive_enabled then
+                        core.localplayer:hud_change(voice.ptt_hud_id, "text",
+                                "[Voice: MUTED]")
                         core.localplayer:hud_change(voice.ptt_hud_id, "number", COLOR_OFF)
                 elseif mode == "ptt" then
                         core.localplayer:hud_change(voice.ptt_hud_id, "text",
@@ -161,7 +166,7 @@ function voice.update_hud()
 
         -- Update "you are talking" indicator
         if voice.self_talking_hud then
-                if voice.is_local_talking and voice.local_enabled then
+                if voice.is_local_talking and voice.server_allowed and voice.receive_enabled then
                         core.localplayer:hud_change(voice.self_talking_hud, "text",
                                 ">> YOU ARE TALKING <<")
                         core.localplayer:hud_change(voice.self_talking_hud, "number",
@@ -208,42 +213,55 @@ function voice.mute_player(peer_id, muted)
         end
 end
 
--- Toggle voice chat on/off
-function voice.toggle()
-        voice.local_enabled = not voice.local_enabled
-        core.settings:set_bool("enable_voice_chat", voice.local_enabled)
+-- Toggle receive opt-out (mute all incoming voice)
+-- v9.44: Server controls whether voice is ON; client can only opt out
+function voice.toggle_receive()
+        if not voice.server_allowed then
+                core.display_chat_message("[Voice] Voice chat is disabled by the server")
+                return
+        end
+        voice.receive_enabled = not voice.receive_enabled
+        core.settings:set_bool("voice_chat_receive", voice.receive_enabled)
         voice.update_hud()
-        if voice.local_enabled then
-                core.display_chat_message("[Voice] Voice chat enabled")
+        if voice.receive_enabled then
+                core.display_chat_message("[Voice] Voice unmuted (opted in)")
         else
-                core.display_chat_message("[Voice] Voice chat disabled")
+                core.display_chat_message("[Voice] Voice muted (opted out)")
         end
 end
 
 -- Chat commands
 core.register_chatcommand("voice", {
-        description = "Voice chat commands: on, off, mute <name>, unmute <name>, status",
-        params = "<on|off|mute|unmute|status> [name]",
+        description = "Voice chat commands: mute, unmute, mute <name>, unmute <name>, status",
+        params = "<mute|unmute|status> [name]",
         func = function(param)
                 local args = param:split(" ")
                 local cmd = args[1] or ""
 
-                if cmd == "on" then
-                        voice.local_enabled = true
-                        core.settings:set_bool("enable_voice_chat", true)
+                if cmd == "mute" then
+                        -- Global mute (opt out of receiving)
+                        if not voice.server_allowed then
+                                return false, "[Voice] Voice chat is disabled by the server"
+                        end
+                        voice.receive_enabled = false
+                        core.settings:set_bool("voice_chat_receive", false)
                         voice.update_hud()
-                        return true, "[Voice] Voice chat enabled"
+                        return true, "[Voice] All incoming voice muted (opted out)"
 
-                elseif cmd == "off" then
-                        voice.local_enabled = false
-                        core.settings:set_bool("enable_voice_chat", false)
+                elseif cmd == "unmute" then
+                        -- Global unmute (opt back in)
+                        if not voice.server_allowed then
+                                return false, "[Voice] Voice chat is disabled by the server"
+                        end
+                        voice.receive_enabled = true
+                        core.settings:set_bool("voice_chat_receive", true)
                         voice.update_hud()
-                        return true, "[Voice] Voice chat disabled"
+                        return true, "[Voice] Voice unmuted (opted in)"
 
-                elseif cmd == "mute" then
+                elseif cmd == "mute_player" then
                         local name = args[2]
                         if not name or name == "" then
-                                return false, "Usage: /voice mute <player_name>"
+                                return false, "Usage: /voice mute_player <player_name>"
                         end
                         -- Find peer_id by name
                         for peer_id, state in pairs(voice.peer_states) do
@@ -254,10 +272,10 @@ core.register_chatcommand("voice", {
                         end
                         return false, "[Voice] Player '" .. name .. "' not found in voice chat"
 
-                elseif cmd == "unmute" then
+                elseif cmd == "unmute_player" then
                         local name = args[2]
                         if not name or name == "" then
-                                return false, "Usage: /voice unmute <player_name>"
+                                return false, "Usage: /voice unmute_player <player_name>"
                         end
                         for peer_id, state in pairs(voice.peer_states) do
                                 if state.name:lower() == name:lower() then
@@ -270,7 +288,9 @@ core.register_chatcommand("voice", {
                 elseif cmd == "status" then
                         local lines = { "[Voice] Status:" }
                         lines[#lines + 1] = "  Voice chat: " ..
-                                (voice.local_enabled and "ON" or "OFF")
+                                (voice.server_allowed and "SERVER ON" or "SERVER OFF")
+                        lines[#lines + 1] = "  Receiving: " ..
+                                (voice.receive_enabled and "YES" or "MUTED (opted out)")
                         lines[#lines + 1] = "  Mode: " ..
                                 (core.settings:get("voice_chat_mode") or "ptt")
                         lines[#lines + 1] = "  E2EE: " ..
@@ -294,17 +314,17 @@ core.register_chatcommand("voice", {
                         return true, table.concat(lines, "\n")
 
                 else
-                        return false, "Usage: /voice <on|off|mute|unmute|status> [name]"
+                        return false, "Usage: /voice <mute|unmute|mute_player|unmute_player|status> [name]"
                 end
         end,
 })
 
 -- Periodic HUD update (check settings changes)
 local function on_step(dtime)
-        -- Keep voice.local_enabled in sync with settings
-        local setting_enabled = core.settings:get_bool("enable_voice_chat")
-        if setting_enabled ~= voice.local_enabled then
-                voice.local_enabled = setting_enabled
+        -- Keep voice.receive_enabled in sync with settings
+        local setting_receive = core.settings:get_bool("voice_chat_receive")
+        if setting_receive ~= voice.receive_enabled then
+                voice.receive_enabled = setting_receive
                 voice.update_hud()
         end
 end
@@ -313,7 +333,8 @@ end
 core.register_globalstep(function(dtime)
         -- Initialize HUD once localplayer becomes available (client-side)
         if not voice.hud_initialized and core.localplayer then
-                voice.local_enabled = core.settings:get_bool("enable_voice_chat")
+                voice.receive_enabled = core.settings:get_bool("voice_chat_receive")
+                voice.server_allowed = true  -- Will be updated by TOCLIENT_VOICE_STATE
                 voice.init()
                 voice.hud_initialized = true
         end

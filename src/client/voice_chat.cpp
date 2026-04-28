@@ -92,7 +92,7 @@ void VoiceChatManager::deinit()
 
 void VoiceChatManager::step(float dtime)
 {
-        if (!m_enabled || !m_initialized)
+        if (!isVoiceActive() || !m_initialized)
                 return;
 
         // Determine if we should be transmitting
@@ -168,31 +168,55 @@ void VoiceChatManager::step(float dtime)
 // Client Settings
 // ============================================================
 
-void VoiceChatManager::setEnabled(bool enabled)
+void VoiceChatManager::setServerVoiceAllowed(bool allowed)
 {
-        if (m_enabled == enabled)
+        if (m_server_voice_allowed == allowed)
                 return;
 
-        m_enabled = enabled;
+        m_server_voice_allowed = allowed;
 
-        if (enabled) {
+        if (allowed && !m_receive_opt_out) {
                 init();
                 // Send our public key for E2EE
                 if (m_e2ee_enabled && sendVoiceKeyExchange) {
                         sendVoiceKeyExchange(m_local_pubkey.data());
                 }
         } else {
-                // Stop transmitting
+                // Server disallows voice - stop transmitting
                 if (m_is_transmitting && sendVoiceStop) {
                         sendVoiceStop(m_active_channel);
                         m_is_transmitting = false;
                 }
         }
 
-        if (sendVoiceEnable)
-                sendVoiceEnable(enabled);
+        infostream << "VoiceChat: Server voice " << (allowed ? "allowed" : "disallowed") << std::endl;
+}
 
-        infostream << "VoiceChat: " << (enabled ? "Enabled" : "Disabled") << std::endl;
+void VoiceChatManager::setReceiveOptOut(bool opt_out)
+{
+        if (m_receive_opt_out == opt_out)
+                return;
+
+        m_receive_opt_out = opt_out;
+
+        if (opt_out) {
+                // Client opts out - stop transmitting and receiving
+                if (m_is_transmitting && sendVoiceStop) {
+                        sendVoiceStop(m_active_channel);
+                        m_is_transmitting = false;
+                }
+        } else if (m_server_voice_allowed) {
+                // Client opts back in and server allows - initialize
+                init();
+                if (m_e2ee_enabled && sendVoiceKeyExchange) {
+                        sendVoiceKeyExchange(m_local_pubkey.data());
+                }
+        }
+
+        if (sendVoiceOptOut)
+                sendVoiceOptOut(opt_out);
+
+        infostream << "VoiceChat: Client " << (opt_out ? "opted out" : "opted in") << " of voice" << std::endl;
 }
 
 void VoiceChatManager::setMode(VoiceChatMode mode)
@@ -216,7 +240,7 @@ void VoiceChatManager::setE2EE(bool enabled)
         m_e2ee_enabled = enabled;
         g_settings->setBool("voice_chat_e2ee", enabled);
 
-        if (enabled && m_enabled && sendVoiceKeyExchange) {
+        if (enabled && isVoiceActive() && sendVoiceKeyExchange) {
                 // Regenerate keypair and send new public key
                 generateEphemeralKeypair();
                 sendVoiceKeyExchange(m_local_pubkey.data());

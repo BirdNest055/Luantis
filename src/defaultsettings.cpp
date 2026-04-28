@@ -104,7 +104,7 @@ void set_default_settings()
         settings->setDefault("sound_extensions_blacklist", "");
 
         // Voice chat (v9.39)
-        settings->setDefault("enable_voice_chat", "false");
+        settings->setDefault("voice_chat_receive", "true");  // v9.44: Client receives voice (opt-out = false)
         settings->setDefault("voice_chat_volume", "0.8");
         settings->setDefault("voice_chat_mode", "ptt"); // "ptt" (push-to-talk) or "toggle"
         settings->setDefault("voice_chat_e2ee", "true"); // End-to-end encryption
@@ -175,7 +175,7 @@ void set_default_settings()
         settings->setDefault("keymap_increase_volume", "");
         settings->setDefault("keymap_decrease_volume", "");
         settings->setDefault("keymap_voice_ptt", "SYSTEM_SCANCODE_41"); // KEY_BACKQUOTE (~ / ` key, hold-to-talk)
-        settings->setDefault("keymap_voice_toggle", ""); // No default — set by user
+        settings->setDefault("keymap_voice_mute_all", "");  // v9.44: Mute all incoming voice // No default — set by user
         settings->setDefault("keymap_cinematic", "");
         settings->setDefault("keymap_toggle_block_bounds", "");
         settings->setDefault("keymap_toggle_hud", "SYSTEM_SCANCODE_58"); // KEY_F1

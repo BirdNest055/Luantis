@@ -226,7 +226,7 @@ const ServerCommandFactory serverCommandFactoryTable[TOSERVER_NUM_MSG_TYPES] =
         { "TOSERVER_KEYPAIR_REGISTER",    1, true }, // 0x55, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_LOGIN",       1, true }, // 0x56, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_RESPONSE",    1, true }, // 0x57, v9.29 keypair auth
-        { "TOSERVER_VOICE_ENABLE",        0, true }, // 0x58, v9.39 voice chat
+        { "TOSERVER_VOICE_OPT_OUT",       0, true }, // 0x58, v9.44 voice opt-out
         { "TOSERVER_VOICE_START",         0, false }, // 0x59 — voice data is high-frequency, not reliable
         { "TOSERVER_VOICE_DATA",          0, false }, // 0x5a — voice data is high-frequency, not reliable
         { "TOSERVER_VOICE_STOP",          0, false }, // 0x5b
