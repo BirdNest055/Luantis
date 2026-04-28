@@ -2478,18 +2478,16 @@ void Server::sendVoiceGroupUpdate(u32 group_id, u8 update_type)
 
         auto &group = it->second;
 
-        // Build update packet
-        NetworkPacket update_pkt(TOCLIENT_VOICE_GROUP_UPDATE, 0);
-        update_pkt << group_id << update_type << (u16)group.members.size();
-        for (u16 member_peer_id : group.members) {
-                RemotePlayer *member = m_env->getPlayer(member_peer_id);
-                std::string name = member ? member->getName() : "Unknown";
-                update_pkt << member_peer_id << name;
-        }
-
+        // Build per-peer packets
         // Send to all group members
         for (u16 member_peer_id : group.members) {
-                update_pkt.setPeerId(member_peer_id);
+                NetworkPacket update_pkt(TOCLIENT_VOICE_GROUP_UPDATE, 0, member_peer_id);
+                update_pkt << group_id << update_type << (u16)group.members.size();
+                for (u16 mid : group.members) {
+                        RemotePlayer *member = m_env->getPlayer(mid);
+                        std::string name = member ? member->getName() : "Unknown";
+                        update_pkt << mid << name;
+                }
                 Send(&update_pkt);
         }
 }
@@ -2527,13 +2525,11 @@ void Server::handleCommand_VoiceStart(NetworkPacket* pkt)
         player->voice_channel = channel_id;
 
         // Relay to all other voice-enabled players
-        NetworkPacket start_pkt(TOCLIENT_VOICE_PEER_START, 0);
-        start_pkt << peer_id << channel_id << player->getName();
-
         // Send to all connected voice-enabled peers (server-wide, no distance fade)
         for (RemotePlayer *other : m_env->getPlayers()) {
                 if (other && other != player && other->voice_chat_enabled) {
-                        start_pkt.setPeerId(other->getPeerId());
+                        NetworkPacket start_pkt(TOCLIENT_VOICE_PEER_START, 0, other->getPeerId());
+                        start_pkt << peer_id << channel_id << player->getName();
                         Send(&start_pkt);
                 }
         }
@@ -2563,16 +2559,14 @@ void Server::handleCommand_VoiceData(NetworkPacket* pkt)
 
         // Relay voice data to all other voice-enabled players
         // The server does NOT decrypt — it only relays encrypted data
-        NetworkPacket relay_pkt(TOCLIENT_VOICE_DATA, 0);
-        relay_pkt << peer_id << channel_id << seq_num << data_length;
-        relay_pkt.putRawString(raw_data.c_str(), raw_data.size());
-        if (!nonce.empty()) {
-                relay_pkt.putRawString(nonce.c_str(), nonce.size());
-        }
-
         for (RemotePlayer *other : m_env->getPlayers()) {
                 if (other && other != player && other->voice_chat_enabled) {
-                        relay_pkt.setPeerId(other->getPeerId());
+                        NetworkPacket relay_pkt(TOCLIENT_VOICE_DATA, 0, other->getPeerId());
+                        relay_pkt << peer_id << channel_id << seq_num << data_length;
+                        relay_pkt.putRawString(raw_data.c_str(), raw_data.size());
+                        if (!nonce.empty()) {
+                                relay_pkt.putRawString(nonce.c_str(), nonce.size());
+                        }
                         Send(&relay_pkt);
                 }
         }
@@ -2588,12 +2582,10 @@ void Server::handleCommand_VoiceStop(NetworkPacket* pkt)
         player->voice_is_talking = false;
 
         // Relay stop to all voice-enabled players
-        NetworkPacket stop_pkt(TOCLIENT_VOICE_PEER_STOP, 0);
-        stop_pkt << peer_id;
-
         for (RemotePlayer *other : m_env->getPlayers()) {
                 if (other && other != player && other->voice_chat_enabled) {
-                        stop_pkt.setPeerId(other->getPeerId());
+                        NetworkPacket stop_pkt(TOCLIENT_VOICE_PEER_STOP, 0, other->getPeerId());
+                        stop_pkt << peer_id;
                         Send(&stop_pkt);
                 }
         }
@@ -2676,9 +2668,8 @@ void Server::handleCommand_VoiceGroupInvite(NetworkPacket* pkt)
                 return;
 
         // Send invite to target
-        NetworkPacket invite_pkt(TOCLIENT_VOICE_GROUP_INVITE, 0);
+        NetworkPacket invite_pkt(TOCLIENT_VOICE_GROUP_INVITE, 0, target_peer_id);
         invite_pkt << group_id << it->second.name << peer_id << player->getName();
-        invite_pkt.setPeerId(target_peer_id);
         Send(&invite_pkt);
 
         infostream << "Server: Player " << player->getName()
@@ -2765,13 +2756,11 @@ void Server::handleCommand_VoiceKeyExchange(NetworkPacket* pkt)
                    << " sent voice E2EE public key" << std::endl;
 
         // Relay this public key to all other voice-enabled players
-        NetworkPacket exchange_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0);
-        exchange_pkt << peer_id;
-        exchange_pkt.putRawString(pubkey_str.c_str(), 32);
-
         for (RemotePlayer *other : m_env->getPlayers()) {
                 if (other && other != player && other->voice_chat_enabled) {
-                        exchange_pkt.setPeerId(other->getPeerId());
+                        NetworkPacket exchange_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0, other->getPeerId());
+                        exchange_pkt << peer_id;
+                        exchange_pkt.putRawString(pubkey_str.c_str(), 32);
                         Send(&exchange_pkt);
                 }
         }
@@ -2780,11 +2769,10 @@ void Server::handleCommand_VoiceKeyExchange(NetworkPacket* pkt)
         for (RemotePlayer *other : m_env->getPlayers()) {
                 if (other && other != player && other->voice_chat_enabled
                         && other->voice_pubkey.size() == 32) {
-                        NetworkPacket existing_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0);
+                        NetworkPacket existing_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0, peer_id);
                         existing_pkt << other->getPeerId();
                         existing_pkt.putRawString(
                                 reinterpret_cast<const char*>(other->voice_pubkey.data()), 32);
-                        existing_pkt.setPeerId(peer_id);
                         Send(&existing_pkt);
                 }
         }
