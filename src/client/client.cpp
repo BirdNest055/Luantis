@@ -1853,9 +1853,9 @@ void Client::initVoiceChat()
                 Send(&pkt);
         };
 
-        m_voice_chat->sendVoiceOptOut = [this](bool enabled) {
-                NetworkPacket pkt(TOSERVER_VOICE_ENABLE, 1);
-                pkt << (u8)(enabled ? 1 : 0);
+        m_voice_chat->sendVoiceOptOut = [this](bool opt_out) {
+                NetworkPacket pkt(TOSERVER_VOICE_OPT_OUT, 1);
+                pkt << (u8)(opt_out ? 1 : 0);
                 Send(&pkt);
         };
 
