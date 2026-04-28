@@ -255,15 +255,15 @@ if(BUILD_CLIENT)
 endif()
 
 install(FILES "README.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
-install(FILES "doc/lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
-install(FILES "doc/client_lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
-install(FILES "doc/menu_lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
-install(FILES "doc/texture_packs.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
-install(FILES "doc/world_format.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
+install(FILES "docs/lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
+install(FILES "docs/client_lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
+install(FILES "docs/menu_lua_api.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
+install(FILES "docs/texture_packs.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
+install(FILES "docs/world_format.md" DESTINATION "${DOCDIR}" COMPONENT "Docs")
 install(FILES "minetest.conf.example" DESTINATION "${EXAMPLE_CONF_DIR}")
 
 if(UNIX AND NOT APPLE)
-        install(FILES "doc/luanti.6" "doc/luantiserver.6" DESTINATION "${MANDIR}/man6")
+        install(FILES "docs/luanti.6" "docs/luantiserver.6" DESTINATION "${MANDIR}/man6")
         install(FILES "misc/org.luanti.luanti.desktop" DESTINATION "${XDG_APPS_DIR}")
         install(FILES "misc/org.luanti.luanti.metainfo.xml" DESTINATION "${METAINFODIR}")
         install(FILES "misc/luanti.svg" DESTINATION "${ICONDIR}/hicolor/scalable/apps")
@@ -360,11 +360,11 @@ include(CPack)
 if(BUILD_DOCUMENTATION)
         find_package(Doxygen)
         if(DOXYGEN_FOUND)
-                configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in
-                                ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
+                configure_file(${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in
+                                ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile @ONLY)
                 add_custom_target(doc
-                        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+                        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs
                         COMMENT "Generating API documentation with Doxygen" VERBATIM
                 )
         endif()

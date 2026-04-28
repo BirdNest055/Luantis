@@ -352,16 +352,16 @@ LD_LIBRARY_PATH="$LOCAL_PREFIX/usr/lib/x86_64-linux-gnu" ./bin/luanti --version
 
 ### More Compiling Documentation
 
-- [Compiling - common information](doc/compiling/README.md)
-- [Compiling on GNU/Linux](doc/compiling/linux.md)
-- [Compiling on Windows](doc/compiling/windows.md)
-- [Compiling on MacOS](doc/compiling/macos.md)
+- [Compiling - common information](docs/compiling/README.md)
+- [Compiling on GNU/Linux](docs/compiling/linux.md)
+- [Compiling on Windows](docs/compiling/windows.md)
+- [Compiling on MacOS](docs/compiling/macos.md)
 
 Docker
 ------
 
-- [Developing minetestserver with Docker](doc/developing/docker.md)
-- [Running a server with Docker](doc/docker_server.md)
+- [Developing minetestserver with Docker](docs/developing/docker.md)
+- [Running a server with Docker](docs/docker_server.md)
 
 Version scheme
 --------------

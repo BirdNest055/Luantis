@@ -2138,7 +2138,7 @@ profiler.load (Load the game profiler) bool false
 profiler.measure (Measure time samples) bool true
 
 #    Capture Tracy zones with the profiler's instrumentation.
-#    You need to build with Tracy to use this, see doc/developing/profiling.md
+#    You need to build with Tracy to use this, see docs/developing/profiling.md
 #    for details.
 profiler.tracy (Capture Tracy zones) bool false
 
