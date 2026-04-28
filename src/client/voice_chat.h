@@ -67,7 +67,7 @@ struct VoiceGroup {
  * Voice chat mode for the local client.
  */
 enum class VoiceChatMode : u8 {
-        DISABLED = 0,   // Voice chat off
+        DISABLED = 0,   // Voice chat off (server-disallowed or client opted out)
         PTT = 1,        // Push-to-talk (hold key)
         TOGGLE = 2,     // Toggle on/off
 };
@@ -107,9 +107,14 @@ public:
         void deinit();                        // Clean shutdown
         void step(float dtime);               // Called every frame from game loop
 
-        // === Client Settings ===
-        void setEnabled(bool enabled);
-        bool isEnabled() const { return m_enabled; }
+        // === Server Authority ===
+        void setServerVoiceAllowed(bool allowed);
+        bool isServerVoiceAllowed() const { return m_server_voice_allowed; }
+
+        // === Client Opt-Out ===
+        void setReceiveOptOut(bool opt_out);
+        bool isReceiveOptOut() const { return m_receive_opt_out; }
+        bool isVoiceActive() const { return m_server_voice_allowed && !m_receive_opt_out; }
         void setMode(VoiceChatMode mode);
         VoiceChatMode getMode() const { return m_mode; }
         void setVolume(float vol);
@@ -173,7 +178,7 @@ public:
         std::function<void(u8 channel_id, u16 seq_num, const std::vector<u8> &opus_data,
                 bool e2ee, const std::vector<u8> &nonce)> sendVoiceData;
         std::function<void(u8 channel_id)> sendVoiceStop;
-        std::function<void(bool enabled)> sendVoiceEnable;
+        std::function<void(bool opt_out)> sendVoiceOptOut;
         std::function<void(u16 peer_id, bool muted)> sendVoiceMute;
         std::function<void(const std::string &name)> sendVoiceGroupCreate;
         std::function<void(u32 group_id, u16 peer_id)> sendVoiceGroupInvite;
@@ -200,7 +205,8 @@ private:
         bool deriveSessionKey(u16 peer_id);
 
         // State
-        bool m_enabled = false;
+        bool m_server_voice_allowed = false;  // Set by TOCLIENT_VOICE_STATE
+        bool m_receive_opt_out = false;           // Client chooses to mute incoming voice
         bool m_initialized = false;
         VoiceChatMode m_mode = VoiceChatMode::PTT;
         float m_volume = 0.8f;

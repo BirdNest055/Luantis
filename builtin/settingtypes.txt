@@ -863,8 +863,10 @@ mute_sound (Mute sound) bool false
 
 [**Voice Chat]
 
-#    v9.39: Enable voice chat. Requires server support and Opus codec.
-enable_voice_chat (Enable voice chat) bool false
+#    v9.44: Receive voice chat audio from other players.
+#    This is a client opt-out: the server controls whether voice chat
+#    is ON; you can only choose to stop receiving/muting incoming audio.
+voice_chat_receive (Receive voice audio) bool true
 
 #    v9.39: Voice chat volume (0.0 to 1.0).
 voice_chat_volume (Voice chat volume) float 0.8 0.0 1.0

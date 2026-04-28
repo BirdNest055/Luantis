@@ -47,7 +47,7 @@ void MyEventReceiver::reloadKeybindings()
         keybindings[KeyType::INC_VOLUME] = getKeySetting("keymap_increase_volume");
         keybindings[KeyType::DEC_VOLUME] = getKeySetting("keymap_decrease_volume");
         keybindings[KeyType::VOICE_PTT] = getKeySetting("keymap_voice_ptt");
-        keybindings[KeyType::VOICE_TOGGLE] = getKeySetting("keymap_voice_toggle");
+        keybindings[KeyType::VOICE_MUTE_ALL] = getKeySetting("keymap_voice_mute_all");
         keybindings[KeyType::CINEMATIC] = getKeySetting("keymap_cinematic");
         keybindings[KeyType::SCREENSHOT] = getKeySetting("keymap_screenshot");
         keybindings[KeyType::SERVERINFO] = getKeySetting("keymap_serverinfo");

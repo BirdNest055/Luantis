@@ -99,7 +99,7 @@ const ToServerCommandHandler toServerCommandTable[TOSERVER_NUM_MSG_TYPES] =
         { "TOSERVER_KEYPAIR_REGISTER",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairRegister }, // 0x55, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_LOGIN",            TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairLogin }, // 0x56, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_RESPONSE",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairResponse }, // 0x57, v9.29 keypair auth
-        { "TOSERVER_VOICE_ENABLE",             TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceEnable }, // 0x58, v9.39 voice chat
+        { "TOSERVER_VOICE_OPT_OUT",            TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceEnable }, // 0x58, v9.44 voice opt-out
         { "TOSERVER_VOICE_START",              TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceStart }, // 0x59
         { "TOSERVER_VOICE_DATA",               TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceData }, // 0x5a
         { "TOSERVER_VOICE_STOP",               TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceStop }, // 0x5b

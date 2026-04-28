@@ -1495,16 +1495,21 @@ void Game::processKeyInput()
                         || wasKeyDown(KeyType::DEC_VOLUME)) {
                 m_game_ui->showTranslatedStatusText("Sound system is not supported on this build");
 #endif
-        } else if (wasKeyPressed(KeyType::VOICE_TOGGLE)) {
+        } else if (wasKeyPressed(KeyType::VOICE_MUTE_ALL)) {
 #if USE_VOICE_CHAT
-                // Toggle voice chat on/off
+                // v9.44: Toggle client opt-out (mute all incoming voice)
+                // Server controls whether voice is ON; client can only opt out of receiving
                 if (client && client->getVoiceChat()) {
-                        bool voice_enabled = client->getVoiceChat()->isEnabled();
-                        client->getVoiceChat()->setEnabled(!voice_enabled);
-                        if (!voice_enabled)
-                                m_game_ui->showTranslatedStatusText("Voice chat enabled");
-                        else
-                                m_game_ui->showTranslatedStatusText("Voice chat disabled");
+                        if (!client->getVoiceChat()->isServerVoiceAllowed()) {
+                                m_game_ui->showTranslatedStatusText("Voice chat is disabled by the server");
+                        } else {
+                                bool opt_out = client->getVoiceChat()->isReceiveOptOut();
+                                client->getVoiceChat()->setReceiveOptOut(!opt_out);
+                                if (!opt_out)
+                                        m_game_ui->showTranslatedStatusText("Voice muted (opted out)");
+                                else
+                                        m_game_ui->showTranslatedStatusText("Voice unmuted (opted in)");
+                        }
                 }
 #else
                 m_game_ui->showTranslatedStatusText("Voice chat is not supported on this build");
@@ -2169,7 +2174,7 @@ inline void Game::step(f32 dtime)
 
 #if USE_VOICE_CHAT
         // v9.39: Step voice chat manager — processes audio capture/playback
-        if (client->getVoiceChat() && client->getVoiceChat()->isEnabled())
+        if (client->getVoiceChat() && client->getVoiceChat()->isVoiceActive())
                 client->getVoiceChat()->step(dtime);
 #endif
 }

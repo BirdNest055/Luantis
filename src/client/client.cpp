@@ -1853,7 +1853,7 @@ void Client::initVoiceChat()
                 Send(&pkt);
         };
 
-        m_voice_chat->sendVoiceEnable = [this](bool enabled) {
+        m_voice_chat->sendVoiceOptOut = [this](bool enabled) {
                 NetworkPacket pkt(TOSERVER_VOICE_ENABLE, 1);
                 pkt << (u8)(enabled ? 1 : 0);
                 Send(&pkt);
@@ -1895,9 +1895,11 @@ void Client::initVoiceChat()
                 Send(&pkt);
         };
 
-        // Auto-enable voice chat if the setting is on
-        if (g_settings->getBool("enable_voice_chat")) {
-                m_voice_chat->setEnabled(true);
+        // v9.44: Voice chat is server-controlled. Client initializes in
+        // "opted out" or "opted in" state based on voice_chat_receive setting.
+        // The server will send TOCLIENT_VOICE_STATE to enable/disable.
+        if (!g_settings->getBool("voice_chat_receive")) {
+                m_voice_chat->setReceiveOptOut(true);
         }
 }
 #endif
