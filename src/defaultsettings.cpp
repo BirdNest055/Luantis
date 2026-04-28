@@ -102,6 +102,18 @@ void set_default_settings()
         settings->setDefault("sound_volume_unfocused", "0.3");
         settings->setDefault("mute_sound", "false");
         settings->setDefault("sound_extensions_blacklist", "");
+
+        // Voice chat (v9.39)
+        settings->setDefault("enable_voice_chat", "false");
+        settings->setDefault("voice_chat_volume", "0.8");
+        settings->setDefault("voice_chat_mode", "ptt"); // "ptt" (push-to-talk) or "toggle"
+        settings->setDefault("voice_chat_e2ee", "true"); // End-to-end encryption
+        settings->setDefault("voice_chat_noise_suppression", "true");
+        settings->setDefault("voice_chat_vad_threshold", "0.3"); // Voice activity detection threshold
+        settings->setDefault("voice_chat_input_device", ""); // Empty = default
+        settings->setDefault("voice_chat_output_device", ""); // Empty = default
+        settings->setDefault("voice_chat_bitrate", "32000"); // Opus bitrate in bps
+        settings->setDefault("voice_chat_indicator", "true"); // Show voice indicator on HUD
         settings->setDefault("mesh_generation_interval", "0");
         settings->setDefault("mesh_generation_threads", "0");
         settings->setDefault("mesh_buffer_min_vertices", "300");
@@ -162,6 +174,8 @@ void set_default_settings()
         settings->setDefault("keymap_mute", "SYSTEM_SCANCODE_16"); // KEY_KEY_M
         settings->setDefault("keymap_increase_volume", "");
         settings->setDefault("keymap_decrease_volume", "");
+        settings->setDefault("keymap_voice_ptt", "SYSTEM_SCANCODE_41"); // KEY_BACKQUOTE (~ / ` key, hold-to-talk)
+        settings->setDefault("keymap_voice_toggle", ""); // No default — set by user
         settings->setDefault("keymap_cinematic", "");
         settings->setDefault("keymap_toggle_block_bounds", "");
         settings->setDefault("keymap_toggle_hud", "SYSTEM_SCANCODE_58"); // KEY_F1
@@ -507,6 +521,12 @@ void set_default_settings()
         settings->setDefault("disallow_empty_password", "false");
         settings->setDefault("keypair_auth", "true");
         settings->setDefault("keypair_show_manager", "true");
+
+        // Voice chat server settings (v9.39)
+        settings->setDefault("enable_voice_chat_server", "true"); // Server allows voice chat
+        settings->setDefault("voice_chat_e2ee_required", "false"); // Server requires E2EE for voice
+        settings->setDefault("voice_chat_max_groups", "10"); // Max concurrent voice groups
+        settings->setDefault("voice_chat_group_max_members", "8"); // Max members per voice group
         settings->setDefault("anticheat_flags", flagdesc_anticheat,
                 AC_DIGGING | AC_INTERACTION | AC_MOVEMENT);
         settings->setDefault("anticheat_movement_tolerance", "1.0");

@@ -426,6 +426,17 @@ void Server::handleCommand_ClientReady(NetworkPacket* pkt)
         m_script->getAuth(playersao->getPlayer()->getName(), nullptr, nullptr, &last_login);
         m_script->on_joinplayer(playersao, last_login);
 
+        // v9.39: Send voice chat state to this client
+        {
+                bool voice_enabled = g_settings->getBool("enable_voice_chat_server");
+                bool e2ee_required = g_settings->getBool("voice_chat_e2ee_required");
+                NetworkPacket voice_pkt(TOCLIENT_VOICE_STATE, 0, peer_id);
+                voice_pkt << (u8)(voice_enabled ? 1 : 0)
+                          << (u8)(e2ee_required ? 1 : 0)
+                          << (u16)0; // voice_port = 0 (use same connection)
+                Send(peer_id, &voice_pkt);
+        }
+
         // Send shutdown timer if shutdown has been scheduled
         if (m_shutdown_state.isTimerRunning())
                 SendChatMessage(peer_id, m_shutdown_state.getShutdownTimerMessage());
@@ -2424,6 +2435,357 @@ void Server::handleCommand_KeypairResponse(NetworkPacket* pkt)
                                 << EncLog::kv("peer", peer_id)
                                 << EncLog::kv("session_id", client->encryption_state.session_id)
                                 << std::endl;
+                }
+        }
+}
+
+// ============================================================
+// v9.39 Voice Chat Server Handlers
+// ============================================================
+
+void Server::sendVoicePeerListToAll()
+{
+        // Build the peer list of all voice-enabled players
+        std::vector<std::pair<u16, RemotePlayer*>> voice_peers;
+        for (RemotePlayer *p : m_env->getPlayers()) {
+                if (p && p->voice_chat_enabled)
+                        voice_peers.emplace_back(p->getPeerId(), p);
+        }
+
+        // Send to each voice-enabled player
+        for (RemotePlayer *target : m_env->getPlayers()) {
+                if (!target || !target->voice_chat_enabled)
+                        continue;
+
+                NetworkPacket list_pkt(TOCLIENT_VOICE_PEER_LIST, 0, target->getPeerId());
+                list_pkt << (u16)voice_peers.size();
+                for (auto &vp : voice_peers) {
+                        list_pkt << vp.first;
+                        list_pkt << (u8)(vp.second->voice_chat_enabled ? 1 : 0);
+                        list_pkt << (u8)0; // is_muted_by_us — client-side, always 0 from server
+                        list_pkt << (u8)(vp.second->voice_is_talking ? 1 : 0);
+                        list_pkt << vp.second->getName();
+                }
+                Send(&list_pkt);
+        }
+}
+
+void Server::sendVoiceGroupUpdate(u32 group_id, u8 update_type)
+{
+        auto it = m_voice_groups.find(group_id);
+        if (it == m_voice_groups.end())
+                return;
+
+        auto &group = it->second;
+
+        // Build update packet
+        NetworkPacket update_pkt(TOCLIENT_VOICE_GROUP_UPDATE, 0);
+        update_pkt << group_id << update_type << (u16)group.members.size();
+        for (u16 member_peer_id : group.members) {
+                RemotePlayer *member = m_env->getPlayer(member_peer_id);
+                std::string name = member ? member->getName() : "Unknown";
+                update_pkt << member_peer_id << name;
+        }
+
+        // Send to all group members
+        for (u16 member_peer_id : group.members) {
+                update_pkt.setPeerId(member_peer_id);
+                Send(&update_pkt);
+        }
+}
+
+void Server::handleCommand_VoiceEnable(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player)
+                return;
+
+        u8 enabled;
+        *pkt >> enabled;
+
+        player->voice_chat_enabled = (enabled != 0);
+
+        infostream << "Server: Player " << player->getName()
+                   << " voice chat " << (enabled ? "enabled" : "disabled") << std::endl;
+
+        // Broadcast updated peer list to all voice-enabled players
+        sendVoicePeerListToAll();
+}
+
+void Server::handleCommand_VoiceStart(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled)
+                return;
+
+        u8 channel_id;
+        *pkt >> channel_id;
+
+        player->voice_is_talking = true;
+        player->voice_channel = channel_id;
+
+        // Relay to all other voice-enabled players
+        NetworkPacket start_pkt(TOCLIENT_VOICE_PEER_START, 0);
+        start_pkt << peer_id << channel_id << player->getName();
+
+        // Send to all connected voice-enabled peers (server-wide, no distance fade)
+        for (RemotePlayer *other : m_env->getPlayers()) {
+                if (other && other != player && other->voice_chat_enabled) {
+                        start_pkt.setPeerId(other->getPeerId());
+                        Send(&start_pkt);
+                }
+        }
+}
+
+void Server::handleCommand_VoiceData(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled || !player->voice_is_talking)
+                return;
+
+        u8 channel_id;
+        u16 seq_num;
+        u16 data_length;
+
+        *pkt >> channel_id >> seq_num >> data_length;
+
+        // Read the raw opus data
+        std::string raw_data = pkt->readRawString(data_length);
+
+        // Check for E2EE nonce after opus data
+        std::string nonce;
+        if (pkt->getRemainingBytes() >= 12) {
+                nonce = pkt->readRawString(12);
+        }
+
+        // Relay voice data to all other voice-enabled players
+        // The server does NOT decrypt — it only relays encrypted data
+        NetworkPacket relay_pkt(TOCLIENT_VOICE_DATA, 0);
+        relay_pkt << peer_id << channel_id << seq_num << data_length;
+        relay_pkt.putRawString(raw_data.c_str(), raw_data.size());
+        if (!nonce.empty()) {
+                relay_pkt.putRawString(nonce.c_str(), nonce.size());
+        }
+
+        for (RemotePlayer *other : m_env->getPlayers()) {
+                if (other && other != player && other->voice_chat_enabled) {
+                        relay_pkt.setPeerId(other->getPeerId());
+                        Send(&relay_pkt);
+                }
+        }
+}
+
+void Server::handleCommand_VoiceStop(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player)
+                return;
+
+        player->voice_is_talking = false;
+
+        // Relay stop to all voice-enabled players
+        NetworkPacket stop_pkt(TOCLIENT_VOICE_PEER_STOP, 0);
+        stop_pkt << peer_id;
+
+        for (RemotePlayer *other : m_env->getPlayers()) {
+                if (other && other != player && other->voice_chat_enabled) {
+                        stop_pkt.setPeerId(other->getPeerId());
+                        Send(&stop_pkt);
+                }
+        }
+}
+
+void Server::handleCommand_VoiceMute(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player)
+                return;
+
+        u16 target_peer_id;
+        u8 muted;
+        *pkt >> target_peer_id >> muted;
+
+        // Muting is client-side only — the server doesn't need to do anything
+        // except optionally log it for moderation purposes
+        infostream << "Server: Player " << player->getName()
+                   << (muted ? " muted" : " unmuted") << " peer " << target_peer_id << std::endl;
+}
+
+void Server::handleCommand_VoiceGroupCreate(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled)
+                return;
+
+        std::string group_name;
+        *pkt >> group_name;
+
+        // Check max groups limit
+        int max_groups = g_settings->getS32("voice_chat_max_groups");
+        if ((int)m_voice_groups.size() >= max_groups) {
+                infostream << "Server: Voice group limit reached (" << max_groups << ")" << std::endl;
+                return;
+        }
+
+        // Create the group
+        u32 group_id = m_voice_group_next_id++;
+        VoiceGroupState &group = m_voice_groups[group_id];
+        group.group_id = group_id;
+        group.name = group_name;
+        group.owner_peer_id = peer_id;
+        group.members.push_back(peer_id);
+        group.active = true;
+
+        infostream << "Server: Player " << player->getName()
+                   << " created voice group '" << group_name
+                   << "' (id=" << group_id << ")" << std::endl;
+
+        // Send group update to the creator
+        sendVoiceGroupUpdate(group_id, 0); // 0 = created
+}
+
+void Server::handleCommand_VoiceGroupInvite(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled)
+                return;
+
+        u32 group_id;
+        u16 target_peer_id;
+        *pkt >> group_id >> target_peer_id;
+
+        // Check group exists and inviter is the owner
+        auto it = m_voice_groups.find(group_id);
+        if (it == m_voice_groups.end() || it->second.owner_peer_id != peer_id)
+                return;
+
+        RemotePlayer *target = m_env->getPlayer(target_peer_id);
+        if (!target || !target->voice_chat_enabled)
+                return;
+
+        // Check max members limit
+        int max_members = g_settings->getS32("voice_chat_group_max_members");
+        if ((int)it->second.members.size() >= max_members)
+                return;
+
+        // Send invite to target
+        NetworkPacket invite_pkt(TOCLIENT_VOICE_GROUP_INVITE, 0);
+        invite_pkt << group_id << it->second.name << peer_id << player->getName();
+        invite_pkt.setPeerId(target_peer_id);
+        Send(&invite_pkt);
+
+        infostream << "Server: Player " << player->getName()
+                   << " invited " << target->getName() << " to voice group " << group_id << std::endl;
+}
+
+void Server::handleCommand_VoiceGroupJoin(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled)
+                return;
+
+        u32 group_id;
+        *pkt >> group_id;
+
+        auto it = m_voice_groups.find(group_id);
+        if (it == m_voice_groups.end() || !it->second.active)
+                return;
+
+        // Check max members limit
+        int max_members = g_settings->getS32("voice_chat_group_max_members");
+        if ((int)it->second.members.size() >= max_members)
+                return;
+
+        // Add player to group if not already a member
+        auto &members = it->second.members;
+        if (std::find(members.begin(), members.end(), peer_id) == members.end()) {
+                members.push_back(peer_id);
+        }
+
+        infostream << "Server: Player " << player->getName()
+                   << " joined voice group " << group_id << std::endl;
+
+        // Notify all group members
+        sendVoiceGroupUpdate(group_id, 1); // 1 = member_joined
+}
+
+void Server::handleCommand_VoiceGroupLeave(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player)
+                return;
+
+        u32 group_id;
+        *pkt >> group_id;
+
+        auto it = m_voice_groups.find(group_id);
+        if (it == m_voice_groups.end())
+                return;
+
+        // Remove player from group
+        auto &members = it->second.members;
+        members.erase(std::remove(members.begin(), members.end(), peer_id), members.end());
+
+        infostream << "Server: Player " << player->getName()
+                   << " left voice group " << group_id << std::endl;
+
+        // If the owner left or no members remain, disband the group
+        if (it->second.owner_peer_id == peer_id || members.empty()) {
+                // Notify remaining members before removing
+                sendVoiceGroupUpdate(group_id, 3); // 3 = disbanded
+                m_voice_groups.erase(it);
+        } else {
+                // Notify remaining members
+                sendVoiceGroupUpdate(group_id, 2); // 2 = member_left
+        }
+}
+
+void Server::handleCommand_VoiceKeyExchange(NetworkPacket* pkt)
+{
+        session_t peer_id = pkt->getPeerId();
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player || !player->voice_chat_enabled)
+                return;
+
+        // Read the 32-byte X25519 public key
+        std::string pubkey_str = pkt->readRawString(32);
+
+        player->voice_pubkey.assign(pubkey_str.begin(), pubkey_str.end());
+
+        infostream << "Server: Player " << player->getName()
+                   << " sent voice E2EE public key" << std::endl;
+
+        // Relay this public key to all other voice-enabled players
+        NetworkPacket exchange_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0);
+        exchange_pkt << peer_id;
+        exchange_pkt.putRawString(pubkey_str.c_str(), 32);
+
+        for (RemotePlayer *other : m_env->getPlayers()) {
+                if (other && other != player && other->voice_chat_enabled) {
+                        exchange_pkt.setPeerId(other->getPeerId());
+                        Send(&exchange_pkt);
+                }
+        }
+
+        // Also send existing peers' keys to this new player
+        for (RemotePlayer *other : m_env->getPlayers()) {
+                if (other && other != player && other->voice_chat_enabled
+                        && other->voice_pubkey.size() == 32) {
+                        NetworkPacket existing_pkt(TOCLIENT_VOICE_KEY_EXCHANGE, 0);
+                        existing_pkt << other->getPeerId();
+                        existing_pkt.putRawString(
+                                reinterpret_cast<const char*>(other->voice_pubkey.data()), 32);
+                        existing_pkt.setPeerId(peer_id);
+                        Send(&existing_pkt);
                 }
         }
 }

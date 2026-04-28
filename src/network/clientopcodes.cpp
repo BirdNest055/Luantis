@@ -114,6 +114,14 @@ const ToClientCommandHandler toClientCommandTable[TOCLIENT_NUM_MSG_TYPES] =
         { "TOCLIENT_SPAWN_PARTICLE_BATCH",     TOCLIENT_STATE_CONNECTED, &Client::handleCommand_SpawnParticleBatch }, // 0x64,
         { "TOCLIENT_ECDH_PUBKEY",             TOCLIENT_STATE_NOT_CONNECTED, &Client::handleCommand_EcdhPubkey }, // 0x65, v9.11 forward secrecy
         { "TOCLIENT_KEYPAIR_CHALLENGE",       TOCLIENT_STATE_NOT_CONNECTED, &Client::handleCommand_KeypairChallenge }, // 0x66, v9.29 keypair auth
+        { "TOCLIENT_VOICE_STATE",             TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoiceState }, // 0x67, v9.39 voice chat
+        { "TOCLIENT_VOICE_PEER_START",        TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoicePeerStart }, // 0x68
+        { "TOCLIENT_VOICE_PEER_STOP",         TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoicePeerStop }, // 0x69
+        { "TOCLIENT_VOICE_DATA",              TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoiceData }, // 0x6a
+        { "TOCLIENT_VOICE_PEER_LIST",         TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoicePeerList }, // 0x6b
+        { "TOCLIENT_VOICE_GROUP_INVITE",      TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoiceGroupInvite }, // 0x6c
+        { "TOCLIENT_VOICE_GROUP_UPDATE",      TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoiceGroupUpdate }, // 0x6d
+        { "TOCLIENT_VOICE_KEY_EXCHANGE",      TOCLIENT_STATE_CONNECTED, &Client::handleCommand_VoiceKeyExchange }, // 0x6e
 };
 
 const static ServerCommandFactory null_command_factory = { nullptr, 0, false };
@@ -218,4 +226,14 @@ const ServerCommandFactory serverCommandFactoryTable[TOSERVER_NUM_MSG_TYPES] =
         { "TOSERVER_KEYPAIR_REGISTER",    1, true }, // 0x55, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_LOGIN",       1, true }, // 0x56, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_RESPONSE",    1, true }, // 0x57, v9.29 keypair auth
+        { "TOSERVER_VOICE_ENABLE",        0, true }, // 0x58, v9.39 voice chat
+        { "TOSERVER_VOICE_START",         0, false }, // 0x59 — voice data is high-frequency, not reliable
+        { "TOSERVER_VOICE_DATA",          0, false }, // 0x5a — voice data is high-frequency, not reliable
+        { "TOSERVER_VOICE_STOP",          0, false }, // 0x5b
+        { "TOSERVER_VOICE_MUTE",          0, true }, // 0x5c
+        { "TOSERVER_VOICE_GROUP_CREATE",  0, true }, // 0x5d
+        { "TOSERVER_VOICE_GROUP_INVITE",  0, true }, // 0x5e
+        { "TOSERVER_VOICE_GROUP_JOIN",    0, true }, // 0x5f
+        { "TOSERVER_VOICE_GROUP_LEAVE",   0, true }, // 0x60
+        { "TOSERVER_VOICE_KEY_EXCHANGE",  0, true }, // 0x61
 };

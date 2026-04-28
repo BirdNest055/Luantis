@@ -99,6 +99,16 @@ const ToServerCommandHandler toServerCommandTable[TOSERVER_NUM_MSG_TYPES] =
         { "TOSERVER_KEYPAIR_REGISTER",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairRegister }, // 0x55, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_LOGIN",            TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairLogin }, // 0x56, v9.29 keypair auth
         { "TOSERVER_KEYPAIR_RESPONSE",         TOSERVER_STATE_NOT_CONNECTED, &Server::handleCommand_KeypairResponse }, // 0x57, v9.29 keypair auth
+        { "TOSERVER_VOICE_ENABLE",             TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceEnable }, // 0x58, v9.39 voice chat
+        { "TOSERVER_VOICE_START",              TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceStart }, // 0x59
+        { "TOSERVER_VOICE_DATA",               TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceData }, // 0x5a
+        { "TOSERVER_VOICE_STOP",               TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceStop }, // 0x5b
+        { "TOSERVER_VOICE_MUTE",               TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceMute }, // 0x5c
+        { "TOSERVER_VOICE_GROUP_CREATE",       TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceGroupCreate }, // 0x5d
+        { "TOSERVER_VOICE_GROUP_INVITE",       TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceGroupInvite }, // 0x5e
+        { "TOSERVER_VOICE_GROUP_JOIN",         TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceGroupJoin }, // 0x5f
+        { "TOSERVER_VOICE_GROUP_LEAVE",        TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceGroupLeave }, // 0x60
+        { "TOSERVER_VOICE_KEY_EXCHANGE",       TOSERVER_STATE_INGAME, &Server::handleCommand_VoiceKeyExchange }, // 0x61
 };
 
 const static ClientCommandFactory null_command_factory = { nullptr, 0, false };
@@ -219,4 +229,12 @@ const ClientCommandFactory clientCommandFactoryTable[TOCLIENT_NUM_MSG_TYPES] =
         { "TOCLIENT_SPAWN_PARTICLE_BATCH",     0, true }, // 0x64
         { "TOCLIENT_ECDH_PUBKEY",              0, true }, // 0x65, v9.11 forward secrecy
         { "TOCLIENT_KEYPAIR_CHALLENGE",        0, true }, // 0x66, v9.29 keypair auth
+        { "TOCLIENT_VOICE_STATE",              0, true }, // 0x67, v9.39 voice chat
+        { "TOCLIENT_VOICE_PEER_START",         0, false }, // 0x68 — voice data, unreliable
+        { "TOCLIENT_VOICE_PEER_STOP",          0, false }, // 0x69
+        { "TOCLIENT_VOICE_DATA",               0, false }, // 0x6a — voice data, unreliable
+        { "TOCLIENT_VOICE_PEER_LIST",          0, true }, // 0x6b
+        { "TOCLIENT_VOICE_GROUP_INVITE",       0, true }, // 0x6c
+        { "TOCLIENT_VOICE_GROUP_UPDATE",       0, true }, // 0x6d
+        { "TOCLIENT_VOICE_KEY_EXCHANGE",       0, true }, // 0x6e
 };

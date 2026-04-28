@@ -1490,6 +1490,20 @@ void Game::processKeyInput()
                         || wasKeyDown(KeyType::DEC_VOLUME)) {
                 m_game_ui->showTranslatedStatusText("Sound system is not supported on this build");
 #endif
+        } else if (wasKeyPressed(KeyType::VOICE_TOGGLE)) {
+#if USE_VOICE_CHAT
+                // Toggle voice chat on/off
+                if (client && client->getVoiceChat()) {
+                        bool voice_enabled = client->getVoiceChat()->isEnabled();
+                        client->getVoiceChat()->setEnabled(!voice_enabled);
+                        if (!voice_enabled)
+                                m_game_ui->showTranslatedStatusText("Voice chat enabled");
+                        else
+                                m_game_ui->showTranslatedStatusText("Voice chat disabled");
+                }
+#else
+                m_game_ui->showTranslatedStatusText("Voice chat is not supported on this build");
+#endif
         } else if (wasKeyDown(KeyType::CINEMATIC)) {
                 toggleCinematic();
         } else if (wasKeyPressed(KeyType::SCREENSHOT)) {
@@ -2144,6 +2158,12 @@ inline void Game::step(f32 dtime)
 
         if (!m_is_paused)
                 client->step(dtime);
+
+#if USE_VOICE_CHAT
+        // v9.39: Step voice chat manager — processes audio capture/playback
+        if (client->getVoiceChat() && client->getVoiceChat()->isEnabled())
+                client->getVoiceChat()->step(dtime);
+#endif
 }
 
 static void pauseNodeAnimation(PausedNodesList &paused, scene::ISceneNode *node) {
@@ -2733,6 +2753,15 @@ void Game::processPlayerInteraction(f32 dtime, bool show_hud)
                 player->control.dig = isKeyDown(KeyType::DIG);
                 player->control.place = isKeyDown(KeyType::PLACE);
         }
+
+        // v9.39: Voice chat push-to-talk (continuous key hold)
+#if USE_VOICE_CHAT
+        // PTT key state is checked every frame — it's a hold-to-talk mechanism
+        if (client && client->getVoiceChat()) {
+                bool voice_ptt = isKeyDown(KeyType::VOICE_PTT);
+                client->getVoiceChat()->setPTTActive(voice_ptt);
+        }
+#endif
 
         // Note that updating the selection mesh every frame is not particularly efficient,
         // but the halo rendering code is already inefficient so there's no point in optimizing it here

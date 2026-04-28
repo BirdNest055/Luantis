@@ -25,6 +25,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "config.h"
+
 #if !IS_CLIENT_BUILD
 #error Do not include in server builds
 #endif
@@ -59,6 +61,8 @@ struct PlayerControl;
 struct PointedThing;
 struct ItemVisualsManager;
 struct ModVFS;
+
+class VoiceChatManager; // v9.39 voice chat
 
 namespace scene {
 class IAnimatedMesh;
@@ -219,6 +223,23 @@ public:
         void handleCommand_Camera(NetworkPacket* pkt);
         void handleCommand_EcdhPubkey(NetworkPacket *pkt); // v9.11 forward secrecy
         void handleCommand_KeypairChallenge(NetworkPacket *pkt); // v9.29 keypair auth
+
+        // v9.39 Voice chat handlers
+        void handleCommand_VoiceState(NetworkPacket *pkt);
+        void handleCommand_VoicePeerStart(NetworkPacket *pkt);
+        void handleCommand_VoicePeerStop(NetworkPacket *pkt);
+        void handleCommand_VoiceData(NetworkPacket *pkt);
+        void handleCommand_VoicePeerList(NetworkPacket *pkt);
+        void handleCommand_VoiceGroupInvite(NetworkPacket *pkt);
+        void handleCommand_VoiceGroupUpdate(NetworkPacket *pkt);
+        void handleCommand_VoiceKeyExchange(NetworkPacket *pkt);
+
+#if USE_VOICE_CHAT
+        // v9.39: Access the voice chat manager
+        VoiceChatManager* getVoiceChat() { return m_voice_chat.get(); }
+        void initVoiceChat();
+        void sendVoiceChatPackets();
+#endif
 
         void ProcessData(NetworkPacket *pkt);
 
@@ -656,6 +677,11 @@ private:
         // v9.29: Auth mechanisms offered by the server in TOCLIENT_HELLO
         // Used by startAuth() to determine registration vs login for keypair auth
         u32 m_offered_auth_mechs = 0;
+
+#if USE_VOICE_CHAT
+        // v9.39: Voice chat manager — handles audio, E2EE, peer state, groups
+        std::unique_ptr<VoiceChatManager> m_voice_chat;
+#endif
 
         std::unique_ptr<ModChannelMgr> m_modchannel_mgr;
 
