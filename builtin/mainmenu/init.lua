@@ -40,6 +40,7 @@ dofile(menupath .. DIR_DELIM .. "dlg_rebind_keys.lua")
 dofile(menupath .. DIR_DELIM .. "dlg_clients_list.lua")
 dofile(menupath .. DIR_DELIM .. "dlg_server_list_mods.lua")
 dofile(menupath .. DIR_DELIM .. "dlg_keypair_manager.lua")
+dofile(menupath .. DIR_DELIM .. "dlg_keypair_history.lua")
 
 local tabs = {
         content  = dofile(menupath .. DIR_DELIM .. "tab_content.lua"),

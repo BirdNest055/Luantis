@@ -577,6 +577,8 @@ local function main_button_handler(tabview, fields, name, tabdata)
 
                                 if gamedata.address and gamedata.port then
                                         set_selected_server(server)
+                                        -- v9.41: Pass server name to C++ client for keypair history
+                                        core.settings:set("keypair_connecting_server_name", server.name or "")
                                         core.start()
                                 end
                                 return true
@@ -694,6 +696,8 @@ local function main_button_handler(tabview, fields, name, tabdata)
 
                 core.settings:set("address",     gamedata.address)
                 core.settings:set("remote_port", gamedata.port)
+                -- v9.41: Pass server name to C++ client for keypair history
+                core.settings:set("keypair_connecting_server_name", gamedata.servername or "")
 
                 core.start()
                 return true

@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Luanti-Secure</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.40-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.41-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -63,6 +63,7 @@ Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 | Sprint toggle | v9.39+ | Ctrl sprint changed from hold-to-run to toggle; press once to sprint, press again to stop |
 | Tab overlay toggle | v9.39+ | Tab key changed from hold-to-show to toggle; press once to show overlay, press again to hide |
 | Consolidated docs | v9.40+ | All documentation consolidated from `doc/` into `docs/` directory; comprehensive docs index with Luantis-specific guides |
+| Keypair history window | v9.41+ | Full connection history showing server name, username, server address, creation date, and last visit; cross-references with favorites for server name resolution |
 
 Encryption Architecture
 -----------------------
@@ -378,9 +379,9 @@ Version scheme
 Luanti-Secure uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.40)
+2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.41)
 
-The full version string is `5.16.1-v9.40-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.41-dev`, displayed via `--version` and in the UI.
 
 The Luanti-Secure version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -411,5 +412,6 @@ The Luanti-Secure version tracks encryption feature development:
 - v9.38: Server info overlay — Tab key shows in-game overlay with server name, player list, ping, uptime, and extensible Lua section system
 - v9.39: Voice chat with E2EE — Opus codec voice chat with X25519 ECDH key exchange and AES-256-GCM encryption; push-to-talk (~ key) and toggle modes; keypair authentication mechanism (AUTH_MECHANISM_KEYPAIR); Ctrl sprint changed to toggle; Tab overlay changed to toggle
 - v9.40: Documentation consolidation — all docs moved from `doc/` to `docs/`; fixed voice_chat.lua crash (register_on_connect replaced with register_on_joinplayer); fixed Tab overlay not toggling (wasKeyPressed check moved from drawScene to processKeyInput); comprehensive docs index with Luantis-specific guides
+- v9.41: Keypair history window — full connection history dialog showing server name, username, server address, creation date, and last visit; server_name added to ServerEntry with TDD (6 new unit tests); cross-references favorites list for server name resolution; modular dialog architecture; server name passed from main menu to C++ client during connection
 
-Git tags follow the pattern `luanti-secure-v9.40`.
+Git tags follow the pattern `luanti-secure-v9.41`.

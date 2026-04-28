@@ -1203,6 +1203,8 @@ int ModApiMainMenu::l_keypair_get_server_list(lua_State *L)
                 lua_setfield(L, -2, "server");
                 lua_pushstring(L, entry.username.c_str());
                 lua_setfield(L, -2, "username");
+                lua_pushstring(L, entry.server_name.c_str());
+                lua_setfield(L, -2, "server_name");
                 lua_pushstring(L, entry.created_at.c_str());
                 lua_setfield(L, -2, "created_at");
                 lua_pushstring(L, entry.last_used_at.c_str());

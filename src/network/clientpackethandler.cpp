@@ -2548,11 +2548,13 @@ void Client::handleCommand_KeypairChallenge(NetworkPacket *pkt)
         infostream << "Client: Sent TOSERVER_KEYPAIR_RESPONSE (signed challenge)." << std::endl;
 
         // Remember the username for this server
+        // v9.41: Include server_name from settings (set by the main menu before connecting)
         if (m_keypair_manager && m_con) {
                 std::string server_addr = m_address_name;
                 Address addr = m_con->GetPeerAddress(PEER_ID_SERVER);
                 server_addr += ":" + std::to_string(addr.getPort());
-                m_keypair_manager->rememberServerUser(server_addr, m_playername);
+                std::string server_name = g_settings->get("keypair_connecting_server_name");
+                m_keypair_manager->rememberServerUser(server_addr, m_playername, server_name);
         }
 }
 

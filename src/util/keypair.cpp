@@ -689,8 +689,9 @@ void KeypairManager::loadServerUsers() const
                         const Json::Value &val = root[key];
                         ServerEntry entry;
                         if (val.isObject()) {
-                                // v9.35 format: {"username": "...", "created_at": "...", "last_used_at": "..."}
+                                // v9.35 format: {"username": "...", "server_name": "...", "created_at": "...", "last_used_at": "..."}
                                 entry.username = val.get("username", "").asString();
+                                entry.server_name = val.get("server_name", "").asString();
                                 entry.created_at = val.get("created_at", "").asString();
                                 entry.last_used_at = val.get("last_used_at", "").asString();
                         } else if (val.isString()) {
@@ -712,6 +713,7 @@ void KeypairManager::saveServerUsers() const
         for (const auto &[server, entry] : m_server_users) {
                 Json::Value obj(Json::objectValue);
                 obj["username"] = entry.username;
+                obj["server_name"] = entry.server_name;
                 obj["created_at"] = entry.created_at;
                 obj["last_used_at"] = entry.last_used_at;
                 root[server] = obj;
@@ -735,13 +737,23 @@ void KeypairManager::saveServerUsers() const
 void KeypairManager::rememberServerUser(const std::string &server_address,
         const std::string &username)
 {
+        rememberServerUser(server_address, username, "");
+}
+
+void KeypairManager::rememberServerUser(const std::string &server_address,
+        const std::string &username,
+        const std::string &server_name)
+{
         loadServerUsers();
         auto it = m_server_users.find(server_address);
         std::string now = formatISO8601();
         if (it != m_server_users.end()) {
-                // Existing entry: update username and last_used_at
+                // Existing entry: update username, server_name, and last_used_at
                 it->second.username = username;
                 it->second.last_used_at = now;
+                // v9.41: Update server_name if a non-empty one is provided
+                if (!server_name.empty())
+                        it->second.server_name = server_name;
                 // Preserve created_at if it was already set
                 if (it->second.created_at.empty())
                         it->second.created_at = now;
@@ -749,6 +761,7 @@ void KeypairManager::rememberServerUser(const std::string &server_address,
                 // New entry
                 ServerEntry entry;
                 entry.username = username;
+                entry.server_name = server_name;
                 entry.created_at = now;
                 entry.last_used_at = now;
                 m_server_users[server_address] = entry;
