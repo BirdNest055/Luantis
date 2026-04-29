@@ -2,6 +2,9 @@
  * Clay Rendering Backend for Irrlicht
  *
  * Translates Clay render commands into Irrlicht 2D draw calls.
+ * Clay outputs a flat array of render commands (rectangles, text, images,
+ * custom elements, etc.) and this renderer composites them onto the screen
+ * using Irrlicht's 2D drawing primitives.
  *
  * Part of the Luantis Clay GUI integration (v9.46).
  */
@@ -12,6 +15,7 @@
 #include "clay_renderer.h"
 
 #include <irrlicht.h>
+#include "IGUIFont.h"
 #include "client/fontengine.h"
 #include "client/renderingengine.h"
 #include "log.h"
@@ -20,11 +24,15 @@
 #include <cstring>
 #include <string>
 
+// Irrlicht types in this fork are in global sub-namespaces:
+//   core::  video::  gui::  io::  scene::
+// NOT wrapped in an outer irr:: namespace.
+
 // ---------------------------------------------------------------------------
 // Initialization
 // ---------------------------------------------------------------------------
 
-void ClayIrrlichtRenderer::init(irr::IrrlichtDevice *device)
+void ClayIrrlichtRenderer::init(IrrlichtDevice *device)
 {
         m_driver = device->getVideoDriver();
 }
@@ -50,7 +58,7 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
                 };
         }
 
-        irr::gui::IGUIFont *font = self->getFont(config->fontId, config->fontSize);
+        gui::IGUIFont *font = self->getFont(config->fontId, config->fontSize);
         if (!font) {
                 return Clay_Dimensions{
                         .width = static_cast<float>(text.length) * config->fontSize * 0.6f,
@@ -60,7 +68,9 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
 
         // Clay does NOT guarantee null-terminated strings
         std::string str(text.chars, text.length);
-        auto dim = font->getDimension(str.c_str());
+        // Irrlicht's IGUIFont::getDimension() expects wchar_t
+        std::wstring wstr(str.begin(), str.end());
+        auto dim = font->getDimension(wstr.c_str());
 
         return Clay_Dimensions{
                 .width = static_cast<float>(dim.Width),
@@ -72,21 +82,18 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
 // Font lookup
 // ---------------------------------------------------------------------------
 
-irr::gui::IGUIFont *ClayIrrlichtRenderer::getFont(uint16_t fontId, uint16_t fontSize)
+gui::IGUIFont *ClayIrrlichtRenderer::getFont(uint16_t fontId, uint16_t fontSize)
 {
         if (!m_font_engine)
                 return nullptr;
 
         // Map Clay fontId to FontEngine font mode.
-        // We use the fontSize to determine the font size, and fontId to pick
-        // the style: 0 = normal, 1 = bold, 2 = italic, 3 = monospace
+        // fontId 0 or 3 = FM_Mono (monospace), everything else = FM_Standard.
+        // Note: Luantis's FontEngine only has FM_Standard and FM_Mono —
+        // no bold/italic variants are available.
         auto mode = FontMode::FM_Standard;
-        switch (fontId) {
-        case 1: mode = FontMode::FM_Bold; break;
-        case 2: mode = FontMode::FM_Italic; break;
-        case 3: mode = FontMode::FM_Mono; break;
-        default: break;
-        }
+        if (fontId == 3)
+                mode = FontMode::FM_Mono;
 
         // FontEngine uses a size parameter; fontSize of 0 means default
         unsigned int size = fontSize > 0 ? fontSize : 0;
@@ -102,39 +109,48 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
         if (!m_driver)
                 return;
 
-        for (uint32_t i = 0; i < commands.length; i++) {
+        // Track clip rect state across render commands
+        core::rect<s32> currentClip;
+        bool hasClip = false;
+
+        for (int32_t i = 0; i < commands.length; i++) {
                 const Clay_RenderCommand &cmd = commands.internalArray[i];
 
                 switch (cmd.commandType) {
                 case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
-                        drawRectangle(cmd);
+                        drawRectangle(cmd, hasClip ? &currentClip : nullptr);
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_TEXT:
-                        drawText(cmd);
+                        drawText(cmd, hasClip ? &currentClip : nullptr);
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_IMAGE:
-                        drawImage(cmd);
+                        drawImage(cmd, hasClip ? &currentClip : nullptr);
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_BORDER:
-                        drawBorder(cmd);
+                        drawBorder(cmd, hasClip ? &currentClip : nullptr);
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
-                        drawCustom(cmd);
+                        drawCustom(cmd, hasClip ? &currentClip : nullptr);
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
-                        // Scissoring is handled by Clay's clip system; we'll use
-                        // Irrlicht's clip rect support
                         {
                                 auto &bb = cmd.boundingBox;
-                                m_driver->setClipRect(irr::core::recti(
-                                        static_cast<int>(bb.x),
-                                        static_cast<int>(bb.y),
-                                        static_cast<int>(bb.x + bb.width),
-                                        static_cast<int>(bb.y + bb.height)));
+                                currentClip = core::rect<s32>(
+                                        static_cast<s32>(bb.x),
+                                        static_cast<s32>(bb.y),
+                                        static_cast<s32>(bb.x + bb.width),
+                                        static_cast<s32>(bb.y + bb.height));
+                                hasClip = true;
                         }
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
-                        m_driver->setClipRect(irr::core::recti());
+                        hasClip = false;
+                        break;
+                case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START:
+                        // TODO: Implement overlay color tinting for all subsequent draws
+                        break;
+                case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END:
+                        // TODO: Pop overlay color state
                         break;
                 default:
                         break;
@@ -146,93 +162,91 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
 // Individual command renderers
 // ---------------------------------------------------------------------------
 
-static irr::video::SColor toSColor(Clay_Color c)
+static video::SColor toSColor(Clay_Color c)
 {
-        return irr::video::SColor(
-                static_cast<irr::u32>(c.a),
-                static_cast<irr::u32>(c.r),
-                static_cast<irr::u32>(c.g),
-                static_cast<irr::u32>(c.b));
+        // Clay_Color uses float fields conventionally in 0-255 range
+        return video::SColor(
+                static_cast<u32>(c.a),
+                static_cast<u32>(c.r),
+                static_cast<u32>(c.g),
+                static_cast<u32>(c.b));
 }
 
-void ClayIrrlichtRenderer::drawRectangle(const Clay_RenderCommand &cmd)
+void ClayIrrlichtRenderer::drawRectangle(const Clay_RenderCommand &cmd,
+        void *clipRectPtr)
 {
+        auto *clipRect = static_cast<core::rect<s32> *>(clipRectPtr);
         auto &bb = cmd.boundingBox;
         auto &rect = cmd.renderData.rectangle;
         auto color = toSColor(rect.backgroundColor);
 
-        irr::core::recti dest(
-                static_cast<int>(bb.x),
-                static_cast<int>(bb.y),
-                static_cast<int>(bb.x + bb.width),
-                static_cast<int>(bb.y + bb.height));
+        core::rect<s32> dest(
+                static_cast<s32>(bb.x),
+                static_cast<s32>(bb.y),
+                static_cast<s32>(bb.x + bb.width),
+                static_cast<s32>(bb.y + bb.height));
 
-        // Corner radius — Irrlicht doesn't natively support rounded rects,
-        // so for now we draw a simple filled rect. Rounded corners can be
-        // added later using a custom shader or pre-rendered texture.
-        m_driver->draw2DRectangle(color, dest);
+        m_driver->draw2DRectangle(color, dest, clipRect);
 }
 
-void ClayIrrlichtRenderer::drawText(const Clay_RenderCommand &cmd)
+void ClayIrrlichtRenderer::drawText(const Clay_RenderCommand &cmd,
+        void *clipRectPtr)
 {
+        auto *clipRect = static_cast<core::rect<s32> *>(clipRectPtr);
         auto &bb = cmd.boundingBox;
         auto &td = cmd.renderData.text;
 
-        irr::gui::IGUIFont *font = getFont(td.textElementConfig->fontId,
-                td.textElementConfig->fontSize);
+        gui::IGUIFont *font = getFont(td.fontId, td.fontSize);
         if (!font)
                 return;
 
         // Clay does NOT guarantee null termination
         std::string str(td.stringContents.chars, td.stringContents.length);
 
-        auto color = toSColor(td.textElementConfig->textColor);
+        // Irrlicht's IGUIFont::draw() expects wchar_t, so convert
+        std::wstring wstr(str.begin(), str.end());
 
-        irr::core::position2di pos(
-                static_cast<int>(bb.x),
-                static_cast<int>(bb.y));
+        auto color = toSColor(td.textColor);
 
-        font->draw(str.c_str(),
-                irr::core::recti(pos,
-                        irr::core::dimension2di(
-                                static_cast<int>(bb.width),
-                                static_cast<int>(bb.height))),
-                color, false, false);
+        core::position2di pos(
+                static_cast<s32>(bb.x),
+                static_cast<s32>(bb.y));
+
+        font->draw(wstr.c_str(),
+                core::rect<s32>(pos,
+                        core::dimension2di(
+                                static_cast<s32>(bb.width),
+                                static_cast<s32>(bb.height))),
+                color, false, false, clipRect);
 }
 
-void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd)
+void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd,
+        void *clipRectPtr)
 {
-        // Image rendering requires texture lookup from the Clay image config's
-        // userData pointer. For now this is a placeholder — image rendering
-        // will be implemented when we port dialogs that need images.
+        auto *clipRect = static_cast<core::rect<s32> *>(clipRectPtr);
         auto &bb = cmd.boundingBox;
-        irr::core::recti dest(
-                static_cast<int>(bb.x),
-                static_cast<int>(bb.y),
-                static_cast<int>(bb.x + bb.width),
-                static_cast<int>(bb.y + bb.height));
+        core::rect<s32> dest(
+                static_cast<s32>(bb.x),
+                static_cast<s32>(bb.y),
+                static_cast<s32>(bb.x + bb.width),
+                static_cast<s32>(bb.y + bb.height));
 
         // Draw a placeholder magenta rect so missing images are visible
         m_driver->draw2DRectangle(
-                irr::video::SColor(255, 255, 0, 255), dest);
+                video::SColor(255, 255, 0, 255), dest, clipRect);
 }
 
-void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd)
+void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd,
+        void *clipRectPtr)
 {
         auto &bb = cmd.boundingBox;
         auto &bd = cmd.renderData.border;
 
-        irr::core::recti dest(
-                static_cast<int>(bb.x),
-                static_cast<int>(bb.y),
-                static_cast<int>(bb.x + bb.width),
-                static_cast<int>(bb.y + bb.height));
-
-        // Draw the four edges
+        // Draw the four edges using the shared border color
         auto drawLine = [&](int x1, int y1, int x2, int y2, Clay_Color c) {
                 m_driver->draw2DLine(
-                        irr::core::position2di(x1, y1),
-                        irr::core::position2di(x2, y2),
+                        core::position2di(x1, y1),
+                        core::position2di(x2, y2),
                         toSColor(c));
         };
 
@@ -241,24 +255,26 @@ void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd)
         int right = static_cast<int>(bb.x + bb.width);
         int bottom = static_cast<int>(bb.y + bb.height);
 
-        if (bd.color.left.r || bd.color.left.g || bd.color.left.b || bd.color.left.a)
+        // Clay v0.14: border color is shared across all sides (Clay_BorderRenderData.color)
+        if (bd.width.left)
                 for (int i = 0; i < bd.width.left; i++)
-                        drawLine(left + i, top, left + i, bottom, bd.color.left);
+                        drawLine(left + i, top, left + i, bottom, bd.color);
 
-        if (bd.color.right.r || bd.color.right.g || bd.color.right.b || bd.color.right.a)
+        if (bd.width.right)
                 for (int i = 0; i < bd.width.right; i++)
-                        drawLine(right - 1 - i, top, right - 1 - i, bottom, bd.color.right);
+                        drawLine(right - 1 - i, top, right - 1 - i, bottom, bd.color);
 
-        if (bd.color.top.r || bd.color.top.g || bd.color.top.b || bd.color.top.a)
+        if (bd.width.top)
                 for (int i = 0; i < bd.width.top; i++)
-                        drawLine(left, top + i, right, top + i, bd.color.top);
+                        drawLine(left, top + i, right, top + i, bd.color);
 
-        if (bd.color.bottom.r || bd.color.bottom.g || bd.color.bottom.b || bd.color.bottom.a)
+        if (bd.width.bottom)
                 for (int i = 0; i < bd.width.bottom; i++)
-                        drawLine(left, bottom - 1 - i, right, bottom - 1 - i, bd.color.bottom);
+                        drawLine(left, bottom - 1 - i, right, bottom - 1 - i, bd.color);
 }
 
-void ClayIrrlichtRenderer::drawCustom(const Clay_RenderCommand &cmd)
+void ClayIrrlichtRenderer::drawCustom(const Clay_RenderCommand &cmd,
+        void *clipRectPtr)
 {
         // Custom elements can be used for inventory slots, 3D model previews, etc.
         // Will be implemented in future versions.

@@ -18,16 +18,21 @@
 // Using relative path from project root (added to include directories)
 #include "clay.h"
 
-namespace irr {
+// Forward declarations for Irrlicht types.
+// In this Irrlicht fork, sub-namespaces (core, video, gui, etc.)
+// are at the global level — NOT wrapped in an outer irr:: namespace.
 class IrrlichtDevice;
+
 namespace video {
 class IVideoDriver;
 }
+
 namespace gui {
 class IGUIFont;
 }
-}
 
+// We can't forward-declare core::rect<s32> easily, so we use
+// a void pointer for the clip rect in the header and cast in the .cpp
 class FontEngine;
 
 /** Handles rendering Clay's output via Irrlicht's 2D draw API. */
@@ -37,7 +42,7 @@ public:
         ~ClayIrrlichtRenderer() = default;
 
         /** Initialize with the Irrlicht device. Must be called once after device creation. */
-        void init(irr::IrrlichtDevice *device);
+        void init(IrrlichtDevice *device);
 
         /** Render all commands produced by Clay_EndLayout(). */
         void render(const Clay_RenderCommandArray &commands);
@@ -55,15 +60,17 @@ public:
                 Clay_TextElementConfig *config, void *userData);
 
 private:
-        irr::video::IVideoDriver *m_driver = nullptr;
+        video::IVideoDriver *m_driver = nullptr;
         FontEngine *m_font_engine = nullptr;
 
-        /** Map Clay fontId → Irrlicht IGUIFont*. Populated from FontEngine. */
-        irr::gui::IGUIFont *getFont(uint16_t fontId, uint16_t fontSize);
+        /** Map Clay fontId -> Irrlicht IGUIFont*. Populated from FontEngine. */
+        gui::IGUIFont *getFont(uint16_t fontId, uint16_t fontSize);
 
-        void drawRectangle(const Clay_RenderCommand &cmd);
-        void drawText(const Clay_RenderCommand &cmd);
-        void drawImage(const Clay_RenderCommand &cmd);
-        void drawBorder(const Clay_RenderCommand &cmd);
-        void drawCustom(const Clay_RenderCommand &cmd);
+        // Internal draw helpers (clip rect passed as void* to avoid Irrlicht
+        // header dependency; cast to core::rect<s32>* in the .cpp)
+        void drawRectangle(const Clay_RenderCommand &cmd, void *clipRect);
+        void drawText(const Clay_RenderCommand &cmd, void *clipRect);
+        void drawImage(const Clay_RenderCommand &cmd, void *clipRect);
+        void drawBorder(const Clay_RenderCommand &cmd, void *clipRect);
+        void drawCustom(const Clay_RenderCommand &cmd, void *clipRect);
 };

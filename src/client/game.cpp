@@ -3813,10 +3813,12 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         */
         if (m_clay_gui.hasVisiblePanels()) {
                 auto cursor_pos = device->getCursorControl()->getPosition();
-                bool mouse_down = device->getMouseState(irr::EMBSM_LEFT);
-                m_clay_gui.update(1.0f / 60.0f, // approximate delta time for animations
-                        screensize.Width, screensize.Height,
-                        cursor_pos.X, cursor_pos.Y, mouse_down,
+                // Mouse left button: pass false for now; Clay will still
+                // detect clicks via Clay_SetPointerState in handleInput()
+                // which processes mouse button events directly.
+                m_clay_gui.update(1.0f / 60.0f,
+                        screensize.X, screensize.Y,
+                        cursor_pos.X, cursor_pos.Y, false,
                         0.0f, 0.0f);
         }
 

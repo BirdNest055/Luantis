@@ -624,7 +624,7 @@ endif()
 
 if(BUILD_CLIENT)
         include_directories(
-                ${PROJECT_SOURCE_DIR}/lib/clay
+                ${CMAKE_SOURCE_DIR}/lib/clay
         )
         include_directories(SYSTEM
                 ${FREETYPE_INCLUDE_DIRS}
@@ -632,7 +632,7 @@ if(BUILD_CLIENT)
         )
         # Also add Clay include path as target property for the client target
         # This ensures it's available even for generated unity builds
-        set(CLAY_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/lib/clay PARENT_SCOPE)
+        set(CLAY_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/clay PARENT_SCOPE)
 endif()
 
 if(USE_CURL)
