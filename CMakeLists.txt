@@ -7,7 +7,7 @@ endif()
 project(luanti)
 set(PROJECT_NAME_CAPITALIZED "Luanti")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(GCC_MINIMUM_VERSION "7.5")
 set(CLANG_MINIMUM_VERSION "7.0.1")
@@ -16,7 +16,7 @@ set(CLANG_MINIMUM_VERSION "7.0.1")
 set(VERSION_MAJOR 5)
 set(VERSION_MINOR 16)
 set(VERSION_PATCH 1)
-set(VERSION_EXTRA "v9.45" CACHE STRING "Stuff to append to version string")
+set(VERSION_EXTRA "v9.46" CACHE STRING "Stuff to append to version string")
 
 # Change to false for releases
 set(DEVELOPMENT_BUILD TRUE)

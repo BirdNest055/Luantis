@@ -475,6 +475,38 @@ bool Game::startup(volatile std::sig_atomic_t *kill,
 
         m_game_formspec.init(client, m_rendering_engine, input);
 
+        // Initialize Clay GUI system
+        m_clay_gui.init(device, g_fontengine);
+
+        // Create Clay-based pause menu with callbacks
+        ClayPauseMenuCallbacks pause_cbs;
+        pause_cbs.on_resume = [this]() {
+                m_clay_gui.hidePanel("pause_menu");
+                // Also close any formspec that may be open
+                while (g_menumgr.menuCount() > 0)
+                        g_menumgr.deleteFront();
+        };
+        pause_cbs.on_settings = [this]() {
+                m_clay_gui.hidePanel("pause_menu");
+                g_gamecallback->settings_requested = true;
+        };
+        pause_cbs.on_change_password = [this]() {
+                m_clay_gui.hidePanel("pause_menu");
+                g_gamecallback->changepassword_requested = true;
+        };
+        pause_cbs.on_volume = [this]() {
+                m_clay_gui.hidePanel("pause_menu");
+                g_gamecallback->changevolume_requested = true;
+        };
+        pause_cbs.on_exit_to_menu = [this]() {
+                g_gamecallback->disconnect_requested = true;
+        };
+        pause_cbs.on_exit_to_os = [this]() {
+                g_gamecallback->shutdown_requested = true;
+        };
+        m_clay_pause_menu = std::make_unique<ClayPauseMenu>(std::move(pause_cbs));
+        m_clay_gui.addPanel(m_clay_pause_menu.get());
+
         return true;
 }
 
@@ -601,8 +633,9 @@ void Game::run()
                 updateFrame(&graph, &stats, dtime, cam_view);
                 updateProfilerGraphs(&graph);
 
-                if (m_does_lost_focus_pause_game && !device->isWindowFocused() && !isMenuActive()) {
-                        m_game_formspec.showPauseMenu();
+                if (m_does_lost_focus_pause_game && !device->isWindowFocused() && !isMenuActive() && !m_clay_gui.hasVisiblePanels()) {
+                        // Use Clay-based pause menu
+                        m_clay_gui.showPanel("pause_menu");
                 }
         }
 
@@ -621,6 +654,7 @@ void Game::shutdown()
         // Delete text and menus first
         m_game_ui->clearText();
         m_game_formspec.reset();
+        m_clay_gui.shutdown();
         while (g_menumgr.menuCount() > 0) {
                 g_menumgr.deleteFront();
         }
@@ -1383,7 +1417,8 @@ void Game::processUserInput(f32 dtime)
         }
 
         // Reset input if window not active or some menu is active
-        if (!device->isWindowActive() || isMenuActive() || guienv->hasFocus(gui_chat_console.get())) {
+        if (!device->isWindowActive() || isMenuActive()
+                || guienv->hasFocus(gui_chat_console.get())) {
                 if (m_game_focused) {
                         m_game_focused = false;
                         infostream << "Game lost focus" << std::endl;
@@ -1446,8 +1481,12 @@ void Game::processKeyInput()
 #ifdef __ANDROID__
                 m_android_chat_open = false;
 #endif
-                if (!gui_chat_console->isOpenInhibited()) {
-                        m_game_formspec.showPauseMenu();
+                if (m_clay_gui.hasVisiblePanels()) {
+                        // ESC closes the Clay pause menu
+                        m_clay_gui.hideAll();
+                } else if (!gui_chat_console->isOpenInhibited()) {
+                        // Use Clay-based pause menu instead of formspec
+                        m_clay_gui.showPanel("pause_menu");
                 } else {
                         infostream << "Game: ESC pressed but chat console open inhibited" << std::endl;
                 }
@@ -1973,10 +2012,11 @@ void Game::updateCameraDirection(CameraOrientation *cam, float dtime)
         this results in duplicated input. To avoid that, we don't enable relative
         mouse mode if we're in touchscreen mode. */
         if (cur_control)
-                cur_control->setRelativeMode(!g_touchcontrols && !isMenuActive());
+                cur_control->setRelativeMode(!g_touchcontrols && !isMenuActive()
+                        && !m_clay_gui.hasVisiblePanels());
 
         if ((device->isWindowActive() && device->isWindowFocused()
-                        && !isMenuActive()) || input->isRandom()) {
+                        && !isMenuActive() && !m_clay_gui.hasVisiblePanels()) || input->isRandom()) {
 
                 if (cur_control && !input->isRandom()) {
                         // Mac OSX gets upset if this is set every frame
@@ -2132,7 +2172,8 @@ void Game::updatePlayerControl(const CameraOrientation &cam)
 void Game::updatePauseState()
 {
         bool was_paused = this->m_is_paused;
-        this->m_is_paused = this->simple_singleplayer_mode && g_menumgr.pausesGame();
+        this->m_is_paused = this->simple_singleplayer_mode &&
+                (g_menumgr.pausesGame() || m_clay_gui.hasVisiblePanels());
 
         if (!was_paused && this->m_is_paused) {
                 this->pauseAnimation();
@@ -3751,7 +3792,7 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
                 Toggle is handled in processKeyInput(), this only handles display.
         */
         // Hide when a menu opens or formspec is active
-        if (isMenuActive())
+        if (isMenuActive() || m_clay_gui.hasVisiblePanels())
                 m_serverinfo_overlay_toggled = false;
         if (m_serverinfo_overlay_toggled) {
                 drawServerInfoOverlay(screensize);
@@ -3765,6 +3806,18 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
                 this->driver->draw2DRectangle(color,
                                         core::rect<s32>(0, 0, screensize.X, screensize.Y),
                                         NULL);
+        }
+
+        /*
+                Clay GUI rendering
+        */
+        if (m_clay_gui.hasVisiblePanels()) {
+                auto cursor_pos = device->getCursorControl()->getPosition();
+                bool mouse_down = device->getMouseState(irr::EMBSM_LEFT);
+                m_clay_gui.update(1.0f / 60.0f, // approximate delta time for animations
+                        screensize.Width, screensize.Height,
+                        cursor_pos.X, cursor_pos.Y, mouse_down,
+                        0.0f, 0.0f);
         }
 
         this->driver->endScene();

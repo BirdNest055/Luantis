@@ -604,6 +604,7 @@ include_directories(
         ${PROJECT_BINARY_DIR}
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/script
+        ${PROJECT_SOURCE_DIR}/lib/clay
 )
 include_directories(SYSTEM
         ${ZLIB_INCLUDE_DIR}
