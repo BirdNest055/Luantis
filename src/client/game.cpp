@@ -510,6 +510,11 @@ bool Game::startup(volatile std::sig_atomic_t *kill,
         m_clay_pause_menu = std::make_unique<ClayPauseMenu>(std::move(pause_cbs));
         m_clay_gui.addPanel(m_clay_pause_menu.get());
 
+        // TESTING: Auto-show Clay pause menu after 3 seconds if CLAY_TEST_PAUSE=1
+        if (getenv("CLAY_TEST_PAUSE") && std::string(getenv("CLAY_TEST_PAUSE")) == "1") {
+                m_clay_gui.showPanel("pause_menu");
+        }
+
         return true;
 }
 

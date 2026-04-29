@@ -25,6 +25,18 @@
 #include <string>
 #include <codecvt>
 #include <locale>
+#include <fstream>
+#include <sstream>
+
+// Render command logging for visual verification.
+// When CLAY_RENDER_LOG is defined, each frame's render commands are
+// written to /tmp/clay_render_log.jsonl for offline rendering to PNG.
+// This is controlled by the environment variable CLAY_RENDER_LOG=1.
+static bool g_clay_render_log_enabled = []() {
+        const char *env = std::getenv("CLAY_RENDER_LOG");
+        return env && std::string(env) == "1";
+}();
+static int g_clay_render_log_frame = 0;
 
 // Irrlicht types in this fork are in global sub-namespaces:
 //   core::  video::  gui::  io::  scene::
@@ -153,10 +165,129 @@ static video::SColor toSColor(Clay_Color c)
 // Main render loop
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Render command logging (JSON lines format for Python renderer)
+// ---------------------------------------------------------------------------
+
+static std::string escapeJson(const std::string &s)
+{
+        std::string out;
+        out.reserve(s.size() + 8);
+        for (char c : s) {
+                switch (c) {
+                case '"':  out += "\\\""; break;
+                case '\\': out += "\\\\"; break;
+                case '\n': out += "\\n";  break;
+                case '\r': out += "\\r";  break;
+                case '\t': out += "\\t";  break;
+                default:
+                        if (static_cast<unsigned char>(c) < 0x20) {
+                                char buf[8];
+                                snprintf(buf, sizeof(buf), "\\u%04x", c);
+                                out += buf;
+                        } else {
+                                out += c;
+                        }
+                }
+        }
+        return out;
+}
+
+static void logRenderCommands(const Clay_RenderCommandArray &commands, int frameNum)
+{
+        // Only log a few frames to avoid huge files
+        if (frameNum > 5)
+                return;
+
+        std::ofstream log("/tmp/clay_render_log.jsonl", std::ios::app);
+        if (!log.is_open())
+                return;
+
+        log << "{\"frame\":" << frameNum << ",\"commands\":[";
+
+        for (int32_t i = 0; i < commands.length; i++) {
+                const Clay_RenderCommand &cmd = commands.internalArray[i];
+                auto &bb = cmd.boundingBox;
+
+                if (i > 0) log << ",";
+
+                log << "{\"type\":" << static_cast<int>(cmd.commandType);
+                log << ",\"x\":" << static_cast<int>(bb.x);
+                log << ",\"y\":" << static_cast<int>(bb.y);
+                log << ",\"w\":" << static_cast<int>(bb.width);
+                log << ",\"h\":" << static_cast<int>(bb.height);
+
+                switch (cmd.commandType) {
+                case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+                        log << ",\"bg\":["
+                            << static_cast<int>(cmd.renderData.rectangle.backgroundColor.r) << ","
+                            << static_cast<int>(cmd.renderData.rectangle.backgroundColor.g) << ","
+                            << static_cast<int>(cmd.renderData.rectangle.backgroundColor.b) << ","
+                            << static_cast<int>(cmd.renderData.rectangle.backgroundColor.a) << "]";
+                        break;
+                case CLAY_RENDER_COMMAND_TYPE_TEXT: {
+                        auto &td = cmd.renderData.text;
+                        std::string text(td.stringContents.chars, td.stringContents.length);
+                        log << ",\"text\":\"" << escapeJson(text) << "\"";
+                        log << ",\"textColor\":["
+                            << static_cast<int>(td.textColor.r) << ","
+                            << static_cast<int>(td.textColor.g) << ","
+                            << static_cast<int>(td.textColor.b) << ","
+                            << static_cast<int>(td.textColor.a) << "]";
+                        log << ",\"fontSize\":" << static_cast<int>(td.fontSize);
+                        log << ",\"fontId\":" << static_cast<int>(td.fontId);
+                        break;
+                }
+                case CLAY_RENDER_COMMAND_TYPE_BORDER: {
+                        auto &bd = cmd.renderData.border;
+                        log << ",\"borderColor\":["
+                            << static_cast<int>(bd.color.r) << ","
+                            << static_cast<int>(bd.color.g) << ","
+                            << static_cast<int>(bd.color.b) << ","
+                            << static_cast<int>(bd.color.a) << "]";
+                        log << ",\"borderWidth\":{"
+                            << "\"l\":" << bd.width.left
+                            << ",\"r\":" << bd.width.right
+                            << ",\"t\":" << bd.width.top
+                            << ",\"b\":" << bd.width.bottom << "}";
+                        break;
+                }
+                case CLAY_RENDER_COMMAND_TYPE_IMAGE:
+                        log << ",\"hasImageData\":" << (cmd.renderData.image.imageData ? "true" : "false");
+                        break;
+                case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
+                        log << ",\"customBg\":["
+                            << static_cast<int>(cmd.renderData.custom.backgroundColor.r) << ","
+                            << static_cast<int>(cmd.renderData.custom.backgroundColor.g) << ","
+                            << static_cast<int>(cmd.renderData.custom.backgroundColor.b) << ","
+                            << static_cast<int>(cmd.renderData.custom.backgroundColor.a) << "]";
+                        break;
+                case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START:
+                        log << ",\"overlayColor\":["
+                            << static_cast<int>(cmd.renderData.overlayColor.color.r) << ","
+                            << static_cast<int>(cmd.renderData.overlayColor.color.g) << ","
+                            << static_cast<int>(cmd.renderData.overlayColor.color.b) << ","
+                            << static_cast<int>(cmd.renderData.overlayColor.color.a) << "]";
+                        break;
+                default:
+                        break;
+                }
+
+                log << "}";
+        }
+
+        log << "]}" << std::endl;
+}
+
 void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
 {
         if (!m_driver)
                 return;
+
+        // Log render commands if enabled (for visual verification)
+        if (g_clay_render_log_enabled) {
+                logRenderCommands(commands, g_clay_render_log_frame++);
+        }
 
         // Track clip rect state across render commands
         core::rect<s32> currentClip;
