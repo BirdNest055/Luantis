@@ -81,6 +81,33 @@ static std::wstring utf8ToWstring(const std::string &utf8)
 void ClayIrrlichtRenderer::init(IrrlichtDevice *device)
 {
         m_driver = device->getVideoDriver();
+
+        // Query DPI scale from the device.
+        // Irrlicht's SDL backend exposes display density via
+        // SDL_GetDisplayDPI(). If unavailable, default to 1.0.
+        // For headless/Xvfb scenarios, this stays at 1.0.
+        m_dpi_scale = 1.0f;
+
+        // Try to detect DPI from the display mode
+        if (m_driver) {
+                auto screen = m_driver->getScreenSize();
+                // Heuristic: if screen is very large (>2000px), likely high-DPI
+                if (screen.Width > 2000 || screen.Height > 1200) {
+                        m_dpi_scale = 1.25f;
+                }
+        }
+
+        infostream << "Clay renderer initialized with DPI scale: " << m_dpi_scale << std::endl;
+}
+
+void ClayIrrlichtRenderer::setDPIScale(float scale)
+{
+        m_dpi_scale = scale;
+}
+
+float ClayIrrlichtRenderer::getDPIScale() const
+{
+        return m_dpi_scale;
 }
 
 void ClayIrrlichtRenderer::setFontEngine(FontEngine *engine)
@@ -96,19 +123,27 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
         Clay_TextElementConfig *config, void *userData)
 {
         auto *self = static_cast<ClayIrrlichtRenderer *>(userData);
+
+        // Apply DPI scaling to font size for accurate measurement
+        uint16_t scaledFontSize = config->fontSize;
+        if (self) {
+                scaledFontSize = static_cast<uint16_t>(
+                        std::max(8.0f, config->fontSize * self->m_dpi_scale));
+        }
+
         if (!self || !self->m_font_engine) {
                 // Fallback: rough monospace estimate
                 return Clay_Dimensions{
-                        .width = static_cast<float>(text.length) * config->fontSize * 0.6f,
-                        .height = static_cast<float>(config->fontSize)
+                        .width = static_cast<float>(text.length) * scaledFontSize * 0.6f,
+                        .height = static_cast<float>(scaledFontSize)
                 };
         }
 
-        gui::IGUIFont *font = self->getFont(config->fontId, config->fontSize);
+        gui::IGUIFont *font = self->getFont(config->fontId, scaledFontSize);
         if (!font) {
                 return Clay_Dimensions{
-                        .width = static_cast<float>(text.length) * config->fontSize * 0.6f,
-                        .height = static_cast<float>(config->fontSize)
+                        .width = static_cast<float>(text.length) * scaledFontSize * 0.6f,
+                        .height = static_cast<float>(scaledFontSize)
                 };
         }
 
@@ -410,7 +445,11 @@ void ClayIrrlichtRenderer::drawText(const Clay_RenderCommand &cmd,
         auto &bb = cmd.boundingBox;
         auto &td = cmd.renderData.text;
 
-        gui::IGUIFont *font = getFont(td.fontId, td.fontSize);
+        // Apply DPI scaling to font size for rendering
+        uint16_t scaledFontSize = static_cast<uint16_t>(
+                std::max(8.0f, td.fontSize * m_dpi_scale));
+
+        gui::IGUIFont *font = getFont(td.fontId, scaledFontSize);
         if (!font)
                 return;
 

@@ -6,7 +6,9 @@
  * custom elements, etc.) and this renderer composites them onto the screen
  * using Irrlicht's 2D drawing primitives.
  *
- * Part of the Luantis Clay GUI integration (v9.46).
+ * Supports DPI-aware font scaling for responsive layouts.
+ *
+ * Part of the Luantis Clay GUI integration (v9.47).
  */
 
 #pragma once
@@ -41,8 +43,17 @@ public:
         ClayIrrlichtRenderer() = default;
         ~ClayIrrlichtRenderer() = default;
 
-        /** Initialize with the Irrlicht device. Must be called once after device creation. */
+        /**
+         * Initialize with the Irrlicht device. Must be called once after device creation.
+         * Queries the display DPI for font scaling.
+         */
         void init(IrrlichtDevice *device);
+
+        /** Set the DPI scale factor for font rendering. Default is 1.0. */
+        void setDPIScale(float scale);
+
+        /** Get the current DPI scale factor. */
+        float getDPIScale() const;
 
         /** Render all commands produced by Clay_EndLayout(). */
         void render(const Clay_RenderCommandArray &commands);
@@ -62,6 +73,7 @@ public:
 private:
         video::IVideoDriver *m_driver = nullptr;
         FontEngine *m_font_engine = nullptr;
+        float m_dpi_scale = 1.0f;
 
         /** Map Clay fontId -> Irrlicht IGUIFont*. Populated from FontEngine. */
         gui::IGUIFont *getFont(uint16_t fontId, uint16_t fontSize);
