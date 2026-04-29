@@ -9,6 +9,14 @@ set(PROJECT_NAME_CAPITALIZED "Luanti")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+# Clay requires C++20 for designated initializers, but we disable char8_t
+# to maintain backward compatibility with existing u8"" string literals
+# (C++20 changed u8"" from char[] to char8_t[] which breaks many comparisons)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-char8_t>)
+elseif(MSVC)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/Zc:char8_t->)
+endif()
 set(GCC_MINIMUM_VERSION "7.5")
 set(CLANG_MINIMUM_VERSION "7.0.1")
 
