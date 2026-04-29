@@ -478,6 +478,9 @@ bool Game::startup(volatile std::sig_atomic_t *kill,
         // Initialize Clay GUI system
         m_clay_gui.init(device, g_fontengine);
 
+        // Set global pointer so MyEventReceiver can forward events
+        g_clay_gui_manager = &m_clay_gui;
+
         // Create Clay-based pause menu with callbacks
         ClayPauseMenuCallbacks pause_cbs;
         pause_cbs.on_resume = [this]() {
@@ -655,6 +658,7 @@ void Game::shutdown()
         m_game_ui->clearText();
         m_game_formspec.reset();
         m_clay_gui.shutdown();
+        g_clay_gui_manager = nullptr;
         while (g_menumgr.menuCount() > 0) {
                 g_menumgr.deleteFront();
         }

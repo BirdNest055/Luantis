@@ -8,9 +8,14 @@
 #include "inputhandler.h"
 #include "gui/mainmenumanager.h"
 #include "gui/touchcontrols.h"
+#include "gui/clay_gui_manager.h"
 #include "hud_element.h"
 #include "log_internal.h"
 #include "client/renderingengine.h"
+
+// Global Clay GUI manager pointer, set by Game during init.
+// Used by MyEventReceiver to forward events for Clay panel input.
+ClayGUIManager *g_clay_gui_manager = nullptr;
 
 void MyEventReceiver::reloadKeybindings()
 {
@@ -213,6 +218,15 @@ bool MyEventReceiver::OnEvent(const SEvent &event)
                 if (g_touchcontrols)
                         g_touchcontrols->setVisible(false);
                 return g_menumgr.preprocessEvent(event);
+        }
+
+        // Forward events to Clay GUI manager if Clay panels are visible.
+        // This must happen after the menu check (above) but before
+        // regular key/mouse processing so Clay can consume clicks
+        // that should go to Clay panels instead of the game.
+        if (g_clay_gui_manager && g_clay_gui_manager->handleInput(event)) {
+                // Clay consumed this event — don't let the game process it
+                return true;
         }
 
         // Remember whether each key is down or up

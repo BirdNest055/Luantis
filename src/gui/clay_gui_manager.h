@@ -109,8 +109,13 @@ public:
         ClayIrrlichtRenderer &getRenderer() { return m_renderer; }
 
         /**
-         * Handle an input event. Returns true if the event was consumed
-         * by a Clay panel (i.e., the click was inside a visible panel).
+         * Handle an input event from the game's event receiver.
+         * Returns true if the event was consumed by a Clay panel.
+         *
+         * Mouse state is tracked internally for use by update().
+         * Clay_SetPointerState() is NOT called here — only in update() —
+         * to prevent PRESSED_THIS_FRAME from being promoted to PRESSED
+         * before the layout pass runs.
          */
         bool handleInput(const SEvent &event);
 
@@ -129,3 +134,7 @@ private:
 
         bool m_initialized = false;
 };
+
+// Global Clay GUI manager pointer, set by Game during init.
+// Used by MyEventReceiver to forward events for Clay panel input.
+extern ClayGUIManager *g_clay_gui_manager;

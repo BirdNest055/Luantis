@@ -116,6 +116,7 @@ void ClayGUIManager::update(float dtime, int screenWidth, int screenHeight,
         // 2. Update pointer state — this is the ONLY place where
         //    Clay_SetPointerState() should be called, to ensure
         //    PRESSED_THIS_FRAME is not promoted before layout.
+        //    Mouse position and button state are tracked by handleInput().
         m_mouse_x = mouseX;
         m_mouse_y = mouseY;
         Clay_SetPointerState(
@@ -199,14 +200,14 @@ bool ClayGUIManager::handleInput(const SEvent &event)
         if (!m_initialized || !hasVisiblePanels())
                 return false;
 
-        // Track mouse position and button state from Irrlicht events,
-        // and update Clay pointer state in real-time.
+        // Track mouse position and button state from Irrlicht events.
+        // We do NOT call Clay_SetPointerState() here — that must only
+        // happen in update() to avoid promoting PRESSED_THIS_FRAME
+        // to PRESSED before the layout pass.
         if (event.EventType == EET_MOUSE_INPUT_EVENT) {
-                // Update internal mouse position from mouse events
                 m_mouse_x = event.MouseInput.X;
                 m_mouse_y = event.MouseInput.Y;
 
-                // Track left button state
                 switch (event.MouseInput.Event) {
                 case EMIE_LMOUSE_PRESSED_DOWN:
                         m_mouse_left_down = true;
@@ -218,22 +219,15 @@ bool ClayGUIManager::handleInput(const SEvent &event)
                         break;
                 }
 
-                // NOTE: We do NOT call Clay_SetPointerState() here.
-                // That call belongs in update() only. Calling it here
-                // AND in update() causes Clay's internal state machine
-                // to promote PRESSED_THIS_FRAME → PRESSED before the
-                // layout runs, which breaks all click detection.
-                // We just track the mouse state in m_mouse_x/y/leftDown.
-
-                // Always consume mouse events if panels are visible
+                // Consume mouse events when Clay panels are visible
+                // so the game doesn't also process them (e.g., digging)
                 return true;
         }
 
-        // Consume key events for ESC handling etc.
+        // Consume key events when Clay panels are visible
         if (event.EventType == EET_KEY_INPUT_EVENT) {
-                // ESC closes the topmost panel
+                // ESC closes the topmost Clay panel
                 if (event.KeyInput.Key == KEY_ESCAPE && event.KeyInput.PressedDown) {
-                        // Hide the last visible panel (top of stack)
                         for (auto it = m_panels.rbegin(); it != m_panels.rend(); ++it) {
                                 if ((*it)->isVisible()) {
                                         (*it)->onHide();
@@ -242,6 +236,7 @@ bool ClayGUIManager::handleInput(const SEvent &event)
                                 }
                         }
                 }
+                // Consume all key events while panels are visible
                 return true;
         }
 
