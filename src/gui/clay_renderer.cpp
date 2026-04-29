@@ -135,6 +135,21 @@ gui::IGUIFont *ClayIrrlichtRenderer::getFont(uint16_t fontId, uint16_t fontSize)
 }
 
 // ---------------------------------------------------------------------------
+// Color conversion (needed before render loop)
+// ---------------------------------------------------------------------------
+
+static video::SColor toSColor(Clay_Color c)
+{
+        // Clay_Color uses float fields conventionally in 0-255 range
+        // Clamp to prevent garbage colors from out-of-range values
+        auto clamp = [](float v) -> u32 {
+                int i = static_cast<int>(v);
+                return static_cast<u32>(i < 0 ? 0 : (i > 255 ? 255 : i));
+        };
+        return video::SColor(clamp(c.a), clamp(c.r), clamp(c.g), clamp(c.b));
+}
+
+// ---------------------------------------------------------------------------
 // Main render loop
 // ---------------------------------------------------------------------------
 
@@ -146,6 +161,16 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
         // Track clip rect state across render commands
         core::rect<s32> currentClip;
         bool hasClip = false;
+
+        // Track overlay color state (stack for nested overlays)
+        // When active, we draw a semi-transparent rectangle over the
+        // bounding box of each subsequent element to simulate tinting.
+        struct OverlayState {
+                Clay_Color color;
+        };
+        std::vector<OverlayState> overlayStack;
+        bool hasOverlay = false;
+        Clay_Color activeOverlayColor = {0, 0, 0, 0};
 
         for (int32_t i = 0; i < commands.length; i++) {
                 const Clay_RenderCommand &cmd = commands.internalArray[i];
@@ -181,13 +206,47 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
                         hasClip = false;
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START:
-                        // TODO: Implement overlay color tinting for all subsequent draws
+                        {
+                                auto &oc = cmd.renderData.overlayColor;
+                                overlayStack.push_back({oc.color});
+                                activeOverlayColor = oc.color;
+                                hasOverlay = true;
+                        }
                         break;
                 case CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END:
-                        // TODO: Pop overlay color state
+                        if (!overlayStack.empty()) {
+                                overlayStack.pop_back();
+                        }
+                        if (overlayStack.empty()) {
+                                hasOverlay = false;
+                                activeOverlayColor = {0, 0, 0, 0};
+                        } else {
+                                activeOverlayColor = overlayStack.back().color;
+                        }
                         break;
                 default:
                         break;
+                }
+
+                // Apply overlay color tinting: draw a semi-transparent rect
+                // over the element's bounding box. This is a simple but
+                // effective approach that works with Irrlicht's 2D API
+                // without requiring shader-based color multiplication.
+                if (hasOverlay && cmd.commandType != CLAY_RENDER_COMMAND_TYPE_SCISSOR_START
+                        && cmd.commandType != CLAY_RENDER_COMMAND_TYPE_SCISSOR_END
+                        && cmd.commandType != CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_START
+                        && cmd.commandType != CLAY_RENDER_COMMAND_TYPE_OVERLAY_COLOR_END
+                        && activeOverlayColor.a > 0) {
+                        auto &bb = cmd.boundingBox;
+                        core::rect<s32> overlayRect(
+                                static_cast<s32>(bb.x),
+                                static_cast<s32>(bb.y),
+                                static_cast<s32>(bb.x + bb.width),
+                                static_cast<s32>(bb.y + bb.height));
+                        m_driver->draw2DRectangle(
+                                toSColor(activeOverlayColor),
+                                overlayRect,
+                                hasClip ? &currentClip : nullptr);
                 }
         }
 }
@@ -195,17 +254,6 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
 // ---------------------------------------------------------------------------
 // Individual command renderers
 // ---------------------------------------------------------------------------
-
-static video::SColor toSColor(Clay_Color c)
-{
-        // Clay_Color uses float fields conventionally in 0-255 range
-        // Clamp to prevent garbage colors from out-of-range values
-        auto clamp = [](float v) -> u32 {
-                int i = static_cast<int>(v);
-                return static_cast<u32>(i < 0 ? 0 : (i > 255 ? 255 : i));
-        };
-        return video::SColor(clamp(c.a), clamp(c.r), clamp(c.g), clamp(c.b));
-}
 
 void ClayIrrlichtRenderer::drawRectangle(const Clay_RenderCommand &cmd,
         void *clipRectPtr)
@@ -260,15 +308,51 @@ void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd,
 {
         auto *clipRect = static_cast<core::rect<s32> *>(clipRectPtr);
         auto &bb = cmd.boundingBox;
+        auto &img = cmd.renderData.image;
         core::rect<s32> dest(
                 static_cast<s32>(bb.x),
                 static_cast<s32>(bb.y),
                 static_cast<s32>(bb.x + bb.width),
                 static_cast<s32>(bb.y + bb.height));
 
-        // Draw a placeholder magenta rect so missing images are visible
+        // Clay's imageData is a transparent pointer — we expect it to be
+        // an Irrlicht video::ITexture* that was set during layout.
+        // If imageData is null or the texture is invalid, draw a placeholder.
+        if (img.imageData) {
+                auto *texture = static_cast<video::ITexture *>(img.imageData);
+                if (texture) {
+                        // Source rect = full texture
+                        core::rect<s32> src(
+                                0, 0,
+                                static_cast<s32>(texture->getOriginalSize().Width),
+                                static_cast<s32>(texture->getOriginalSize().Height));
+
+                        // If a tint color is specified, use it; otherwise full opacity
+                        video::SColor tint = toSColor(img.backgroundColor);
+                        if (img.backgroundColor.a == 0 && img.backgroundColor.r == 0
+                                        && img.backgroundColor.g == 0 && img.backgroundColor.b == 0) {
+                                tint = video::SColor(255, 255, 255, 255);
+                        }
+
+                        // Use alpha-aware draw if a clip rect is present
+                        const core::rect<s32> *clipPtr = clipRect ? clipRect : nullptr;
+                        m_driver->draw2DImage(texture, dest, src, clipPtr, nullptr, true);
+                        return;
+                }
+        }
+
+        // Placeholder: magenta rect with cross pattern so missing images are visible
         m_driver->draw2DRectangle(
                 video::SColor(255, 255, 0, 255), dest, clipRect);
+        // Draw an X to make it obviously a placeholder
+        m_driver->draw2DLine(
+                core::position2di(dest.UpperLeftCorner.X, dest.UpperLeftCorner.Y),
+                core::position2di(dest.LowerRightCorner.X, dest.LowerRightCorner.Y),
+                video::SColor(255, 0, 0, 0));
+        m_driver->draw2DLine(
+                core::position2di(dest.LowerRightCorner.X, dest.UpperLeftCorner.Y),
+                core::position2di(dest.UpperLeftCorner.X, dest.LowerRightCorner.Y),
+                video::SColor(255, 0, 0, 0));
 }
 
 void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd,
@@ -311,6 +395,49 @@ void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd,
 void ClayIrrlichtRenderer::drawCustom(const Clay_RenderCommand &cmd,
         void *clipRectPtr)
 {
-        // Custom elements can be used for inventory slots, 3D model previews, etc.
-        // Will be implemented in future versions.
+        auto *clipRect = static_cast<core::rect<s32> *>(clipRectPtr);
+        auto &bb = cmd.boundingBox;
+        auto &custom = cmd.renderData.custom;
+
+        core::rect<s32> dest(
+                static_cast<s32>(bb.x),
+                static_cast<s32>(bb.y),
+                static_cast<s32>(bb.x + bb.width),
+                static_cast<s32>(bb.y + bb.height));
+
+        // Draw the backgroundColor fill if specified (non-zero alpha)
+        if (custom.backgroundColor.a > 0) {
+                m_driver->draw2DRectangle(
+                        toSColor(custom.backgroundColor), dest, clipRect);
+        }
+
+        // Draw a subtle border outline to make custom elements visible
+        // for debugging when no backgroundColor is set.
+        // Irrlicht doesn't have draw2DRectangleOutline, so we draw
+        // four thin lines around the bounding box.
+        if (custom.backgroundColor.a == 0) {
+                video::SColor outlineColor(80, 128, 128, 128);
+                m_driver->draw2DLine(
+                        core::position2di(dest.UpperLeftCorner.X, dest.UpperLeftCorner.Y),
+                        core::position2di(dest.LowerRightCorner.X, dest.UpperLeftCorner.Y),
+                        outlineColor);
+                m_driver->draw2DLine(
+                        core::position2di(dest.LowerRightCorner.X, dest.UpperLeftCorner.Y),
+                        core::position2di(dest.LowerRightCorner.X, dest.LowerRightCorner.Y),
+                        outlineColor);
+                m_driver->draw2DLine(
+                        core::position2di(dest.LowerRightCorner.X, dest.LowerRightCorner.Y),
+                        core::position2di(dest.UpperLeftCorner.X, dest.LowerRightCorner.Y),
+                        outlineColor);
+                m_driver->draw2DLine(
+                        core::position2di(dest.UpperLeftCorner.X, dest.LowerRightCorner.Y),
+                        core::position2di(dest.UpperLeftCorner.X, dest.UpperLeftCorner.Y),
+                        outlineColor);
+        }
+
+        // Note: cornerRadius for custom elements is tracked but not yet
+        // rendered due to Irrlicht's lack of native rounded-rect support.
+        // A proper implementation would use stencil clipping or a
+        // shader-based approach for rounded corners.
+        (void)custom.cornerRadius;
 }

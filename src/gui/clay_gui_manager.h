@@ -131,6 +131,8 @@ private:
         int m_mouse_x = 0;
         int m_mouse_y = 0;
         bool m_mouse_left_down = false;
+        float m_scroll_x = 0.0f;
+        float m_scroll_y = 0.0f;
 
         bool m_initialized = false;
 };

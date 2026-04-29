@@ -123,9 +123,11 @@ void ClayGUIManager::update(float dtime, int screenWidth, int screenHeight,
                 Clay_Vector2{static_cast<float>(m_mouse_x), static_cast<float>(m_mouse_y)},
                 m_mouse_left_down);
 
-        // 3. Update scroll containers
+        // 3. Update scroll containers (use accumulated scroll from handleInput)
         Clay_UpdateScrollContainers(true,
-                Clay_Vector2{scrollDeltaX, scrollDeltaY}, dtime);
+                Clay_Vector2{m_scroll_x, m_scroll_y}, dtime);
+        m_scroll_x = 0.0f;
+        m_scroll_y = 0.0f;
 
         // 4. Begin layout
         Clay_BeginLayout();
@@ -215,12 +217,22 @@ bool ClayGUIManager::handleInput(const SEvent &event)
                 case EMIE_LMOUSE_LEFT_UP:
                         m_mouse_left_down = false;
                         break;
+                case EMIE_MOUSE_WHEEL:
+                        // Track scroll delta for Clay scroll containers.
+                        // Irrlicht's Wheel is a float (typically -1.0 or 1.0).
+                        // Positive = scroll up, negative = scroll down.
+                        // Clay expects pixel deltas, so scale by a reasonable factor.
+                        m_scroll_y += event.MouseInput.Wheel * 50.0f;
+                        break;
                 default:
                         break;
                 }
 
                 // Consume mouse events when Clay panels are visible
-                // so the game doesn't also process them (e.g., digging)
+                // so the game doesn't also process them (e.g., digging).
+                // Even if the mouse isn't directly over a Clay element,
+                // the full-screen overlay means clicks should not pass
+                // through to the 3D world behind it.
                 return true;
         }
 
