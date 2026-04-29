@@ -3813,12 +3813,11 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
         */
         if (m_clay_gui.hasVisiblePanels()) {
                 auto cursor_pos = device->getCursorControl()->getPosition();
-                // Mouse left button: pass false for now; Clay will still
-                // detect clicks via Clay_SetPointerState in handleInput()
-                // which processes mouse button events directly.
+                // Mouse button state is tracked by handleInput() internally.
+                // update() only needs position and screen size.
                 m_clay_gui.update(1.0f / 60.0f,
                         screensize.X, screensize.Y,
-                        cursor_pos.X, cursor_pos.Y, false,
+                        cursor_pos.X, cursor_pos.Y,
                         0.0f, 0.0f);
         }
 

@@ -23,10 +23,44 @@
 
 #include <cstring>
 #include <string>
+#include <codecvt>
+#include <locale>
 
 // Irrlicht types in this fork are in global sub-namespaces:
 //   core::  video::  gui::  io::  scene::
 // NOT wrapped in an outer irr:: namespace.
+
+// ---------------------------------------------------------------------------
+// UTF-8 → wstring helper (correctly handles multi-byte sequences)
+// ---------------------------------------------------------------------------
+
+static std::wstring utf8ToWstring(const std::string &utf8)
+{
+        if (utf8.empty())
+                return std::wstring();
+
+        // Fast path: if all characters are ASCII, no conversion needed
+        bool all_ascii = true;
+        for (unsigned char c : utf8) {
+                if (c > 127) {
+                        all_ascii = false;
+                        break;
+                }
+        }
+        if (all_ascii)
+                return std::wstring(utf8.begin(), utf8.end());
+
+        // Multi-byte UTF-8: use codecvt for proper conversion
+        // Note: codecvt is deprecated in C++17 but still the standard way
+        // until C++26 provides a replacement.
+        try {
+                std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> conv;
+                return conv.from_bytes(utf8);
+        } catch (const std::exception &) {
+                // Fallback: byte-by-byte widening (will mangle non-ASCII but won't crash)
+                return std::wstring(utf8.begin(), utf8.end());
+        }
+}
 
 // ---------------------------------------------------------------------------
 // Initialization
@@ -69,7 +103,7 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
         // Clay does NOT guarantee null-terminated strings
         std::string str(text.chars, text.length);
         // Irrlicht's IGUIFont::getDimension() expects wchar_t
-        std::wstring wstr(str.begin(), str.end());
+        std::wstring wstr = utf8ToWstring(str);
         auto dim = font->getDimension(wstr.c_str());
 
         return Clay_Dimensions{
@@ -165,11 +199,12 @@ void ClayIrrlichtRenderer::render(const Clay_RenderCommandArray &commands)
 static video::SColor toSColor(Clay_Color c)
 {
         // Clay_Color uses float fields conventionally in 0-255 range
-        return video::SColor(
-                static_cast<u32>(c.a),
-                static_cast<u32>(c.r),
-                static_cast<u32>(c.g),
-                static_cast<u32>(c.b));
+        // Clamp to prevent garbage colors from out-of-range values
+        auto clamp = [](float v) -> u32 {
+                int i = static_cast<int>(v);
+                return static_cast<u32>(i < 0 ? 0 : (i > 255 ? 255 : i));
+        };
+        return video::SColor(clamp(c.a), clamp(c.r), clamp(c.g), clamp(c.b));
 }
 
 void ClayIrrlichtRenderer::drawRectangle(const Clay_RenderCommand &cmd,
@@ -204,7 +239,7 @@ void ClayIrrlichtRenderer::drawText(const Clay_RenderCommand &cmd,
         std::string str(td.stringContents.chars, td.stringContents.length);
 
         // Irrlicht's IGUIFont::draw() expects wchar_t, so convert
-        std::wstring wstr(str.begin(), str.end());
+        std::wstring wstr = utf8ToWstring(str);
 
         auto color = toSColor(td.textColor);
 

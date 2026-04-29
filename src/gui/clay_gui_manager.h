@@ -36,25 +36,25 @@ class FontEngine;
  */
 class ClayUIPanel {
 public:
-	ClayUIPanel(const std::string &name) : m_name(name) {}
-	virtual ~ClayUIPanel() = default;
+        ClayUIPanel(const std::string &name) : m_name(name) {}
+        virtual ~ClayUIPanel() = default;
 
-	/** Called every frame to declare the Clay layout. */
-	virtual void buildLayout() = 0;
+        /** Called every frame to declare the Clay layout. */
+        virtual void buildLayout() = 0;
 
-	/** Called when the panel is first shown. */
-	virtual void onShow() {}
+        /** Called when the panel is first shown. */
+        virtual void onShow() {}
 
-	/** Called when the panel is hidden. */
-	virtual void onHide() {}
+        /** Called when the panel is hidden. */
+        virtual void onHide() {}
 
-	const std::string &getName() const { return m_name; }
-	bool isVisible() const { return m_visible; }
-	void setVisible(bool v) { m_visible = v; }
+        const std::string &getName() const { return m_name; }
+        bool isVisible() const { return m_visible; }
+        void setVisible(bool v) { m_visible = v; }
 
 private:
-	std::string m_name;
-	bool m_visible = false;
+        std::string m_name;
+        bool m_visible = false;
 };
 
 /**
@@ -66,66 +66,66 @@ private:
  */
 class ClayGUIManager {
 public:
-	ClayGUIManager() = default;
-	~ClayGUIManager();
+        ClayGUIManager() = default;
+        ~ClayGUIManager();
 
-	/** Non-copyable */
-	ClayGUIManager(const ClayGUIManager &) = delete;
-	ClayGUIManager &operator=(const ClayGUIManager &) = delete;
+        /** Non-copyable */
+        ClayGUIManager(const ClayGUIManager &) = delete;
+        ClayGUIManager &operator=(const ClayGUIManager &) = delete;
 
-	/**
-	 * Initialize the Clay system.
-	 * @param device  Irrlicht device (global ::IrrlichtDevice)
-	 * @param fontEngine  Font engine for text measurement
-	 * @param maxElementCount  Max Clay elements per frame (default 8192)
-	 */
-	void init(IrrlichtDevice *device, FontEngine *fontEngine,
-		uint32_t maxElementCount = 8192);
+        /**
+         * Initialize the Clay system.
+         * @param device  Irrlicht device (global ::IrrlichtDevice)
+         * @param fontEngine  Font engine for text measurement
+         * @param maxElementCount  Max Clay elements per frame (default 8192)
+         */
+        void init(IrrlichtDevice *device, FontEngine *fontEngine,
+                int32_t maxElementCount = 8192);
 
-	/** Shut down and free the Clay arena. */
-	void shutdown();
+        /** Shut down and free the Clay arena. */
+        void shutdown();
 
-	/** Called every frame: updates Clay state and renders all visible panels. */
-	void update(float dtime, int screenWidth, int screenHeight,
-		int mouseX, int mouseY, bool mouseLeftDown,
-		float scrollDeltaX, float scrollDeltaY);
+        /** Called every frame: updates Clay state and renders all visible panels. */
+        void update(float dtime, int screenWidth, int screenHeight,
+                int mouseX, int mouseY,
+                float scrollDeltaX, float scrollDeltaY);
 
-	/** Register a panel. The manager does NOT take ownership. */
-	void addPanel(ClayUIPanel *panel);
+        /** Register a panel. The manager does NOT take ownership. */
+        void addPanel(ClayUIPanel *panel);
 
-	/** Show a panel by name. */
-	void showPanel(const std::string &name);
+        /** Show a panel by name. */
+        void showPanel(const std::string &name);
 
-	/** Hide a panel by name. */
-	void hidePanel(const std::string &name);
+        /** Hide a panel by name. */
+        void hidePanel(const std::string &name);
 
-	/** Hide all panels. */
-	void hideAll();
+        /** Hide all panels. */
+        void hideAll();
 
-	/** Check if any Clay panel is currently visible (consumes input). */
-	bool hasVisiblePanels() const;
+        /** Check if any Clay panel is currently visible (consumes input). */
+        bool hasVisiblePanels() const;
 
-	/** Get the renderer (for advanced use). */
-	ClayIrrlichtRenderer &getRenderer() { return m_renderer; }
+        /** Get the renderer (for advanced use). */
+        ClayIrrlichtRenderer &getRenderer() { return m_renderer; }
 
-	/**
-	 * Handle an input event. Returns true if the event was consumed
-	 * by a Clay panel (i.e., the click was inside a visible panel).
-	 */
-	bool handleInput(const SEvent &event);
+        /**
+         * Handle an input event. Returns true if the event was consumed
+         * by a Clay panel (i.e., the click was inside a visible panel).
+         */
+        bool handleInput(const SEvent &event);
 
 private:
-	ClayIrrlichtRenderer m_renderer;
-	Clay_Context *m_clay_context = nullptr;
-	void *m_arena_memory = nullptr;
-	uint32_t m_max_element_count = 8192;
+        ClayIrrlichtRenderer m_renderer;
+        Clay_Context *m_clay_context = nullptr;
+        void *m_arena_memory = nullptr;
+        int32_t m_max_element_count = 8192;
 
-	std::vector<ClayUIPanel *> m_panels;
-	std::unordered_map<std::string, ClayUIPanel *> m_panel_by_name;
+        std::vector<ClayUIPanel *> m_panels;
+        std::unordered_map<std::string, ClayUIPanel *> m_panel_by_name;
 
-	int m_mouse_x = 0;
-	int m_mouse_y = 0;
-	bool m_mouse_left_down = false;
+        int m_mouse_x = 0;
+        int m_mouse_y = 0;
+        bool m_mouse_left_down = false;
 
-	bool m_initialized = false;
+        bool m_initialized = false;
 };

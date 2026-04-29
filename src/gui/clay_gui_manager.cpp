@@ -37,7 +37,7 @@ ClayGUIManager::~ClayGUIManager()
 }
 
 void ClayGUIManager::init(IrrlichtDevice *device, FontEngine *fontEngine,
-        uint32_t maxElementCount)
+        int32_t maxElementCount)
 {
         if (m_initialized)
                 return;
@@ -99,7 +99,7 @@ void ClayGUIManager::shutdown()
 // ---------------------------------------------------------------------------
 
 void ClayGUIManager::update(float dtime, int screenWidth, int screenHeight,
-        int mouseX, int mouseY, bool mouseLeftDown,
+        int mouseX, int mouseY,
         float scrollDeltaX, float scrollDeltaY)
 {
         if (!m_initialized)
@@ -113,15 +113,14 @@ void ClayGUIManager::update(float dtime, int screenWidth, int screenHeight,
                 Clay_Dimensions{static_cast<float>(screenWidth),
                         static_cast<float>(screenHeight)});
 
-        // 2. Update pointer state
+        // 2. Update pointer state — this is the ONLY place where
+        //    Clay_SetPointerState() should be called, to ensure
+        //    PRESSED_THIS_FRAME is not promoted before layout.
         m_mouse_x = mouseX;
         m_mouse_y = mouseY;
-        // Use tracked mouse button state from handleInput() if available,
-        // otherwise use the passed-in value
-        bool leftDown = m_mouse_left_down || mouseLeftDown;
         Clay_SetPointerState(
-                Clay_Vector2{static_cast<float>(mouseX), static_cast<float>(mouseY)},
-                leftDown);
+                Clay_Vector2{static_cast<float>(m_mouse_x), static_cast<float>(m_mouse_y)},
+                m_mouse_left_down);
 
         // 3. Update scroll containers
         Clay_UpdateScrollContainers(true,
@@ -219,13 +218,12 @@ bool ClayGUIManager::handleInput(const SEvent &event)
                         break;
                 }
 
-                // Update Clay pointer state immediately so hover/click
-                // detection works correctly
-                Clay_SetCurrentContext(m_clay_context);
-                Clay_SetPointerState(
-                        Clay_Vector2{static_cast<float>(m_mouse_x),
-                                static_cast<float>(m_mouse_y)},
-                        m_mouse_left_down);
+                // NOTE: We do NOT call Clay_SetPointerState() here.
+                // That call belongs in update() only. Calling it here
+                // AND in update() causes Clay's internal state machine
+                // to promote PRESSED_THIS_FRAME → PRESSED before the
+                // layout runs, which breaks all click detection.
+                // We just track the mouse state in m_mouse_x/y/leftDown.
 
                 // Always consume mouse events if panels are visible
                 return true;
