@@ -68,7 +68,7 @@ void GUIOpenURLMenu::regenerateGui(v2u32 screensize)
         /*
                 Calculate new sizes and positions
         */
-        ScalingInfo info = getScalingInfo(screensize, v2u32(580, 250));
+        ScalingInfo info = getScalingInfo(screensize, v2u32(GUITheme::Dialogs::OPEN_URL_SIZE.Width, GUITheme::Dialogs::OPEN_URL_SIZE.Height));
         const float s = info.scale;
         DesiredRect = info.rect;
         recalculateAbsolutePosition(false);

@@ -491,7 +491,7 @@ video::SColor GUIButton::getOverrideColor() const
 
 video::SColor GUIButton::getActiveColor() const
 {
-        return video::SColor(0,0,0,0); // unused?
+        return GUITheme::Colors::TRANSPARENT; // unused?
 }
 
 void GUIButton::enableOverrideColor(bool enable)
@@ -640,7 +640,7 @@ void GUIButton::setColor(video::SColor color)
 {
         BgColor = color;
 
-        float d = 0.65f;
+        float d = GUITheme::Sizing::BUTTON_COLOR_INTERPOLATE;
         for (size_t i = 0; i < 4; i++) {
                 video::SColor base = Environment->getSkin()->getColor((gui::EGUI_DEFAULT_COLOR)i);
                 Colors[i] = base.getInterpolated(color, d);

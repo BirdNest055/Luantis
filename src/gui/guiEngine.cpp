@@ -154,7 +154,7 @@ GUIEngine::GUIEngine(JoystickController *joystick,
 
         core::rect<s32> rect(0, 0, g_fontengine->getTextWidth(m_toplefttext.c_str()),
                 g_fontengine->getTextHeight());
-        rect += v2s32(4, 0);
+        rect += v2s32(GUITheme::Sizing::ENGINE_TEXT_PADDING, 0);
 
         m_irr_toplefttext = gui::StaticText::add(rendering_engine->get_gui_env(),
                         m_toplefttext, rect, false, true, 0, -1);
@@ -439,7 +439,7 @@ GUIEngine::~GUIEngine()
 void GUIEngine::drawClouds(float dtime)
 {
         g_menuclouds->update(v3f(0, 0, 0), m_rendering_engine->m_menu_clouds_color);
-        g_menuclouds->step(dtime * 3);
+        g_menuclouds->step(dtime * GUITheme::Timing::ENGINE_CLOUD_STEP_MULT);
         g_menucloudsmgr->drawAll();
 }
 
@@ -547,7 +547,7 @@ void GUIEngine::drawHeader(video::IVideoDriver *driver)
          */
         core::rect<s32> formspec_rect = m_menu->getAbsoluteRect();
         // 4 px of padding on each side
-        core::rect<s32> max_rect(4, 4, screensize.Width - 8, formspec_rect.UpperLeftCorner.Y - 8);
+        core::rect<s32> max_rect(GUITheme::Sizing::ENGINE_HEADER_PAD, GUITheme::Sizing::ENGINE_HEADER_PAD, screensize.Width - GUITheme::Sizing::ENGINE_HEADER_INNER_PAD, formspec_rect.UpperLeftCorner.Y - GUITheme::Sizing::ENGINE_HEADER_INNER_PAD);
 
         // If no space (less than 16x16 px), draw nothing
         if (max_rect.getWidth() < 16 || max_rect.getHeight() < 16)
@@ -562,11 +562,11 @@ void GUIEngine::drawHeader(video::IVideoDriver *driver)
         v2s32 splashsize(((f32)texture->getOriginalSize().Width) * mult,
                         ((f32)texture->getOriginalSize().Height) * mult);
 
-        s32 free_space = (((s32)screensize.Height)-320)/2;
+        s32 free_space = (((s32)screensize.Height)-GUITheme::Sizing::ENGINE_SIDEBAR_OFFSET)/2;
 
         core::rect<s32> desired_rect(0, 0, splashsize.X, splashsize.Y);
         desired_rect += v2s32((screensize.Width/2)-(splashsize.X/2),
-                        ((free_space/2)-splashsize.Y/2)+10);
+                        ((free_space/2)-splashsize.Y/2)+GUITheme::Sizing::ENGINE_HEADER_Y_OFFSET);
 
         /*
          * Make the preferred rectangle fit into the maximum rectangle
@@ -608,7 +608,7 @@ void GUIEngine::drawFooter(video::IVideoDriver *driver)
                         ((f32)texture->getOriginalSize().Height) * mult);
 
         // Don't draw the footer if there isn't enough room
-        s32 free_space = (((s32)screensize.Height)-320)/2;
+        s32 free_space = (((s32)screensize.Height)-GUITheme::Sizing::ENGINE_SIDEBAR_OFFSET)/2;
 
         if (free_space > footersize.Y) {
                 core::rect<s32> rect(0,0,footersize.X,footersize.Y);
@@ -686,7 +686,7 @@ void GUIEngine::updateTopLeftTextSize()
                 g_fontengine->getTextWidth(str.c_str()),
                 g_fontengine->getTextHeight() * lines
         );
-        rect += v2s32(4, 4);
+        rect += v2s32(GUITheme::Sizing::ENGINE_TEXT_PADDING, GUITheme::Sizing::ENGINE_TEXT_PADDING);
 
         m_irr_toplefttext->remove();
         m_irr_toplefttext = gui::StaticText::add(m_rendering_engine->get_gui_env(),

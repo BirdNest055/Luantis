@@ -593,7 +593,7 @@ void GUIFormSpecMenu::parseCheckbox(parserData* data, const std::string &element
                 rect = core::rect<s32>(
                                 pos.X,
                                 pos.Y - y_center,
-                                pos.X + label_size.Width + cb_size + 7,
+                                pos.X + label_size.Width + cb_size + GUITheme::Sizing::CHECKBOX_PADDING,
                                 pos.Y + y_center
                         );
         } else {
@@ -601,7 +601,7 @@ void GUIFormSpecMenu::parseCheckbox(parserData* data, const std::string &element
                 rect = core::rect<s32>(
                                 pos.X,
                                 pos.Y + imgsize.Y / 2 - y_center,
-                                pos.X + label_size.Width + cb_size + 7,
+                                pos.X + label_size.Width + cb_size + GUITheme::Sizing::CHECKBOX_PADDING,
                                 pos.Y + imgsize.Y / 2 + y_center
                         );
         }
@@ -3210,10 +3210,10 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
                 m_font = g_fontengine->getFont();
                 m_btn_height = font_line_height(m_font) * GUITheme::Sizing::BUTTON_ALT_HEIGHT_RATIO;
                 DesiredRect = core::rect<s32>(
-                        (s32)((f32)mydata.screensize.X * mydata.offset.X) - (s32)(mydata.anchor.X * 580.0),
-                        (s32)((f32)mydata.screensize.Y * mydata.offset.Y) - (s32)(mydata.anchor.Y * 300.0),
-                        (s32)((f32)mydata.screensize.X * mydata.offset.X) + (s32)((1.0 - mydata.anchor.X) * 580.0),
-                        (s32)((f32)mydata.screensize.Y * mydata.offset.Y) + (s32)((1.0 - mydata.anchor.Y) * 300.0)
+                        (s32)((f32)mydata.screensize.X * mydata.offset.X) - (s32)(mydata.anchor.X * GUITheme::Sizing::FORM_FALLBACK_WIDTH),
+                        (s32)((f32)mydata.screensize.Y * mydata.offset.Y) - (s32)(mydata.anchor.Y * GUITheme::Sizing::FORM_FALLBACK_HEIGHT),
+                        (s32)((f32)mydata.screensize.X * mydata.offset.X) + (s32)((1.0 - mydata.anchor.X) * GUITheme::Sizing::FORM_FALLBACK_WIDTH),
+                        (s32)((f32)mydata.screensize.Y * mydata.offset.Y) + (s32)((1.0 - mydata.anchor.Y) * GUITheme::Sizing::FORM_FALLBACK_HEIGHT)
                 );
         }
         recalculateAbsolutePosition(false);
@@ -3569,7 +3569,7 @@ void GUIFormSpecMenu::drawMenu()
         if (hovered) {
                 if (m_show_debug) {
                         core::rect<s32> rect = hovered->getAbsoluteClippingRect();
-                        driver->draw2DRectangle(0x22FFFF00, rect, &rect);
+                        driver->draw2DRectangle(GUITheme::Colors::DEBUG_HIGHLIGHT, rect, &rect);
                 }
 
                 // find the formspec-element of the hovered IGUIElement (a parent)
@@ -3629,8 +3629,8 @@ void GUIFormSpecMenu::drawMenu()
         const gui::IGUIElement *focused = Environment->getFocus();
         if (focused && m_show_focus && focused->isTabStop() ) {
                 core::rect<s32> rect = focused->getAbsoluteClippingRect();
-                const video::SColor white(255, 255, 255, 255);
-                const s32 border = 2;
+                const video::SColor white = GUITheme::Colors::FOCUS_BORDER;
+                const s32 border = GUITheme::Sizing::FOCUS_BORDER_WIDTH;
 
                 driver->draw2DRectangle(white,
                         core::rect<s32>(rect.UpperLeftCorner.X, rect.UpperLeftCorner.Y,

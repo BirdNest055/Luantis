@@ -63,7 +63,7 @@ void GUIPasswordChange::regenerateGui(v2u32 screensize)
         /*
                 Calculate new sizes and positions
         */
-        ScalingInfo info = getScalingInfo(screensize, v2u32(580, 300));
+        ScalingInfo info = getScalingInfo(screensize, v2u32(GUITheme::Dialogs::PASSWORD_CHANGE_SIZE.Width, GUITheme::Dialogs::PASSWORD_CHANGE_SIZE.Height));
         const float s = info.scale;
         DesiredRect = info.rect;
         recalculateAbsolutePosition(false);
