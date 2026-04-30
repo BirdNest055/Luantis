@@ -8,6 +8,8 @@
 
 #include "clay_gui_manager.h"
 
+#include "clay_theme.h"
+
 #include <irrlicht.h>
 #include "client/fontengine.h"
 #include "client/renderingengine.h"
@@ -42,7 +44,9 @@ void ClayGUIManager::init(IrrlichtDevice *device, FontEngine *fontEngine,
         if (m_initialized)
                 return;
 
-        m_max_element_count = maxElementCount;
+        m_max_element_count = maxElementCount > 0
+                ? maxElementCount
+                : Theme::Renderer::defaultMaxElements;
 
         // Set max element count before querying memory
         Clay_SetMaxElementCount(m_max_element_count);
@@ -221,8 +225,8 @@ bool ClayGUIManager::handleInput(const SEvent &event)
                         // Track scroll delta for Clay scroll containers.
                         // Irrlicht's Wheel is a float (typically -1.0 or 1.0).
                         // Positive = scroll up, negative = scroll down.
-                        // Clay expects pixel deltas, so scale by a reasonable factor.
-                        m_scroll_y += event.MouseInput.Wheel * 50.0f;
+                        // Clay expects pixel deltas, scaled by Theme::Renderer::scrollWheelMultiplier.
+                        m_scroll_y += event.MouseInput.Wheel * Theme::Renderer::scrollWheelMultiplier;
                         break;
                 default:
                         break;

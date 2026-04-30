@@ -5,7 +5,10 @@
  * replacing the old formspec-based pause menu. This is the first
  * dialog to be ported to Clay as a proof of concept.
  *
- * Part of the Luantis Clay GUI integration (v9.46).
+ * All visual styling is centralized in clay_theme.h — edit that
+ * single file to change the entire GUI appearance.
+ *
+ * Part of the Luantis Clay GUI integration (v9.48).
  */
 
 #pragma once
@@ -30,6 +33,7 @@ struct ClayPauseMenuCallbacks {
  *
  * Declares its layout using Clay macros each frame and handles
  * button clicks via Clay's pointer interaction system.
+ * All visual constants come from clay_theme.h.
  */
 class ClayPauseMenu : public ClayUIPanel {
 public:
@@ -41,11 +45,6 @@ public:
 
 private:
 	ClayPauseMenuCallbacks m_callbacks;
-
-	// Style configs — reusable Clay_ElementDeclaration structs
-	static Clay_ElementDeclaration s_panel_style;
-	static Clay_ElementDeclaration s_title_style;
-	static Clay_ElementDeclaration s_button_style;
 
 	/** Shared button component. */
 	void buttonComponent(const char *id, const char *label,

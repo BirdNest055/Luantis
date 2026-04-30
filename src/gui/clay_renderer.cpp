@@ -14,6 +14,8 @@
 #define CLAY_IMPLEMENTATION
 #include "clay_renderer.h"
 
+#include "clay_theme.h"
+
 #include <irrlicht.h>
 #include "IGUIFont.h"
 #include "client/fontengine.h"
@@ -37,6 +39,16 @@ static bool g_clay_render_log_enabled = []() {
         return env && std::string(env) == "1";
 }();
 static int g_clay_render_log_frame = 0;
+
+// Helper: pack Theme constexpr uint32_t (ARGB) into Irrlicht SColor
+static video::SColor packedToSColor(uint32_t packed)
+{
+        return video::SColor(
+                (packed >> 24) & 0xFF,
+                (packed >> 16) & 0xFF,
+                (packed >>  8) & 0xFF,
+                (packed      ) & 0xFF);
+}
 
 // Irrlicht types in this fork are in global sub-namespaces:
 //   core::  video::  gui::  io::  scene::
@@ -99,7 +111,7 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
         if (!self || !self->m_font_engine) {
                 // Fallback: rough monospace estimate
                 return Clay_Dimensions{
-                        .width = static_cast<float>(text.length) * config->fontSize * 0.6f,
+                        .width = static_cast<float>(text.length) * config->fontSize * Theme::Renderer::fallbackTextWidthRatio,
                         .height = static_cast<float>(config->fontSize)
                 };
         }
@@ -107,7 +119,7 @@ Clay_Dimensions ClayIrrlichtRenderer::measureText(Clay_StringSlice text,
         gui::IGUIFont *font = self->getFont(config->fontId, config->fontSize);
         if (!font) {
                 return Clay_Dimensions{
-                        .width = static_cast<float>(text.length) * config->fontSize * 0.6f,
+                        .width = static_cast<float>(text.length) * config->fontSize * Theme::Renderer::fallbackTextWidthRatio,
                         .height = static_cast<float>(config->fontSize)
                 };
         }
@@ -134,11 +146,11 @@ gui::IGUIFont *ClayIrrlichtRenderer::getFont(uint16_t fontId, uint16_t fontSize)
                 return nullptr;
 
         // Map Clay fontId to FontEngine font mode.
-        // fontId 0 or 3 = FM_Mono (monospace), everything else = FM_Standard.
+        // Theme::Fonts::standardFontId = FM_Standard, Theme::Fonts::monoFontId = FM_Mono.
         // Note: Luantis's FontEngine only has FM_Standard and FM_Mono —
         // no bold/italic variants are available.
         auto mode = FontMode::FM_Standard;
-        if (fontId == 3)
+        if (fontId == Theme::Fonts::monoFontId)
                 mode = FontMode::FM_Mono;
 
         // FontEngine uses a size parameter; fontSize of 0 means default
@@ -196,10 +208,10 @@ static std::string escapeJson(const std::string &s)
 static void logRenderCommands(const Clay_RenderCommandArray &commands, int frameNum)
 {
         // Only log a few frames to avoid huge files
-        if (frameNum > 5)
+        if (frameNum > Theme::Renderer::renderLogMaxFrames)
                 return;
 
-        std::ofstream log("/tmp/clay_render_log.jsonl", std::ios::app);
+        std::ofstream log(Theme::Renderer::renderLogPath, std::ios::app);
         if (!log.is_open())
                 return;
 
@@ -462,7 +474,7 @@ void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd,
                         video::SColor tint = toSColor(img.backgroundColor);
                         if (img.backgroundColor.a == 0 && img.backgroundColor.r == 0
                                         && img.backgroundColor.g == 0 && img.backgroundColor.b == 0) {
-                                tint = video::SColor(255, 255, 255, 255);
+                                tint = packedToSColor(Theme::Renderer::defaultImageTint);
                         }
 
                         // Use alpha-aware draw if a clip rect is present
@@ -474,16 +486,16 @@ void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd,
 
         // Placeholder: magenta rect with cross pattern so missing images are visible
         m_driver->draw2DRectangle(
-                video::SColor(255, 255, 0, 255), dest, clipRect);
+                packedToSColor(Theme::Renderer::placeholderFillColor), dest, clipRect);
         // Draw an X to make it obviously a placeholder
         m_driver->draw2DLine(
                 core::position2di(dest.UpperLeftCorner.X, dest.UpperLeftCorner.Y),
                 core::position2di(dest.LowerRightCorner.X, dest.LowerRightCorner.Y),
-                video::SColor(255, 0, 0, 0));
+                packedToSColor(Theme::Renderer::placeholderXColor));
         m_driver->draw2DLine(
                 core::position2di(dest.LowerRightCorner.X, dest.UpperLeftCorner.Y),
                 core::position2di(dest.UpperLeftCorner.X, dest.LowerRightCorner.Y),
-                video::SColor(255, 0, 0, 0));
+                packedToSColor(Theme::Renderer::placeholderXColor));
 }
 
 void ClayIrrlichtRenderer::drawBorder(const Clay_RenderCommand &cmd,
@@ -547,7 +559,7 @@ void ClayIrrlichtRenderer::drawCustom(const Clay_RenderCommand &cmd,
         // Irrlicht doesn't have draw2DRectangleOutline, so we draw
         // four thin lines around the bounding box.
         if (custom.backgroundColor.a == 0) {
-                video::SColor outlineColor(80, 128, 128, 128);
+                video::SColor outlineColor = packedToSColor(Theme::Renderer::debugOutlineColor);
                 m_driver->draw2DLine(
                         core::position2di(dest.UpperLeftCorner.X, dest.UpperLeftCorner.Y),
                         core::position2di(dest.LowerRightCorner.X, dest.UpperLeftCorner.Y),

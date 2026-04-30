@@ -12,6 +12,7 @@
 #pragma once
 
 #include "clay_renderer.h"
+#include "clay_theme.h"
 
 #include "clay.h"
 
@@ -80,7 +81,7 @@ public:
          * @param maxElementCount  Max Clay elements per frame (default 8192)
          */
         void init(IrrlichtDevice *device, FontEngine *fontEngine,
-                int32_t maxElementCount = 8192);
+                int32_t maxElementCount = Theme::Renderer::defaultMaxElements);
 
         /** Shut down and free the Clay arena. */
         void shutdown();
@@ -123,7 +124,7 @@ private:
         ClayIrrlichtRenderer m_renderer;
         Clay_Context *m_clay_context = nullptr;
         void *m_arena_memory = nullptr;
-        int32_t m_max_element_count = 8192;
+        int32_t m_max_element_count = Theme::Renderer::defaultMaxElements;
 
         std::vector<ClayUIPanel *> m_panels;
         std::unordered_map<std::string, ClayUIPanel *> m_panel_by_name;
