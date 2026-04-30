@@ -1,7 +1,7 @@
-# Clawtest GUI Editing Guide
+# Luantis GUI Editing Guide
 
 This document describes exactly which files to edit to change the GUI of all
-windows, buttons, tabs, dialogs, colors, fonts, and textures in the Clawtest
+windows, buttons, tabs, dialogs, colors, fonts, and textures in the Luantis
 client. It covers the main menu, in-game HUD, pause menu, and the C++ widget
 layer that renders everything.
 
@@ -27,7 +27,7 @@ layer that renders everything.
 
 ## 1. Architecture Overview
 
-The Clawtest GUI uses Luanti's **formspec** system — a declarative markup
+The Luantis GUI uses Luanti's **formspec** system — a declarative markup
 language that describes UI elements as strings. Lua code generates formspec
 strings, and the C++ engine (`src/gui/guiFormSpecMenu.cpp`) parses and renders
 them using Irrlicht.

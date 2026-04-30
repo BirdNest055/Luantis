@@ -1404,7 +1404,7 @@ bool FingerprintStore::save(const std::string &filepath) const
         std::ofstream file(filepath);
         if (!file.is_open())
                 return false;
-        file << "# Clawtest server fingerprint store\n";
+        file << "# Luantis server fingerprint store\n";
         file << "# Format: <address>:<port> <fingerprint>\n";
         for (const auto &entry : m_fingerprints)
                 file << entry.first << " " << entry.second << "\n";

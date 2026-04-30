@@ -21,8 +21,8 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 10. Documentation and encryption data flow guide (v9.10)
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
 
-**Repository:** https://github.com/BirdNest055/Clawtest
-**Current branch:** `clawtest-v9.24-fix-settingtypes-context`
+**Repository:** https://github.com/BirdNest055/Luantis
+**Current branch:** `luantis-v9.24-fix-settingtypes-context`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -30,14 +30,14 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 ## 2. Current Git State
 
 - **`main` branch:** Upstream Luanti 5.16.0-dev
-- **`clawtest-upload` branch:** Previous development branch (v9.0-v9.2 work)
-- **`clawtest-v9.3` branch:** Previous development branch (v9.3 work)
-- **`clawtest-v9.11` branch:** ECDH forward secrecy, test fixes
-- **`clawtest-v9.22-settings-panel-fix` branch:** Settings panel fix, both secure/insecure modes work
-- **`clawtest-v9.23-log-toggle` branch:** Log toggle feature, encryption_log_level setting
-- **`clawtest-v9.24-fix-settingtypes-context` branch:** Current — fixes encryption_log_level settingtypes context
+- **`luantis-upload` branch:** Previous development branch (v9.0-v9.2 work)
+- **`luantis-v9.3` branch:** Previous development branch (v9.3 work)
+- **`luantis-v9.11` branch:** ECDH forward secrecy, test fixes
+- **`luantis-v9.22-settings-panel-fix` branch:** Settings panel fix, both secure/insecure modes work
+- **`luantis-v9.23-log-toggle` branch:** Log toggle feature, encryption_log_level setting
+- **`luantis-v9.24-fix-settingtypes-context` branch:** Current — fixes encryption_log_level settingtypes context
 
-**Commit on clawtest-v9.24:**
+**Commit on luantis-v9.24:**
 ```
 v9.24: Fix encryption_log_level settingtypes context [server,client] → [common]
 ```
@@ -309,20 +309,20 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 |---------|--------|---------|
 | v7 | `v7-overlay-settings` / `main` | Secure connection overlay + settings checkbox |
 | v8 | `v8-security-info-tab` | Security Info settings tab with technical connection details |
-| v9.0 | `clawtest-upload` | Real AES-256-GCM encryption implemented and integrated |
-| v9.2 | `clawtest-upload` | Insecure mode actually disables encryption (not just UI flags) |
-| v9.3 | `clawtest-v9.3` | Modular encryption architecture, interactive start scripts, version numbering |
-| v9.8 | `clawtest-v9.8` | VS Code tasks for build and run |
-| v9.9 | `clawtest-v9.9` | TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes |
-| v9.10 | `clawtest-v9.10` | Documentation update, docs/ENCRYPTION_DATA_FLOW.md, all MDs updated |
-| v9.11 | `clawtest-v9.11` | ECDH X25519 forward secrecy with TDD — wire protocol, salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes |
-| v9.12 | `clawtest-v9.12` | Encryption activation race condition fix — client defers until server's first encrypted packet |
-| v9.19 | `clawtest-v9.19` | GCM auth spam fix — prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes |
-| v9.20 | `clawtest-v9.20` | Fake encryption score fix — use real connection state instead of hardcoded encryption_active=true |
-| v9.21 | `clawtest-v9.21-build-fix` | Build error fix — move isEncryptionActive() out of header (incomplete type error) |
-| v9.22 | `clawtest-v9.22-settings-panel-fix` | Settings panel fix — write all 16 g_settings keys, sync activated_at, both secure/insecure modes work |
-| v9.23 | `clawtest-v9.23-log-toggle` | Log toggle feature — --no-log/--log in start scripts, encryption_log_level setting |
-| v9.24 | `clawtest-v9.24-fix-settingtypes-context` | Settingtypes context fix — encryption_log_level [server,client] → [common] |
+| v9.0 | `luantis-upload` | Real AES-256-GCM encryption implemented and integrated |
+| v9.2 | `luantis-upload` | Insecure mode actually disables encryption (not just UI flags) |
+| v9.3 | `luantis-v9.3` | Modular encryption architecture, interactive start scripts, version numbering |
+| v9.8 | `luantis-v9.8` | VS Code tasks for build and run |
+| v9.9 | `luantis-v9.9` | TDD encryption scoring — bonus system, HKDF salt, key rotation, exact replay bitmap, build fixes |
+| v9.10 | `luantis-v9.10` | Documentation update, docs/ENCRYPTION_DATA_FLOW.md, all MDs updated |
+| v9.11 | `luantis-v9.11` | ECDH X25519 forward secrecy with TDD — wire protocol, salted HKDF in mixECDHSecretIntoKeys, deterministic salt in rotateKeys, 22 TDD tests, test bug fixes |
+| v9.12 | `luantis-v9.12` | Encryption activation race condition fix — client defers until server's first encrypted packet |
+| v9.19 | `luantis-v9.19` | GCM auth spam fix — prevent SetPeerEncryptionState from clobbering SRP keys before ECDH completes |
+| v9.20 | `luantis-v9.20` | Fake encryption score fix — use real connection state instead of hardcoded encryption_active=true |
+| v9.21 | `luantis-v9.21-build-fix` | Build error fix — move isEncryptionActive() out of header (incomplete type error) |
+| v9.22 | `luantis-v9.22-settings-panel-fix` | Settings panel fix — write all 16 g_settings keys, sync activated_at, both secure/insecure modes work |
+| v9.23 | `luantis-v9.23-log-toggle` | Log toggle feature — --no-log/--log in start scripts, encryption_log_level setting |
+| v9.24 | `luantis-v9.24-fix-settingtypes-context` | Settingtypes context fix — encryption_log_level [server,client] → [common] |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager

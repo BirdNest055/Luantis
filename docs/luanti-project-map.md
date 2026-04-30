@@ -1,6 +1,6 @@
 # Luanti-Secure Project — Complete File & Dependency Map
 
-> **Repository:** [BirdNest055/Clawtest](https://github.com/BirdNest055/Clawtest) (fork of Luanti with real encrypted communications)
+> **Repository:** [BirdNest055/Luantis](https://github.com/BirdNest055/Luantis) (fork of Luanti with real encrypted communications)
 > **Version:** 5.16.1-v9.3 | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
 > **Total Source Files:** ~330 C++ (.h/.cpp) + ~120 Lua (.lua) + 79 IrrlichtMt C++ + GLSL Shaders + 12 Crypto layer (integrated)
 > **Last Updated:** 2026-04-25 | **Map Version:** v4
@@ -455,7 +455,7 @@ Custom UDP-based protocol (MTProtocol) with reliable delivery.
 ### 8.4 Encrypted Communications Layer (Integrated — v9.3)
 
 > **Status:** Integrated and working. AES-256-GCM encryption is active when `secure_connection = true`. Modular toggle via `EncryptionConfig` namespace.
-> **Branch:** `clawtest-v9.3`
+> **Branch:** `luantis-v9.3`
 > **Depends on:** OpenSSL (required, in `vcpkg.json`)
 
 This layer provides real, verifiable encrypted communications between server and client using SRP-derived AES-256-GCM authenticated encryption with HKDF-SHA256 key derivation. The `EncryptionConfig` module provides centralized policy management. Two parallel crypto API layers exist for future reconciliation; the top-level API is currently used for the integrated encryption.

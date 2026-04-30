@@ -55,7 +55,7 @@ Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 | Settingtypes context fix | v9.24+ | Fixed `encryption_log_level` context from `[server,client]` to `[common]` (parser only accepts single context values) |
 | Encryption log autocreate | v9.25+ | `encryption_trace.log` is now created at any non-none log level (not just trace); all `enclog_*` macros write to the trace file; fixes missing log file after manual deletion |
 | Gitignore media folder | v9.26+ | `media/` directory added to `.gitignore` to prevent server-downloaded textures/sounds from overwhelming git |
-| Project rename | v9.27+ | Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files |
+| Project rename | v9.27+ | Luantis → Luanti-Secure across all documentation, source comments, scripts, and guide files |
 | Minecraft-like keybinds | v9.28+ | Default keybindings changed to match Minecraft: E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom |
 | Server info overlay | v9.38+ | In-game Tab overlay showing server name, player list, ping, uptime, and extensible Lua sections |
 | Voice chat with E2EE | v9.39+ | Opus voice chat with X25519 ECDH key exchange and AES-256-GCM encryption; push-to-talk and toggle modes |
@@ -275,8 +275,8 @@ The easiest way to build on any Ubuntu/Debian machine. The `build_linux.sh` scri
 
 ```bash
 # Clone the repo
-git clone https://github.com/BirdNest055/Clawtest.git
-cd Clawtest
+git clone https://github.com/BirdNest055/Luantis.git
+cd Luantis
 
 # Build client + server (interactive dependency menu)
 ./build_linux.sh --both --run-in-place
@@ -405,7 +405,7 @@ The Luanti-Secure version tracks encryption feature development:
 - v9.24: Settingtypes context fix — `encryption_log_level` context `[server,client]` → `[common]` (Luanti parser only accepts single context values)
 - v9.25: Encryption log autocreate — `encryption_trace.log` created at any non-none level, all `enclog_*` macros write to trace file
 - v9.26: Gitignore `media/` folder — prevents server-downloaded media files from overwhelming git
-- v9.27: Project rename — Clawtest → Luanti-Secure across all documentation, source comments, scripts, and guide files
+- v9.27: Project rename — Luantis → Luanti-Secure across all documentation, source comments, scripts, and guide files
 - v9.28: Minecraft-like default keybindings — E=inventory, Left Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom
 - v9.29–v9.37: Internal development iterations — build system improvements, CI refinements, code quality
 - v9.38: Server info overlay — Tab key shows in-game overlay with server name, player list, ping, uptime, and extensible Lua section system

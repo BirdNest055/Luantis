@@ -5,7 +5,7 @@
 -------------
 
 2026-04-25 10:28:46: ACTION[Main]: [log] modname="log"
-2026-04-25 10:28:46: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
+2026-04-25 10:28:46: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
 2026-04-25 10:28:46: ACTION[Main]: [log] worldpath="/tmp/test-insecure-world"
 2026-04-25 10:28:47: ACTION[Main]: [log] Callback: on_mods_loaded()
 2026-04-25 10:28:47: ACTION[Main]: World at [/tmp/test-insecure-world]
@@ -18,10 +18,10 @@
 -------------
 
 2026-04-25 10:49:32: ACTION[Main]: [log] modname="log"
-2026-04-25 10:49:32: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:49:32: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25079/world"
+2026-04-25 10:49:32: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:49:32: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25079/world"
 2026-04-25 10:49:32: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:49:32: ACTION[Main]: World at [/tmp/clawtest-enc-test-25079/world]
+2026-04-25 10:49:32: ACTION[Main]: World at [/tmp/luantis-enc-test-25079/world]
 2026-04-25 10:49:32: ACTION[Main]: Server for gameid="devtest" listening on [::]:30001.
 2026-04-25 10:49:37: ACTION[Main]: Server: Shutting down
 
@@ -31,10 +31,10 @@
 -------------
 
 2026-04-25 10:49:38: ACTION[Main]: [log] modname="log"
-2026-04-25 10:49:38: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:49:38: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25079/world"
+2026-04-25 10:49:38: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:49:38: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25079/world"
 2026-04-25 10:49:38: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:49:38: ACTION[Main]: World at [/tmp/clawtest-enc-test-25079/world]
+2026-04-25 10:49:38: ACTION[Main]: World at [/tmp/luantis-enc-test-25079/world]
 2026-04-25 10:49:38: ACTION[Main]: Server for gameid="devtest" listening on [::]:30002.
 2026-04-25 10:49:43: ACTION[Main]: Server: Shutting down
 
@@ -44,10 +44,10 @@
 -------------
 
 2026-04-25 10:49:44: ACTION[Main]: [log] modname="log"
-2026-04-25 10:49:44: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:49:44: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25079/world"
+2026-04-25 10:49:44: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:49:44: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25079/world"
 2026-04-25 10:49:44: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:49:44: ACTION[Main]: World at [/tmp/clawtest-enc-test-25079/world]
+2026-04-25 10:49:44: ACTION[Main]: World at [/tmp/luantis-enc-test-25079/world]
 2026-04-25 10:49:44: ACTION[Main]: Server for gameid="devtest" listening on [::]:30003.
 2026-04-25 10:49:49: ACTION[Main]: Server: Shutting down
 
@@ -57,10 +57,10 @@
 -------------
 
 2026-04-25 10:51:06: ACTION[Main]: [log] modname="log"
-2026-04-25 10:51:06: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:51:06: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25253/world"
+2026-04-25 10:51:06: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:51:06: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25253/world"
 2026-04-25 10:51:06: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:51:06: ACTION[Main]: World at [/tmp/clawtest-enc-test-25253/world]
+2026-04-25 10:51:06: ACTION[Main]: World at [/tmp/luantis-enc-test-25253/world]
 2026-04-25 10:51:06: ACTION[Main]: Server for gameid="devtest" listening on [::]:30001.
 2026-04-25 10:51:11: ACTION[Main]: Server: Shutting down
 
@@ -70,10 +70,10 @@
 -------------
 
 2026-04-25 10:51:11: ACTION[Main]: [log] modname="log"
-2026-04-25 10:51:11: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:51:11: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25253/world"
+2026-04-25 10:51:11: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:51:11: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25253/world"
 2026-04-25 10:51:11: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:51:11: ACTION[Main]: World at [/tmp/clawtest-enc-test-25253/world]
+2026-04-25 10:51:11: ACTION[Main]: World at [/tmp/luantis-enc-test-25253/world]
 2026-04-25 10:51:11: ACTION[Main]: Server for gameid="devtest" listening on [::]:30002.
 2026-04-25 10:51:16: ACTION[Main]: Server: Shutting down
 
@@ -83,10 +83,10 @@
 -------------
 
 2026-04-25 10:51:17: ACTION[Main]: [log] modname="log"
-2026-04-25 10:51:17: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:51:17: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25253/world"
+2026-04-25 10:51:17: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:51:17: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25253/world"
 2026-04-25 10:51:18: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:51:18: ACTION[Main]: World at [/tmp/clawtest-enc-test-25253/world]
+2026-04-25 10:51:18: ACTION[Main]: World at [/tmp/luantis-enc-test-25253/world]
 2026-04-25 10:51:18: ACTION[Main]: Server for gameid="devtest" listening on [::]:30003.
 2026-04-25 10:51:22: ACTION[Main]: Server: Shutting down
 
@@ -96,10 +96,10 @@
 -------------
 
 2026-04-25 10:53:45: ACTION[Main]: [log] modname="log"
-2026-04-25 10:53:45: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:53:45: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25571/world"
+2026-04-25 10:53:45: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:53:45: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25571/world"
 2026-04-25 10:53:45: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:53:45: ACTION[Main]: World at [/tmp/clawtest-enc-test-25571/world]
+2026-04-25 10:53:45: ACTION[Main]: World at [/tmp/luantis-enc-test-25571/world]
 2026-04-25 10:53:45: ACTION[Main]: Server for gameid="devtest" listening on [::]:30001.
 2026-04-25 10:53:50: ACTION[Main]: Server: Shutting down
 
@@ -109,10 +109,10 @@
 -------------
 
 2026-04-25 10:53:50: ACTION[Main]: [log] modname="log"
-2026-04-25 10:53:50: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:53:50: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25571/world"
+2026-04-25 10:53:50: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:53:50: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25571/world"
 2026-04-25 10:53:50: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:53:50: ACTION[Main]: World at [/tmp/clawtest-enc-test-25571/world]
+2026-04-25 10:53:50: ACTION[Main]: World at [/tmp/luantis-enc-test-25571/world]
 2026-04-25 10:53:50: ACTION[Main]: Server for gameid="devtest" listening on [::]:30002.
 2026-04-25 10:53:55: ACTION[Main]: Server: Shutting down
 
@@ -122,9 +122,9 @@
 -------------
 
 2026-04-25 10:53:56: ACTION[Main]: [log] modname="log"
-2026-04-25 10:53:56: ACTION[Main]: [log] modpath="/home/z/my-project/Clawtest/games/devtest/mods/log"
-2026-04-25 10:53:56: ACTION[Main]: [log] worldpath="/tmp/clawtest-enc-test-25571/world"
+2026-04-25 10:53:56: ACTION[Main]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-04-25 10:53:56: ACTION[Main]: [log] worldpath="/tmp/luantis-enc-test-25571/world"
 2026-04-25 10:53:56: ACTION[Main]: [log] Callback: on_mods_loaded()
-2026-04-25 10:53:56: ACTION[Main]: World at [/tmp/clawtest-enc-test-25571/world]
+2026-04-25 10:53:56: ACTION[Main]: World at [/tmp/luantis-enc-test-25571/world]
 2026-04-25 10:53:56: ACTION[Main]: Server for gameid="devtest" listening on [::]:30003.
 2026-04-25 10:54:01: ACTION[Main]: Server: Shutting down
