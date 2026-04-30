@@ -15,8 +15,10 @@
 #include <mutex>
 #include <memory>
 #include <functional>
+#include <array>
 
 #include <opus/opus.h>
+#include "network/crypto.h"  // For hkdf_sha256, x25519_compute_shared_secret, NONCE_BASE_SIZE
 
 // Forward declarations for OpenSSL types
 typedef struct evp_pkey_st EVP_PKEY;
@@ -47,8 +49,64 @@ struct VoicePeerState {
         bool e2ee_active = false;
         std::vector<u8> session_key;   // 32 bytes, AES-256 key
         std::vector<u8> peer_pubkey;   // 32 bytes, peer's X25519 public key
+        std::vector<u8> nonce_base;    // 4 bytes, per-peer nonce base (derived via HKDF)
         u64 send_counter = 0;
         u64 recv_counter = 0;
+
+        // Replay protection (matching transport-layer DirectionalEncryptionState pattern)
+        static constexpr size_t VOICE_REPLAY_WINDOW_SIZE = 64;
+        u64 highest_recv_counter = 0;
+        bool counter_initialized = false;
+        std::array<u64, 1> replay_bitmap{};  // 64-bit bitmap for 64-counter window
+
+        /// Check if a received counter is not a replay
+        bool isNotReplay(u64 recv_ctr) {
+                if (!counter_initialized) return true;  // First packet always accepted
+                if (recv_ctr > highest_recv_counter) return true;  // Future packet
+                if (recv_ctr == highest_recv_counter) return false;  // Same counter = replay!
+                if (highest_recv_counter - recv_ctr > VOICE_REPLAY_WINDOW_SIZE) return false;  // Too old
+                // Within window — check bitmap (offset is at least 1 since recv_ctr < highest)
+                s64 offset = static_cast<s64>(highest_recv_counter) - static_cast<s64>(recv_ctr) - 1;
+                if (offset >= 0 && static_cast<size_t>(offset) < VOICE_REPLAY_WINDOW_SIZE) {
+                        size_t word = static_cast<size_t>(offset) / 64;
+                        size_t bit = static_cast<size_t>(offset) % 64;
+                        if (word < replay_bitmap.size()) {
+                                return (replay_bitmap[word] & (1ULL << bit)) == 0;
+                        }
+                }
+                return true;
+        }
+
+        /// Mark a received counter and update high-water mark
+        void markAndAdvance(u64 recv_ctr) {
+                if (!counter_initialized || recv_ctr > highest_recv_counter) {
+                        // Shift bitmap for the gap
+                        if (counter_initialized) {
+                                u64 shift = recv_ctr - highest_recv_counter;
+                                if (shift >= VOICE_REPLAY_WINDOW_SIZE) {
+                                        replay_bitmap.fill(0);
+                                } else {
+                                        replay_bitmap[0] <<= shift;
+                                }
+                        }
+                        // Mark the old high-water mark as seen
+                        if (counter_initialized && highest_recv_counter != recv_ctr) {
+                                u64 old_offset = recv_ctr - highest_recv_counter - 1;
+                                if (old_offset < VOICE_REPLAY_WINDOW_SIZE) {
+                                        replay_bitmap[0] |= (1ULL << old_offset);
+                                }
+                        }
+                        highest_recv_counter = recv_ctr;
+                        counter_initialized = true;
+                } else {
+                        // Within window — mark as seen
+                        u64 offset = highest_recv_counter - recv_ctr - 1;
+                        if (offset < VOICE_REPLAY_WINDOW_SIZE) {
+                                size_t bit = static_cast<size_t>(offset);
+                                replay_bitmap[0] |= (1ULL << bit);
+                        }
+                }
+        }
 };
 
 /**
@@ -218,6 +276,7 @@ private:
         bool m_voice_toggle_on = false;    // For toggle mode
         u8 m_active_channel = VOICE_CHANNEL_GLOBAL;
         u16 m_seq_num = 0;
+        u64 m_global_send_counter = 0;  // Counter for global channel E2EE encryption
 
         // Audio buffer for capture
         std::vector<opus_int16> m_capture_buffer;

@@ -11,6 +11,7 @@
 #include "config.h"
 #include "porting.h"
 #include "util/numeric.h"
+#include "network/crypto.h"  // hkdf_sha256, x25519_compute_shared_secret, build_nonce, aes256gcm_encrypt/decrypt
 
 #if USE_OPENSSL
 #include <openssl/evp.h>
@@ -513,96 +514,50 @@ bool VoiceChatManager::deriveSessionKey(u16 peer_id)
         if (peer.peer_pubkey.size() != 32 || m_local_privkey.size() != 32)
                 return false;
 
-        // Create EVP_PKEY from our private key (using raw key API, same as keypair.cpp)
-        EVP_PKEY *priv_pkey = EVP_PKEY_new_raw_private_key(
-                EVP_PKEY_X25519, nullptr,
-                m_local_privkey.data(), 32);
-        if (!priv_pkey) {
-                errorstream << "VoiceChat: Failed to create X25519 private key EVP_PKEY" << std::endl;
+        // Use the shared crypto module's X25519 implementation for consistency
+        // with the transport-layer ECDH. This avoids code duplication and ensures
+        // both layers use the same well-tested key exchange.
+        auto shared = x25519_compute_shared_secret(
+                m_local_privkey.data(), m_local_privkey.size(),
+                peer.peer_pubkey.data(), peer.peer_pubkey.size());
+        if (!shared.success) {
+                errorstream << "VoiceChat: X25519 shared secret derivation failed for peer "
+                            << peer_id << ": " << shared.error_msg << std::endl;
                 return false;
         }
 
-        // Create EVP_PKEY from peer's public key
-        EVP_PKEY *pub_pkey = EVP_PKEY_new_raw_public_key(
-                EVP_PKEY_X25519, nullptr,
-                peer.peer_pubkey.data(), 32);
-        if (!pub_pkey) {
-                errorstream << "VoiceChat: Failed to create X25519 public key EVP_PKEY" << std::endl;
-                EVP_PKEY_free(priv_pkey);
-                return false;
-        }
-
-        // Derive shared secret
-        EVP_PKEY_CTX *derive_ctx = EVP_PKEY_CTX_new(priv_pkey, nullptr);
-        if (!derive_ctx) {
-                EVP_PKEY_free(priv_pkey);
-                EVP_PKEY_free(pub_pkey);
-                return false;
-        }
-
-        if (EVP_PKEY_derive_init(derive_ctx) <= 0) {
-                EVP_PKEY_CTX_free(derive_ctx);
-                EVP_PKEY_free(priv_pkey);
-                EVP_PKEY_free(pub_pkey);
-                return false;
-        }
-
-        if (EVP_PKEY_derive_set_peer(derive_ctx, pub_pkey) <= 0) {
-                EVP_PKEY_CTX_free(derive_ctx);
-                EVP_PKEY_free(priv_pkey);
-                EVP_PKEY_free(pub_pkey);
-                return false;
-        }
-
-        size_t secret_len = 0;
-        if (EVP_PKEY_derive(derive_ctx, nullptr, &secret_len) <= 0 || secret_len != 32) {
-                EVP_PKEY_CTX_free(derive_ctx);
-                EVP_PKEY_free(priv_pkey);
-                EVP_PKEY_free(pub_pkey);
-                return false;
-        }
-
-        std::vector<u8> shared_secret(32);
-        if (EVP_PKEY_derive(derive_ctx, shared_secret.data(), &secret_len) <= 0) {
-                EVP_PKEY_CTX_free(derive_ctx);
-                EVP_PKEY_free(priv_pkey);
-                EVP_PKEY_free(pub_pkey);
-                return false;
-        }
-
-        EVP_PKEY_CTX_free(derive_ctx);
-        EVP_PKEY_free(priv_pkey);
-        EVP_PKEY_free(pub_pkey);
-
-        // Derive AES-256 key using HKDF-SHA256
+        // Derive AES-256 key using HKDF-SHA256 (using the shared hkdf_sha256 function
+        // for consistency with transport-layer key derivation)
         peer.session_key.resize(32);
-        const char info[] = "LuantisVoiceE2EEv1";
+        const u8 info[] = "LuantisVoiceE2EEv1";
 
-        EVP_PKEY_CTX *kdf_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
-        if (!kdf_ctx)
-                return false;
-
-        if (EVP_PKEY_derive_init(kdf_ctx) <= 0 ||
-            EVP_PKEY_CTX_set_hkdf_md(kdf_ctx, EVP_sha256()) <= 0 ||
-            EVP_PKEY_CTX_set1_hkdf_salt(kdf_ctx, nullptr, 0) <= 0 ||
-            EVP_PKEY_CTX_set1_hkdf_key(kdf_ctx, shared_secret.data(), 32) <= 0 ||
-            EVP_PKEY_CTX_add1_hkdf_info(kdf_ctx, (const u8*)info, strlen(info)) <= 0) {
-                EVP_PKEY_CTX_free(kdf_ctx);
+        if (!hkdf_sha256(
+                shared.shared_secret.data(), shared.shared_secret.size(),
+                nullptr, 0,  // no salt (matches original behavior)
+                info, strlen(reinterpret_cast<const char*>(info)),
+                peer.session_key.data(), peer.session_key.size())) {
+                errorstream << "VoiceChat: HKDF key derivation failed for peer " << peer_id << std::endl;
                 return false;
         }
-
-        size_t key_len = 32;
-        if (EVP_PKEY_derive(kdf_ctx, peer.session_key.data(), &key_len) <= 0 || key_len != 32) {
-                EVP_PKEY_CTX_free(kdf_ctx);
-                return false;
-        }
-
-        EVP_PKEY_CTX_free(kdf_ctx);
 
         // Reset counters
         peer.send_counter = 0;
         peer.recv_counter = 0;
 
+        // Derive a per-peer nonce base for deterministic nonce construction
+        // (matches the transport-layer pattern: 4-byte base + 8-byte counter)
+        peer.nonce_base.resize(NONCE_BASE_SIZE);
+        const u8 nonce_info[] = "LuantisVoiceE2EEv1Nonce";
+        if (!hkdf_sha256(
+                shared.shared_secret.data(), shared.shared_secret.size(),
+                nullptr, 0,
+                nonce_info, strlen(reinterpret_cast<const char*>(nonce_info)),
+                peer.nonce_base.data(), peer.nonce_base.size())) {
+                errorstream << "VoiceChat: HKDF nonce base derivation failed for peer " << peer_id << std::endl;
+                return false;
+        }
+
+        infostream << "VoiceChat: Session key derived for peer " << peer_id << std::endl;
         return true;
 #else
         return false;
@@ -612,45 +567,69 @@ bool VoiceChatManager::deriveSessionKey(u16 peer_id)
 bool VoiceChatManager::encryptVoiceData(std::vector<u8> &data, u16 peer_id)
 {
 #if USE_OPENSSL
-        // For global channel (peer_id=0), we encrypt with a key derived from
-        // all active peer keys combined. For group channels, we use the group key.
-        // Simplification: for global channel, we encrypt once with a combined key.
+        // For global channel (peer_id=0), derive a combined key from all
+        // active peer session keys using HKDF (NOT XOR — XOR is insecure:
+        // if two peers have the same key, XOR produces zero; and it leaks
+        // relationships between keys).
+        // For per-peer, use the peer's session key directly.
 
         std::vector<u8> key;
+        std::vector<u8> nonce_base;
 
         if (peer_id == 0) {
-                // Global channel: derive a key from all peer session keys
-                if (m_peers.empty()) {
-                        // No peers — can't do E2EE yet
+                // Global channel: combine all peer session keys via HKDF
+                if (m_peers.empty())
+                        return false;
+
+                // Concatenate all active peer session keys as HKDF input
+                std::vector<u8> combined_ikm;
+                for (auto &pair : m_peers) {
+                        if (pair.second.e2ee_active && pair.second.session_key.size() == 32) {
+                                combined_ikm.insert(combined_ikm.end(),
+                                        pair.second.session_key.begin(),
+                                        pair.second.session_key.end());
+                        }
+                }
+                if (combined_ikm.empty())
+                        return false;
+
+                // Derive a combined key via HKDF
+                key.resize(32);
+                const u8 key_info[] = "LuantisVoiceGlobalE2EEv1";
+                if (!hkdf_sha256(combined_ikm.data(), combined_ikm.size(),
+                        nullptr, 0,
+                        key_info, strlen(reinterpret_cast<const char*>(key_info)),
+                        key.data(), key.size())) {
                         return false;
                 }
 
-                // XOR all peer session keys together as a simple combiner
-                // (In production, you'd use a proper KDF with all keys as input)
-                key.resize(32, 0);
-                for (auto &pair : m_peers) {
-                        if (pair.second.e2ee_active && pair.second.session_key.size() == 32) {
-                                for (int i = 0; i < 32; i++) {
-                                        key[i] ^= pair.second.session_key[i];
-                                }
-                        }
+                // Derive a combined nonce base via HKDF
+                nonce_base.resize(NONCE_BASE_SIZE);
+                const u8 nonce_info[] = "LuantisVoiceGlobalE2EEv1Nonce";
+                if (!hkdf_sha256(combined_ikm.data(), combined_ikm.size(),
+                        nullptr, 0,
+                        nonce_info, strlen(reinterpret_cast<const char*>(nonce_info)),
+                        nonce_base.data(), nonce_base.size())) {
+                        return false;
                 }
         } else {
                 auto it = m_peers.find(peer_id);
                 if (it == m_peers.end() || !it->second.e2ee_active)
                         return false;
                 key = it->second.session_key;
+                nonce_base = it->second.nonce_base;
         }
 
         if (key.size() != 32)
                 return false;
 
-        // Generate nonce: 4-byte base + 8-byte counter
+        // Build deterministic nonce: 4-byte HKDF-derived base + 8-byte counter
+        // This matches the transport-layer nonce construction pattern and guarantees
+        // nonce uniqueness without relying on random bytes (which could collide).
         u64 counter = 0;
         if (peer_id == 0) {
-                // Use a global counter
-                static u64 global_counter = 0;
-                counter = global_counter++;
+                // Global channel: use a global send counter
+                counter = m_global_send_counter++;
         } else {
                 auto it = m_peers.find(peer_id);
                 if (it != m_peers.end()) {
@@ -659,70 +638,37 @@ bool VoiceChatManager::encryptVoiceData(std::vector<u8> &data, u16 peer_id)
         }
 
         std::vector<u8> nonce(VOICE_NONCE_SIZE, 0);
-        // Nonce format: 4 random bytes + 8-byte big-endian counter
-        RAND_bytes(nonce.data(), 4);
+        build_nonce(nonce_base.data(), counter, nonce.data());
+
+        // Build AAD: counter (8 bytes)
+        // The peer_id is NOT included in AAD because encrypt uses the recipient's
+        // peer_id while decrypt uses the sender's peer_id — they would never match.
+        // Instead, the session key itself is already per-peer, and the counter
+        // in the nonce provides replay protection. The AAD binds the counter
+        // to the ciphertext to prevent counter reuse across different contexts.
+        u8 aad[8];
         for (int i = 0; i < 8; i++) {
-                nonce[4 + i] = (counter >> (56 - i * 8)) & 0xFF;
+                aad[i] = (counter >> (56 - i * 8)) & 0xFF;
         }
 
-        // AES-256-GCM encrypt
-        EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-        if (!ctx)
-                return false;
+        // Use the shared crypto module's AES-256-GCM for consistency with transport layer
+        auto result = aes256gcm_encrypt(
+                key.data(), key.size(),
+                nonce.data(), nonce.size(),
+                data.data(), data.size(),
+                aad, sizeof(aad));
 
-        if (EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, VOICE_NONCE_SIZE, nullptr) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
+        if (!result.success) {
+                errorstream << "VoiceChat: E2EE encryption failed for peer " << peer_id
+                            << ": " << result.error_msg << std::endl;
                 return false;
         }
 
-        if (EVP_EncryptInit_ex(ctx, nullptr, nullptr, key.data(), nonce.data()) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        // Add AAD (peer_id + counter for authentication)
-        u8 aad[10];
-        aad[0] = (peer_id >> 8) & 0xFF;
-        aad[1] = peer_id & 0xFF;
-        for (int i = 0; i < 8; i++) {
-                aad[2 + i] = (counter >> (56 - i * 8)) & 0xFF;
-        }
-
-        int aad_len;
-        EVP_EncryptUpdate(ctx, nullptr, &aad_len, aad, sizeof(aad));
-
-        // Encrypt in-place
-        std::vector<u8> ciphertext(data.size());
-        int out_len = 0;
-        if (EVP_EncryptUpdate(ctx, ciphertext.data(), &out_len, data.data(), data.size()) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        int final_len = 0;
-        if (EVP_EncryptFinal_ex(ctx, ciphertext.data() + out_len, &final_len) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        // Get auth tag
-        u8 tag[VOICE_TAG_SIZE];
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, VOICE_TAG_SIZE, tag) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-        EVP_CIPHER_CTX_free(ctx);
-
-        // Build output: ciphertext + tag + nonce
-        data.resize(out_len + final_len + VOICE_TAG_SIZE + VOICE_NONCE_SIZE);
-        memcpy(data.data(), ciphertext.data(), out_len + final_len);
-        memcpy(data.data() + out_len + final_len, tag, VOICE_TAG_SIZE);
-        memcpy(data.data() + out_len + final_len + VOICE_TAG_SIZE, nonce.data(), VOICE_NONCE_SIZE);
+        // Build output: ciphertext + tag + nonce (so the receiver can extract the nonce)
+        data.resize(result.data.size() + VOICE_TAG_SIZE + VOICE_NONCE_SIZE);
+        memcpy(data.data(), result.data.data(), result.data.size());
+        memcpy(data.data() + result.data.size(), result.tag.data(), VOICE_TAG_SIZE);
+        memcpy(data.data() + result.data.size() + VOICE_TAG_SIZE, nonce.data(), VOICE_NONCE_SIZE);
 
         return true;
 #else
@@ -737,71 +683,58 @@ bool VoiceChatManager::decryptVoiceData(std::vector<u8> &data, u16 peer_id, cons
         if (it == m_peers.end() || !it->second.e2ee_active || it->second.session_key.size() != 32)
                 return false;
 
-        if (data.size() < VOICE_TAG_SIZE + VOICE_NONCE_SIZE)
+        // Wire format: [ciphertext][tag(16)][nonce(12)] — nonce is also passed separately
+        // Minimum size: tag + nonce = 28 bytes (but nonce is passed separately,
+        // so data has at minimum: ciphertext + tag = 16+ bytes)
+        if (data.size() < VOICE_TAG_SIZE)
                 return false;
 
-        // Split: ciphertext + tag + nonce (nonce provided separately)
+        // Split: data = [ciphertext][tag]
         size_t ciphertext_len = data.size() - VOICE_TAG_SIZE;
         const u8 *ciphertext = data.data();
         const u8 *tag = data.data() + ciphertext_len;
 
-        // Decrypt
-        EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-        if (!ctx)
-                return false;
+        // Extract counter from nonce for AAD verification and replay protection
+        // Nonce format: [4-byte base][8-byte counter big-endian]
+        u64 counter = 0;
+        if (nonce.size() >= VOICE_NONCE_SIZE) {
+                for (int i = 0; i < 8; i++) {
+                        counter = (counter << 8) | nonce[4 + i];
+                }
+        }
 
-        if (EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
+        // Replay protection: check if this counter has already been seen
+        if (!it->second.isNotReplay(counter)) {
+                warningstream << "VoiceChat: E2EE replay detected for peer " << peer_id
+                              << " counter=" << counter << std::endl;
                 return false;
         }
 
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, VOICE_NONCE_SIZE, nullptr) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        if (EVP_DecryptInit_ex(ctx, nullptr, nullptr, it->second.session_key.data(), nonce.data()) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        // AAD
-        u64 counter = it->second.recv_counter++;
-        u8 aad[10];
-        aad[0] = (peer_id >> 8) & 0xFF;
-        aad[1] = peer_id & 0xFF;
+        // Build AAD: counter (8 bytes) — must match encrypt-side AAD
+        u8 aad[8];
         for (int i = 0; i < 8; i++) {
-                aad[2 + i] = (counter >> (56 - i * 8)) & 0xFF;
+                aad[i] = (counter >> (56 - i * 8)) & 0xFF;
         }
 
-        int aad_len;
-        EVP_DecryptUpdate(ctx, nullptr, &aad_len, aad, sizeof(aad));
+        // Use the shared crypto module's AES-256-GCM for consistency
+        auto result = aes256gcm_decrypt(
+                it->second.session_key.data(), it->second.session_key.size(),
+                nonce.data(), nonce.size(),
+                ciphertext, ciphertext_len,
+                tag, VOICE_TAG_SIZE,
+                aad, sizeof(aad));
 
-        std::vector<u8> plaintext(ciphertext_len);
-        int out_len = 0;
-        if (EVP_DecryptUpdate(ctx, plaintext.data(), &out_len, ciphertext, ciphertext_len) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        // Set expected tag
-        if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, VOICE_TAG_SIZE, (void*)tag) != 1) {
-                EVP_CIPHER_CTX_free(ctx);
-                return false;
-        }
-
-        int final_len = 0;
-        if (EVP_DecryptFinal_ex(ctx, plaintext.data() + out_len, &final_len) != 1) {
-                // Authentication failed — data was tampered with
-                EVP_CIPHER_CTX_free(ctx);
+        if (!result.success) {
                 warningstream << "VoiceChat: E2EE decryption FAILED for peer " << peer_id
-                              << " — possible tampering or key mismatch" << std::endl;
+                              << ": " << result.error_msg << std::endl;
                 return false;
         }
 
-        EVP_CIPHER_CTX_free(ctx);
+        // Mark the counter as received (for replay protection)
+        it->second.markAndAdvance(counter);
 
-        data.assign(plaintext.data(), plaintext.data() + out_len + final_len);
+        // Replace data with plaintext only (strip tag and nonce)
+        data = std::move(result.data);
         return true;
 #else
         return false;
@@ -820,10 +753,31 @@ VoicePeerState* VoiceChatManager::getPeer(u16 peer_id)
 
 void VoiceChatManager::updatePeerList(const std::vector<VoicePeerState> &peers)
 {
-        m_peers.clear();
+        // BUG FIX: Previously, m_peers.clear() destroyed all E2EE session state
+        // (session keys, nonce bases, replay bitmaps) whenever the peer list was
+        // updated. Now we MERGE the new list with existing state, preserving
+        // E2EE session keys for peers that remain connected.
+        std::unordered_map<u16, VoicePeerState> new_peers;
+
         for (const auto &peer : peers) {
-                m_peers[peer.peer_id] = peer;
+                auto existing = m_peers.find(peer.peer_id);
+                if (existing != m_peers.end()) {
+                        // Peer already exists — preserve E2EE state, update metadata
+                        VoicePeerState merged = existing->second;
+                        merged.name = peer.name;
+                        merged.voice_enabled = peer.voice_enabled;
+                        merged.is_talking = peer.is_talking;
+                        // Keep: e2ee_active, session_key, peer_pubkey, nonce_base,
+                        // send_counter, recv_counter, replay state
+                        new_peers[peer.peer_id] = merged;
+                } else {
+                        // New peer — add as-is (E2EE will be established later
+                        // when we receive their public key via VOICE_KEY_EXCHANGE)
+                        new_peers[peer.peer_id] = peer;
+                }
         }
+
+        m_peers = std::move(new_peers);
         if (m_on_peer_list_update)
                 m_on_peer_list_update();
 }

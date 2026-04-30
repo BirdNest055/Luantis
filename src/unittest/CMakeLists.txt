@@ -65,6 +65,8 @@ set(unittest_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/test_voxelalgorithms.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_voxelmanipulator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/test_gettext.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_voice_e2ee.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_voice_e2ee_e2e.cpp
         PARENT_SCOPE)
 
 set(unittest_client_SRCS
