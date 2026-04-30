@@ -475,45 +475,7 @@ bool Game::startup(volatile std::sig_atomic_t *kill,
 
         m_game_formspec.init(client, m_rendering_engine, input);
 
-        // Initialize Clay GUI system
-        m_clay_gui.init(device, g_fontengine);
-
-        // Set global pointer so MyEventReceiver can forward events
-        g_clay_gui_manager = &m_clay_gui;
-
-        // Create Clay-based pause menu with callbacks
-        ClayPauseMenuCallbacks pause_cbs;
-        pause_cbs.on_resume = [this]() {
-                m_clay_gui.hidePanel("pause_menu");
-                // Also close any formspec that may be open
-                while (g_menumgr.menuCount() > 0)
-                        g_menumgr.deleteFront();
-        };
-        pause_cbs.on_settings = [this]() {
-                m_clay_gui.hidePanel("pause_menu");
-                g_gamecallback->settings_requested = true;
-        };
-        pause_cbs.on_change_password = [this]() {
-                m_clay_gui.hidePanel("pause_menu");
-                g_gamecallback->changepassword_requested = true;
-        };
-        pause_cbs.on_volume = [this]() {
-                m_clay_gui.hidePanel("pause_menu");
-                g_gamecallback->changevolume_requested = true;
-        };
-        pause_cbs.on_exit_to_menu = [this]() {
-                g_gamecallback->disconnect_requested = true;
-        };
-        pause_cbs.on_exit_to_os = [this]() {
-                g_gamecallback->shutdown_requested = true;
-        };
-        m_clay_pause_menu = std::make_unique<ClayPauseMenu>(std::move(pause_cbs));
-        m_clay_gui.addPanel(m_clay_pause_menu.get());
-
-        // TESTING: Auto-show Clay pause menu after 3 seconds if CLAY_TEST_PAUSE=1
-        if (getenv("CLAY_TEST_PAUSE") && std::string(getenv("CLAY_TEST_PAUSE")) == "1") {
-                m_clay_gui.showPanel("pause_menu");
-        }
+        // Pause menu uses formspec-based GUI (see GameFormSpec::showPauseMenu)
 
         return true;
 }
@@ -641,9 +603,8 @@ void Game::run()
                 updateFrame(&graph, &stats, dtime, cam_view);
                 updateProfilerGraphs(&graph);
 
-                if (m_does_lost_focus_pause_game && !device->isWindowFocused() && !isMenuActive() && !m_clay_gui.hasVisiblePanels()) {
-                        // Use Clay-based pause menu
-                        m_clay_gui.showPanel("pause_menu");
+                if (m_does_lost_focus_pause_game && !device->isWindowFocused() && !isMenuActive()) {
+                        m_game_formspec.showPauseMenu();
                 }
         }
 
@@ -662,8 +623,6 @@ void Game::shutdown()
         // Delete text and menus first
         m_game_ui->clearText();
         m_game_formspec.reset();
-        m_clay_gui.shutdown();
-        g_clay_gui_manager = nullptr;
         while (g_menumgr.menuCount() > 0) {
                 g_menumgr.deleteFront();
         }
@@ -1490,12 +1449,10 @@ void Game::processKeyInput()
 #ifdef __ANDROID__
                 m_android_chat_open = false;
 #endif
-                if (m_clay_gui.hasVisiblePanels()) {
-                        // ESC closes the Clay pause menu
-                        m_clay_gui.hideAll();
+                if (m_game_formspec.formspecExists()) {
+                        m_game_formspec.quitMenu();
                 } else if (!gui_chat_console->isOpenInhibited()) {
-                        // Use Clay-based pause menu instead of formspec
-                        m_clay_gui.showPanel("pause_menu");
+                        m_game_formspec.showPauseMenu();
                 } else {
                         infostream << "Game: ESC pressed but chat console open inhibited" << std::endl;
                 }
@@ -2021,11 +1978,10 @@ void Game::updateCameraDirection(CameraOrientation *cam, float dtime)
         this results in duplicated input. To avoid that, we don't enable relative
         mouse mode if we're in touchscreen mode. */
         if (cur_control)
-                cur_control->setRelativeMode(!g_touchcontrols && !isMenuActive()
-                        && !m_clay_gui.hasVisiblePanels());
+                cur_control->setRelativeMode(!g_touchcontrols && !isMenuActive());
 
         if ((device->isWindowActive() && device->isWindowFocused()
-                        && !isMenuActive() && !m_clay_gui.hasVisiblePanels()) || input->isRandom()) {
+                        && !isMenuActive()) || input->isRandom()) {
 
                 if (cur_control && !input->isRandom()) {
                         // Mac OSX gets upset if this is set every frame
@@ -2182,7 +2138,7 @@ void Game::updatePauseState()
 {
         bool was_paused = this->m_is_paused;
         this->m_is_paused = this->simple_singleplayer_mode &&
-                (g_menumgr.pausesGame() || m_clay_gui.hasVisiblePanels());
+                g_menumgr.pausesGame();
 
         if (!was_paused && this->m_is_paused) {
                 this->pauseAnimation();
@@ -3801,7 +3757,7 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
                 Toggle is handled in processKeyInput(), this only handles display.
         */
         // Hide when a menu opens or formspec is active
-        if (isMenuActive() || m_clay_gui.hasVisiblePanels())
+        if (isMenuActive())
                 m_serverinfo_overlay_toggled = false;
         if (m_serverinfo_overlay_toggled) {
                 drawServerInfoOverlay(screensize);
@@ -3815,19 +3771,6 @@ void Game::drawScene(ProfilerGraph *graph, RunStats *stats)
                 this->driver->draw2DRectangle(color,
                                         core::rect<s32>(0, 0, screensize.X, screensize.Y),
                                         NULL);
-        }
-
-        /*
-                Clay GUI rendering
-        */
-        if (m_clay_gui.hasVisiblePanels()) {
-                auto cursor_pos = device->getCursorControl()->getPosition();
-                // Mouse button state is tracked by handleInput() internally.
-                // update() only needs position and screen size.
-                m_clay_gui.update(1.0f / 60.0f,
-                        screensize.X, screensize.Y,
-                        cursor_pos.X, cursor_pos.Y,
-                        0.0f, 0.0f);
         }
 
         this->driver->endScene();

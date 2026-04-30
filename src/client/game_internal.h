@@ -14,8 +14,7 @@
 #include "client/clientevent.h"
 #include "client/game_formspec.h"
 #include "client/renderingengine.h"
-#include "gui/clay_gui_manager.h"
-#include "gui/clay_pause_menu.h"
+
 #include "clientdynamicinfo.h"
 #include "clouds.h"
 #include "gui/touchcontrols.h"
@@ -326,8 +325,6 @@ private:
         Hud *hud = nullptr;
         Minimap *mapper = nullptr;
         GameFormSpec m_game_formspec;
-        ClayGUIManager m_clay_gui;
-        std::unique_ptr<ClayPauseMenu> m_clay_pause_menu;
 
         // Map server hud ids to client hud ids
         std::unordered_map<u32, u32> m_hud_server_to_client;
