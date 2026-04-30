@@ -6,7 +6,7 @@
  * All Clay GUI panels read from these constants — no more hunting
  * through source files for hardcoded values.
  *
- * Part of the Luantis Clay GUI integration (v9.48).
+ * Part of the Luantis Clay GUI integration (v9.49).
  */
 
 #pragma once
@@ -24,7 +24,8 @@
 //  5. To change CORNER RADIUS   → edit Theme::Radius::*
 //  6. To change BUTTON LABELS   → edit Theme::Labels::PauseMenu::*
 //  7. To change ELEMENT IDs     → edit Theme::IDs::PauseMenu::*
-//  8. To change RENDERER CONFIG → edit Theme::Renderer::*
+//  8. To change RENDERER CONFIG  → edit Theme::Renderer::*
+//  9. To change TEXTURES/ICONS    → edit Theme::Textures::* / Theme::Icons::*
 //
 //  All values are constexpr — zero runtime overhead, compile-time checked.
 //  Clay_Color uses float fields in 0-255 range (Clay convention).
@@ -249,6 +250,92 @@ namespace Labels {
 } // namespace Labels
 
 // ============================================================================
+//  TEXTURES & ICONS
+//
+//  Texture names reference PNGs in textures/base/pack/.
+//  The ClayTextureManager resolves these to ITexture* at runtime.
+//
+//  To add a new texture:
+//    1. Drop the PNG into textures/base/pack/
+//    2. Add a constexpr name here (Theme::Textures or Theme::Icons)
+//    3. Use it in your layout via ClayTextureManager::get()
+// ============================================================================
+
+namespace Textures {
+
+        // --- Panel Backgrounds ---
+        // Semi-transparent button backgrounds for 9-slice
+        constexpr const char *buttonBgNormal     = "button_hover_semitrans";
+        constexpr const char *buttonBgPressed    = "button_press_semitrans";
+
+        // --- HUD ---
+        constexpr const char *heart              = "heart";
+        constexpr const char *heartGone          = "heart_gone";
+        constexpr const char *bubble             = "bubble";
+        constexpr const char *bubbleGone         = "bubble_gone";
+
+        // --- Minimap ---
+        constexpr const char *minimapOverlayRound  = "minimap_overlay_round";
+        constexpr const char *minimapOverlaySquare = "minimap_overlay_square";
+
+        // --- Progress ---
+        constexpr const char *progressBar        = "progress_bar";
+        constexpr const char *progressBarBg      = "progress_bar_bg";
+
+        // --- Logo ---
+        constexpr const char *logo               = "logo";
+        constexpr const char *menuHeader         = "menu_header";
+
+} // namespace Textures
+
+namespace Icons {
+
+        // --- Navigation ---
+        constexpr const char *search             = "search";
+        constexpr const char *refresh            = "refresh";
+        constexpr const char *clear              = "clear";
+        constexpr const char *plus               = "plus";
+        constexpr const char *down               = "down";
+        constexpr const char *next               = "next_icon";
+        constexpr const char *prev               = "prev_icon";
+        constexpr const char *start              = "start_icon";
+        constexpr const char *end                = "end_icon";
+
+        // --- Settings ---
+        constexpr const char *settings           = "settings_btn";
+        constexpr const char *settingsReset      = "settings_reset";
+        constexpr const char *settingsInfo       = "settings_info";
+
+        // --- Status ---
+        constexpr const char *error              = "error_icon_red";
+        constexpr const char *warning            = "error_icon_orange";
+
+        // --- Server Browser ---
+        constexpr const char *favorite           = "server_favorite";
+        constexpr const char *publicServer       = "server_public";
+        constexpr const char *ping1              = "server_ping_1";
+        constexpr const char *ping2              = "server_ping_2";
+        constexpr const char *ping3              = "server_ping_3";
+        constexpr const char *ping4              = "server_ping_4";
+
+        // --- ContentDB ---
+        constexpr const char *thumbUp            = "contentdb_thumb_up";
+        constexpr const char *thumbDown          = "contentdb_thumb_down";
+        constexpr const char *thumbNeutral       = "contentdb_thumb_neutral";
+
+        // --- Checkbox ---
+        constexpr const char *checkbox16         = "checkbox_16";
+        constexpr const char *checkbox32         = "checkbox_32";
+
+        // --- Icon Sizing (for layout calculations) ---
+        constexpr int smallIconSize              = 16;     // checkbox, inline
+        constexpr int mediumIconSize             = 24;     // button icons, list items
+        constexpr int largeIconSize              = 32;     // prominent icons
+        constexpr int iconTextGap                = 8;      // Gap between icon and label
+
+} // namespace Icons
+
+// ============================================================================
 //  RENDERER CONFIG (debug colors, limits, behavior)
 // ============================================================================
 namespace Renderer {
@@ -264,6 +351,10 @@ namespace Renderer {
         constexpr uint32_t defaultImageTint     = 0xFFFFFFFF;
         // Default no-tint detection color (all zeros)
         constexpr uint32_t noTintColor          = 0x00000000;
+
+        // --- 9-Slice ---
+        // Default middle rect for 9-slice backgrounds (inset from each edge)
+        constexpr int nineSliceInset            = 4;
 
         // --- Text Measurement ---
         // Fallback width multiplier for monospace estimate when no font available
@@ -460,6 +551,52 @@ namespace Styles {
                         .textColor = Colors::dimText,
                         .fontId = Fonts::standardFontId,
                         .fontSize = Fonts::smallFontSize,
+                };
+        }
+
+        // --- Icon Button Style ---
+        // Button with icon + text (LEFT_TO_RIGHT layout)
+        inline Clay_ElementDeclaration iconButton()
+        {
+                return {
+                        .layout = {
+                                .sizing = {CLAY_SIZING_FIXED(Sizing::menuWidth), CLAY_SIZING_FIXED(Sizing::buttonHeight)},
+                                .padding = {Spacing::buttonPadH, Spacing::buttonPadH,
+                                        Spacing::buttonPadV, Spacing::buttonPadV},
+                                .childGap = Icons::iconTextGap,
+                                .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER},
+                                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                        },
+                        .backgroundColor = Colors::buttonBg,
+                        .cornerRadius = {Radius::buttonRadius, Radius::buttonRadius,
+                                Radius::buttonRadius, Radius::buttonRadius},
+                };
+        }
+
+        inline Clay_ElementDeclaration iconButtonHover()
+        {
+                Clay_ElementDeclaration s = iconButton();
+                s.backgroundColor = Colors::buttonHoverBg;
+                return s;
+        }
+
+        // Icon image element (fixed size square)
+        inline Clay_ElementDeclaration iconImage()
+        {
+                return {
+                        .layout = {
+                                .sizing = {CLAY_SIZING_FIXED(Icons::mediumIconSize),
+                                        CLAY_SIZING_FIXED(Icons::mediumIconSize)},
+                                .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER},
+                        },
+                };
+        }
+
+        // 9-slice background image (full panel)
+        inline Clay_ImageElementConfig nineSliceBg()
+        {
+                return {
+                        .imageData = nullptr, // Set at runtime via ClayTextureManager
                 };
         }
 

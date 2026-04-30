@@ -2,11 +2,10 @@
  * Clay Rendering Backend for Irrlicht
  *
  * Translates Clay render commands into Irrlicht draw calls.
- * Clay outputs a flat array of render commands (rectangles, text, images,
- * custom elements, etc.) and this renderer composites them onto the screen
- * using Irrlicht's 2D drawing primitives.
+ * Supports rectangles, text, images (with 9-slice and DPI scaling),
+ * borders, custom elements, and overlay color tinting.
  *
- * Part of the Luantis Clay GUI integration (v9.46).
+ * Part of the Luantis Clay GUI integration (v9.49).
  */
 
 #pragma once
@@ -25,6 +24,7 @@ class IrrlichtDevice;
 
 namespace video {
 class IVideoDriver;
+class ITexture;
 }
 
 namespace gui {
@@ -34,6 +34,26 @@ class IGUIFont;
 // We can't forward-declare core::rect<s32> easily, so we use
 // a void pointer for the clip rect in the header and cast in the .cpp
 class FontEngine;
+
+/**
+ * Custom render data tags for Clay image commands.
+ *
+ * Clay's imageData is a void* — we use it to pass either:
+ *   - A raw video::ITexture* (simple stretch)
+ *   - A ClayImageInfo* (9-slice with middle rect)
+ *
+ * The tag byte at offset 0 distinguishes them:
+ *   0x00 = raw ITexture* (legacy/default)
+ *   0x01 = ClayImageInfo* (9-slice)
+ */
+#define CLAY_IMAGE_TAG_SIMPLE  0x00
+#define CLAY_IMAGE_TAG_9SLICE  0x01
+
+struct ClayImageInfo {
+        uint8_t tag = CLAY_IMAGE_TAG_9SLICE;
+        video::ITexture *texture = nullptr;
+        int middleInset = 4;  // Inset from each edge for 9-slice middle rect
+};
 
 /** Handles rendering Clay's output via Irrlicht's 2D draw API. */
 class ClayIrrlichtRenderer {

@@ -20,6 +20,7 @@
 #include "IGUIFont.h"
 #include "client/fontengine.h"
 #include "client/renderingengine.h"
+#include "client/guiscalingfilter.h"
 #include "log.h"
 #include "porting.h"
 
@@ -458,32 +459,56 @@ void ClayIrrlichtRenderer::drawImage(const Clay_RenderCommand &cmd,
                 static_cast<s32>(bb.x + bb.width),
                 static_cast<s32>(bb.y + bb.height));
 
-        // Clay's imageData is a transparent pointer — we expect it to be
-        // an Irrlicht video::ITexture* that was set during layout.
-        // If imageData is null or the texture is invalid, draw a placeholder.
-        if (img.imageData) {
-                auto *texture = static_cast<video::ITexture *>(img.imageData);
-                if (texture) {
-                        // Source rect = full texture
-                        core::rect<s32> src(
-                                0, 0,
-                                static_cast<s32>(texture->getOriginalSize().Width),
-                                static_cast<s32>(texture->getOriginalSize().Height));
+        if (!img.imageData)
+                goto draw_placeholder;
 
-                        // If a tint color is specified, use it; otherwise full opacity
-                        video::SColor tint = toSColor(img.backgroundColor);
-                        if (img.backgroundColor.a == 0 && img.backgroundColor.r == 0
-                                        && img.backgroundColor.g == 0 && img.backgroundColor.b == 0) {
-                                tint = packedToSColor(Theme::Renderer::defaultImageTint);
-                        }
+        {
+                // Check if this is a ClayImageInfo (9-slice) or raw ITexture*
+                auto *info = static_cast<uint8_t *>(img.imageData);
+                bool is9Slice = (info[0] == CLAY_IMAGE_TAG_9SLICE);
 
-                        // Use alpha-aware draw if a clip rect is present
-                        const core::rect<s32> *clipPtr = clipRect ? clipRect : nullptr;
-                        m_driver->draw2DImage(texture, dest, src, clipPtr, nullptr, true);
-                        return;
+                video::ITexture *texture = nullptr;
+                int middleInset = Theme::Renderer::nineSliceInset;
+
+                if (is9Slice) {
+                        auto *imgInfo = static_cast<ClayImageInfo *>(img.imageData);
+                        texture = imgInfo->texture;
+                        middleInset = imgInfo->middleInset;
+                } else {
+                        texture = static_cast<video::ITexture *>(img.imageData);
                 }
+
+                if (!texture)
+                        goto draw_placeholder;
+
+                // Source rect = full texture
+                core::rect<s32> src(
+                        0, 0,
+                        static_cast<s32>(texture->getOriginalSize().Width),
+                        static_cast<s32>(texture->getOriginalSize().Height));
+
+                // Tint color handling
+                video::SColor tint = toSColor(img.backgroundColor);
+                if (img.backgroundColor.a == 0 && img.backgroundColor.r == 0
+                                && img.backgroundColor.g == 0 && img.backgroundColor.b == 0) {
+                        tint = packedToSColor(Theme::Renderer::defaultImageTint);
+                }
+
+                if (is9Slice) {
+                        // 9-slice rendering: stretch the middle, keep corners fixed
+                        core::rect<s32> middle(
+                                middleInset, middleInset,
+                                static_cast<s32>(texture->getOriginalSize().Width) - middleInset,
+                                static_cast<s32>(texture->getOriginalSize().Height) - middleInset);
+                        draw2DImage9Slice(m_driver, texture, dest, src, middle, clipRect);
+                } else {
+                        // Simple stretched image with DPI-aware scaling
+                        draw2DImageFilterScaled(m_driver, texture, dest, src, clipRect, nullptr, true);
+                }
+                return;
         }
 
+draw_placeholder:
         // Placeholder: magenta rect with cross pattern so missing images are visible
         m_driver->draw2DRectangle(
                 packedToSColor(Theme::Renderer::placeholderFillColor), dest, clipRect);
