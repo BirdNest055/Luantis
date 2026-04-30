@@ -105,17 +105,17 @@
 | Branch | Purpose | Base |
 |--------|---------|------|
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
-| `clawtest-upload` | Luanti-Secure development (previous) | `main` |
-| `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
-| `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
-| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development (current) | `clawtest-v9.23-log-toggle` |
-| Future: `clawtest-v9.X` | Next version | Previous version branch |
+| `luantis-upload` | Luanti-Secure development (previous) | `main` |
+| `luantis-v9.5` | v9.5–v9.6 development | `luantis-upload` |
+| `luantis-v9.11` | v9.11 development (current) | `luantis-v9.10` |
+| `luantis-v9.24-fix-settingtypes-context` | v9.24 development (current) | `luantis-v9.23-log-toggle` |
+| Future: `luantis-v9.X` | Next version | Previous version branch |
 
 **Rules:**
-- Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
+- Branch names include the version: `luantis-v9.3`, `luantis-v9.5`, `luantis-v9.7`, `luantis-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.24-fix-settingtypes-context`
+- The current branch is `luantis-v9.24-fix-settingtypes-context`
 
 ### 3.2 Commit Conventions
 
@@ -126,8 +126,8 @@
 
 ### 3.3 Tags
 
-- Git tags mark release versions: `clawtest-v9.6`, `clawtest-v9.7`, etc.
-- Tags should be annotated: `git tag -a clawtest-v9.6 -m "v9.6: Portable build system, CI warnings tracked"`
+- Git tags mark release versions: `luantis-v9.6`, `luantis-v9.7`, etc.
+- Tags should be annotated: `git tag -a luantis-v9.6 -m "v9.6: Portable build system, CI warnings tracked"`
 
 ### 3.4 Version Numbering
 
@@ -309,9 +309,9 @@ When adding a new feature to this project, ensure ALL of these are done:
 
 ## 10. Repository Information
 
-- **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.24-fix-settingtypes-context`
-- **Previous branch:** `clawtest-v9.23-log-toggle`
+- **GitHub URL:** https://github.com/BirdNest055/Luantis
+- **Current branch:** `luantis-v9.24-fix-settingtypes-context`
+- **Previous branch:** `luantis-v9.23-log-toggle`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
 - **Current version:** v9.24

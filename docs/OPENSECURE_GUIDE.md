@@ -9,8 +9,8 @@ OpenSecure is installed globally and ready to use. This guide teaches you how to
 ## Project Context
 
 - **Project:** Luanti-Secure v9.24
-- **Repository:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.24-fix-settingtypes-context`
+- **Repository:** https://github.com/BirdNest055/Luantis
+- **Current branch:** `luantis-v9.24-fix-settingtypes-context`
 - **Key feature:** Real AES-256-GCM encryption for game traffic, ECDH X25519 forward secrecy, modular encryption toggle, bonus scoring, portable build system, log toggle with encryption_log_level control
 
 ## Quick Start

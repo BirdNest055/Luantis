@@ -97,7 +97,7 @@ Work Log:
 - CI passed green on second attempt (first failed due to test using old ServerEntry API)
 
 Stage Summary:
-- Branch: clawtest-v9.35-keypair-gui-reconnection
+- Branch: luantis-v9.35-keypair-gui-reconnection
 - Key files modified: src/util/keypair.h, src/util/keypair.cpp, src/client/client.cpp,
   src/network/clientpackethandler.cpp, src/script/lua_api/l_mainmenu.cpp,
   builtin/mainmenu/dlg_keypair_manager.lua, src/unittest/test_keypair.cpp
@@ -119,6 +119,6 @@ Work Log:
 - CI passed green
 
 Stage Summary:
-- Branch: clawtest-v9.36-fix-gui-overlap
+- Branch: luantis-v9.36-fix-gui-overlap
 - Key files modified: builtin/mainmenu/tab_online.lua
 - CI: SUCCESS

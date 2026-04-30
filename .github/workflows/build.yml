@@ -1,13 +1,13 @@
-name: Clawtest Build
+name: Luantis Build
 
-# Single consolidated workflow for Clawtest
+# Single consolidated workflow for Luantis
 # - Build (client + server) runs by default on every push/PR
 # - All other jobs are toggleable via workflow_dispatch inputs
 on:
   push:
-    branches: [main, master, 'v*', 'clawtest-*']
+    branches: [main, master, 'v*', 'luantis-*']
   pull_request:
-    branches: [main, master, 'v*', 'clawtest-*']
+    branches: [main, master, 'v*', 'luantis-*']
   workflow_dispatch:
     inputs:
       build_type:
@@ -213,7 +213,7 @@ jobs:
         if: env.PACKAGE_ARTIFACTS == 'true'
         run: |
           VERSION="${{ steps.version.outputs.full_version }}"
-          ARTIFACT_DIR="clawtest-${VERSION}"
+          ARTIFACT_DIR="luantis-${VERSION}"
           mkdir -p "$ARTIFACT_DIR/bin"
 
           # Copy binaries
@@ -241,7 +241,7 @@ jobs:
 
           # Write build metadata
           cat > "$ARTIFACT_DIR/BUILD_INFO.txt" <<EOF
-          Clawtest Build Info
+          Luantis Build Info
           ==================
           Version:          ${VERSION}
           Build Type:       ${{ env.BUILD_TYPE }}
@@ -258,18 +258,18 @@ jobs:
           sed -i 's/^          //' "$ARTIFACT_DIR/BUILD_INFO.txt"
 
           # Create zip
-          zip -r "clawtest-${VERSION}.zip" "$ARTIFACT_DIR"
+          zip -r "luantis-${VERSION}.zip" "$ARTIFACT_DIR"
 
           echo ""
           echo "=== Package contents ==="
-          unzip -l "clawtest-${VERSION}.zip" | tail -5
+          unzip -l "luantis-${VERSION}.zip" | tail -5
 
       - name: Upload build artifact
         if: env.PACKAGE_ARTIFACTS == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: clawtest-${{ steps.version.outputs.full_version }}
-          path: clawtest-${{ steps.version.outputs.full_version }}.zip
+          name: luantis-${{ steps.version.outputs.full_version }}
+          path: luantis-${{ steps.version.outputs.full_version }}.zip
           retention-days: 90
 
       - name: Build summary
@@ -277,7 +277,7 @@ jobs:
         run: |
           echo ""
           echo "============================================"
-          echo "  Clawtest Build Summary"
+          echo "  Luantis Build Summary"
           echo "============================================"
           echo "  Version:  ${{ steps.version.outputs.full_version }}"
           echo "  Client:   ${{ steps.verify.outputs.client_ok }}"
