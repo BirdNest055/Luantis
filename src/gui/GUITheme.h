@@ -52,8 +52,12 @@ namespace GUITheme
 
 		// Default text color
 		// Used by: guiFormSpecMenu field/tab text, guiButton default text,
-		//          guiTable, guiChatConsole
+		//          guiTable, guiChatConsole, guiHyperText, drawItemStack
 		const video::SColor TEXT_DEFAULT           = video::SColor(255, 255, 255, 255);
+
+		// Transparent color (alpha=0, fully invisible)
+		// Used by: guiButton getActiveColor() fallback, guiEditBoxWithScrollbar bg
+		const video::SColor TRANSPARENT            = video::SColor(0, 0, 0, 0);
 
 		// Button colors
 		// Used by: guiButton when no style override is set
@@ -91,6 +95,43 @@ namespace GUITheme
 		// Used by: touchscreeneditor
 		const video::SColor TOUCH_SELECTION        = video::SColor(255, 128, 128, 128);
 		const video::SColor TOUCH_ERROR            = video::SColor(255, 255, 0, 0);
+
+		// HyperText default colors (CSS-style hex)
+		// Used by: guiHyperText m_root_tag defaults
+		const video::SColor HYPERTEXT_DEFAULT      = video::SColor(255, 238, 238, 238); // #EEEEEE
+		const video::SColor HYPERTEXT_HOVER        = video::SColor(255, 255, 0, 0);     // #FF0000
+		const video::SColor HYPERTEXT_LINK         = video::SColor(255, 0, 0, 255);     // #0000FF
+
+		// Item rendering colors
+		// Used by: drawItemStack
+		const video::SColor ITEM_WEAR_BG           = video::SColor(255, 0, 0, 0);       // Tool durability bar bg
+		const video::SColor ITEM_NO_TEXTURE        = video::SColor(255, 255, 255, 255);  // No-texture fallback
+		const video::SColor ITEM_COUNT_TEXT        = video::SColor(255, 255, 255, 255);  // Stack count text
+
+		// Focus/debug colors
+		// Used by: guiFormSpecMenu
+		const video::SColor FOCUS_BORDER           = video::SColor(255, 255, 255, 255);  // Focused element border
+		const video::SColor DEBUG_HIGHLIGHT        = video::SColor(34, 255, 255, 0);     // 0x22FFFF00 debug rect
+
+		// Image rendering color (opaque white = draw as-is)
+		// Used by: guiAnimatedImage, guiBackgroundImage, guiItemImage
+		const video::SColor IMAGE_DRAW_DEFAULT     = video::SColor(255, 255, 255, 255);
+
+		// Profiler graph color palette
+		// Used by: profilergraph.cpp
+		const video::SColor PROFILER_COLOR_1       = video::SColor(0xffc5000b);
+		const video::SColor PROFILER_COLOR_2       = video::SColor(0xffff950e);
+		const video::SColor PROFILER_COLOR_3       = video::SColor(0xffaecf00);
+		const video::SColor PROFILER_COLOR_4       = video::SColor(0xffffd320);
+		const video::SColor PROFILER_COLOR_5       = video::SColor(0xffff420e);
+		const video::SColor PROFILER_COLOR_6       = video::SColor(0xffe08080);
+		const video::SColor PROFILER_COLOR_7       = video::SColor(0xff729fcf);
+		const video::SColor PROFILER_COLOR_8       = video::SColor(0xffff99cc);
+		const video::SColor PROFILER_FALLBACK      = video::SColor(255, 200, 200, 200);
+
+		// Nearly transparent background for edit boxes
+		// Used by: guiEditBoxWithScrollbar
+		const video::SColor EDIT_BG_OVERRIDE       = video::SColor(0x00000001);
 	}
 
 	// ------------------------------------------------------------------
@@ -135,13 +176,126 @@ namespace GUITheme
 		const s32 TOOLTIP_PADDING_Y                = 5;
 
 		// Form fallback dimensions for non-sized forms
-		// Used by: guiFormSpecMenu
+		// Used by: guiFormSpecMenu, guiPasswordChange, guiOpenURL, guiVolumeChange
 		const float FORM_FALLBACK_WIDTH            = 580.0f;
 		const float FORM_FALLBACK_HEIGHT           = 300.0f;
 
 		// Status text Y offset from bottom of screen
 		// Used by: statusTextHelper
 		const s32 STATUS_TEXT_Y_OFFSET             = 150;
+
+		// Checkbox padding in pixels
+		// Used by: guiFormSpecMenu checkbox element
+		const s32 CHECKBOX_PADDING                 = 7;
+
+		// Focus border width in pixels
+		// Used by: guiFormSpecMenu focus highlight
+		const s32 FOCUS_BORDER_WIDTH               = 2;
+
+		// Inventory slot border width in pixels
+		// Used by: guiInventoryList
+		const s32 SLOT_BORDER_WIDTH                = 1;
+
+		// Table row height padding in pixels (added to font height)
+		// Used by: guiTable
+		const s32 TABLE_ROW_PADDING                = 4;
+
+		// Table text list default X position in pixels
+		// Used by: guiTable
+		const s32 TABLE_TEXT_X_POS                 = 6;
+
+		// Table default em width fallback in pixels
+		// Used by: guiTable
+		const s32 TABLE_EM_FALLBACK                = 6;
+
+		// Table column padding as fraction of em
+		// Used by: guiTable
+		const float TABLE_COL_PADDING_EM           = 0.5f;
+
+		// Table indent width as multiple of em
+		// Used by: guiTable
+		const float TABLE_INDENT_EM                = 1.5f;
+
+		// Chat console scrollbar width in pixels
+		// Used by: guiChatConsole
+		const s32 CHAT_SCROLLBAR_WIDTH             = 30;
+
+		// Chat console initial element size
+		// Used by: guiChatConsole
+		const core::dimension2d<s32> CHAT_INITIAL_SIZE = core::dimension2d<s32>(100, 100);
+
+		// Edit box scrollbar step multipliers
+		// Used by: guiEditBoxWithScrollbar
+		const float EDIT_SCROLL_SMALL_STEP         = 3.0f;  // In font heights
+		const float EDIT_SCROLL_LARGE_STEP         = 10.0f; // In font heights
+
+		// Modal menu default element size
+		// Used by: modalMenu
+		const core::dimension2d<s32> MODAL_DEFAULT_SIZE = core::dimension2d<s32>(100, 100);
+
+		// Double-click position threshold in pixels
+		// Used by: modalMenu
+		const float DOUBLECLICK_DISTANCE           = 30.0f;
+
+		// GUI scale clamping range
+		// Used by: modalMenu
+		const float GUI_SCALE_MIN                  = 0.5f;
+		const float GUI_SCALE_MAX                  = 20.0f;
+
+		// HyperText default margins in pixels
+		// Used by: guiHyperText
+		const s32 HYPERTEXT_MARGIN_DEFAULT         = 10;
+		const s32 HYPERTEXT_MARGIN_PARAGRAPH       = 10;
+		const s32 HYPERTEXT_MARGIN_GLOBAL          = 3;
+
+		// HyperText default image/item size
+		// Used by: guiHyperText
+		const core::dimension2d<u32> HYPERTEXT_IMAGE_SIZE = core::dimension2d<u32>(80, 80);
+
+		// HyperText scrollbar width fallback in pixels
+		// Used by: guiHyperText
+		const s32 HYPERTEXT_SCROLLBAR_WIDTH        = 16;
+
+		// HyperText font size scaling divisor
+		// Used by: guiHyperText
+		const float HYPERTEXT_FONT_SCALE_DIVISOR   = 16.0f;
+
+		// Item wear bar dimensions (slot_size / WEAR_BAR_DIVISOR)
+		// Used by: drawItemStack
+		const s32 WEAR_BAR_DIVISOR                 = 16;
+
+		// Item count text Y offset from bottom of slot (fraction)
+		// Used by: drawItemStack (not a constant currently, but derived)
+
+		// Main menu header/footer padding
+		// Used by: guiEngine
+		const s32 ENGINE_TEXT_PADDING              = 4;
+		const s32 ENGINE_HEADER_PAD                = 4;
+		const s32 ENGINE_HEADER_INNER_PAD          = 8;
+		const s32 ENGINE_HEADER_Y_OFFSET           = 10;
+		const s32 ENGINE_SIDEBAR_OFFSET            = 320;
+
+		// Profiler graph dimensions
+		// Used by: profilergraph
+		const s32 PROFILER_GRAPH_HEIGHT            = 52;
+		const s32 PROFILER_TEXT_X_OFFSET           = 15;
+		const s32 PROFILER_TEXT_WIDTH              = 200;
+
+		// guiButton interpolation factor
+		// Used by: guiButton setColor()
+		const float BUTTON_COLOR_INTERPOLATE       = 0.65f;
+
+		// 3D scene camera defaults
+		// Used by: guiScene
+		const float SCENE_CAMERA_FOV               = 30.0f;
+		const float SCENE_CAMERA_DISTANCE_MULT     = 0.5f;
+		const float SCENE_ROTATION_SPEED           = 0.03f;
+		const float SCENE_ROTATION_MAX_1           = 60.0f;
+		const float SCENE_ROTATION_MAX_2           = 300.0f;
+
+		// Item rendering default rotation speed
+		// Used by: drawItemStack
+		const s16 ITEM_RENDER_ROTATION_Y           = 100;
 	}
 
 	// ------------------------------------------------------------------
@@ -153,6 +307,43 @@ namespace GUITheme
 		// Used by: statusTextHelper
 		const float STATUS_TEXT_DURATION_GAME      = 1.5f;
 		const float STATUS_TEXT_DURATION_MENU      = 3.0f;
+
+		// Chat console cursor blink speed
+		// Used by: guiChatConsole
+		const float CHAT_CURSOR_BLINK_SPEED        = 2.0f;
+
+		// Chat console cursor height ratio
+		// Used by: guiChatConsole
+		const float CHAT_CURSOR_HEIGHT_RATIO       = 0.1f;
+
+		// Chat console open/close animation speed
+		// Used by: guiChatConsole
+		const float CHAT_HEIGHT_SPEED              = 5.0f;
+
+		// Chat console reopen inhibit time in ms
+		// Used by: guiChatConsole
+		const u32 CHAT_REOPEN_INHIBIT_MS           = 50;
+		const u32 CHAT_REOPEN_INHIBIT_ESC_MS       = 1;
+
+		// Weblink click debounce in ms
+		// Used by: guiChatConsole
+		const u32 CHAT_WEBLINK_DEBOUNCE_MS         = 600;
+
+		// Mouse wheel scroll multiplier
+		// Used by: guiChatConsole, guiTable
+		const float MOUSE_WHEEL_SCROLL_MULTIPLIER  = 3.0f;
+
+		// Double-click detection threshold in ms
+		// Used by: modalMenu
+		const u32 DOUBLECLICK_THRESHOLD_MS         = 400;
+
+		// Table keyboard navigation timeout in ms
+		// Used by: guiTable
+		const u32 TABLE_KEYNAV_TIMEOUT_MS          = 500;
+
+		// Cloud animation step multiplier
+		// Used by: guiEngine
+		const float ENGINE_CLOUD_STEP_MULT         = 3.0f;
 	}
 
 	// ------------------------------------------------------------------
@@ -173,11 +364,21 @@ namespace GUITheme
 	namespace Fonts
 	{
 		// Font size mode identifiers matching FontEngine modes
-		// Used by: guiFormSpecMenu font resolution
+		// Used by: guiFormSpecMenu font resolution, guiHyperText
 		const std::string FONT_MODE_NORMAL         = "normal";
 		const std::string FONT_MODE_MONO           = "mono";
 		const std::string FONT_MODE_BOLD           = "bold";
 		const std::string FONT_MODE_ITALIC         = "italic";
+
+		// Default font size strings
+		// Used by: guiHyperText
+		const std::string FONT_SIZE_DEFAULT        = "16";
+		const std::string FONT_SIZE_BIG            = "24";
+		const std::string FONT_SIZE_BIGGER         = "36";
+
+		// Font size scaling divisor
+		// Used by: guiHyperText, guiTable
+		const float FONT_SCALE_DIVISOR             = 16.0f;
 	}
 
 	// ------------------------------------------------------------------
@@ -188,6 +389,23 @@ namespace GUITheme
 		// Default button click sound
 		// Used by: guiButton when no style override specifies a sound
 		const std::string BUTTON_CLICK             = "";
+	}
+
+	// ------------------------------------------------------------------
+	// Dialog dimensions
+	// ------------------------------------------------------------------
+	// Standard dialog sizes used by modal menus
+	namespace Dialogs
+	{
+		// Password change dialog
+		const core::dimension2d<u32> PASSWORD_CHANGE_SIZE = core::dimension2d<u32>(580, 300);
+		// Open URL dialog
+		const core::dimension2d<u32> OPEN_URL_SIZE = core::dimension2d<u32>(580, 250);
+		// Volume change dialog
+		const core::dimension2d<u32> VOLUME_CHANGE_SIZE = core::dimension2d<u32>(380, 200);
+		// Path select dialog
+		const float PATH_SELECT_WIDTH              = 600.0f;
+		const float PATH_SELECT_HEIGHT             = 400.0f;
 	}
 
 	// ------------------------------------------------------------------
@@ -211,6 +429,15 @@ namespace GUITheme
 		// Timing durations must be positive
 		if (Timing::STATUS_TEXT_DURATION_GAME <= 0) return false;
 		if (Timing::STATUS_TEXT_DURATION_MENU <= 0) return false;
+		// Dialog sizes must be positive
+		if (Dialogs::PASSWORD_CHANGE_SIZE.Width == 0) return false;
+		if (Dialogs::OPEN_URL_SIZE.Width == 0) return false;
+		if (Dialogs::VOLUME_CHANGE_SIZE.Width == 0) return false;
+		// Focus border width must be positive
+		if (Sizing::FOCUS_BORDER_WIDTH <= 0) return false;
+		// Chat timing must be positive
+		if (Timing::CHAT_CURSOR_BLINK_SPEED <= 0) return false;
+		if (Timing::CHAT_HEIGHT_SPEED <= 0) return false;
 		return true;
 	}
 

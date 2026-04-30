@@ -44,7 +44,7 @@ GUIChatConsole::GUIChatConsole(
                 IMenuManager* menumgr
 ):
         IGUIElement(gui::EGUIET_ELEMENT, env, parent, id,
-                        core::rect<s32>(0,0,100,100)),
+                        core::rect<s32>(0,0,GUITheme::Sizing::CHAT_INITIAL_SIZE.Width,GUITheme::Sizing::CHAT_INITIAL_SIZE.Height)),
         m_chat_backend(backend),
         m_client(client),
         m_menumgr(menumgr),
@@ -82,13 +82,13 @@ GUIChatConsole::GUIChatConsole(
         m_fontsize.Y = MYMAX(m_fontsize.Y, 1);
 
         // set default cursor options
-        setCursor(true, true, 2.0, 0.1);
+        setCursor(true, true, GUITheme::Timing::CHAT_CURSOR_BLINK_SPEED, GUITheme::Timing::CHAT_CURSOR_HEIGHT_RATIO);
 
         // track ctrl keys for mouse event
         m_is_ctrl_down = false;
         m_cache_clickable_chat_weblinks = g_settings->getBool("clickable_chat_weblinks");
 
-        m_scrollbar.reset(new GUIScrollBar(env, this, -1, core::rect<s32>(0, 0, 30, m_height), false, tsrc));
+        m_scrollbar.reset(new GUIScrollBar(env, this, -1, core::rect<s32>(0, 0, GUITheme::Sizing::CHAT_SCROLLBAR_WIDTH, m_height), false, tsrc));
         m_scrollbar->setSubElement(true);
         m_scrollbar->setLargeStep(1);
         m_scrollbar->setSmallStep(1);
@@ -440,7 +440,7 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
                         closeConsole();
 
                         // inhibit open so the_game doesn't reopen immediately
-                        m_open_inhibited = 50;
+                        m_open_inhibited = GUITheme::Timing::CHAT_REOPEN_INHIBIT_MS;
                         m_close_on_enter = false;
                         return true;
                 }
@@ -453,7 +453,7 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
                         closeConsoleAtOnce();
                         m_close_on_enter = false;
                         // inhibit open so the_game doesn't reopen immediately
-                        m_open_inhibited = 1; // so the ESCAPE button doesn't open the "pause menu"
+                        m_open_inhibited = GUITheme::Timing::CHAT_REOPEN_INHIBIT_ESC_MS; // so the ESCAPE button doesn't open the "pause menu"
                         return true;
                 }
                 else if(event.KeyInput.Key == KEY_PRIOR)
@@ -669,7 +669,7 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
         {
                 if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
                 {
-                        s32 rows = myround(-3.0 * event.MouseInput.Wheel);
+                        s32 rows = myround(-GUITheme::Timing::MOUSE_WHEEL_SCROLL_MULTIPLIER * event.MouseInput.Wheel);
                         m_chat_backend->scroll(rows);
                 }
                 // Middle click or ctrl-click opens weblink, if enabled in config
@@ -728,7 +728,7 @@ bool GUIChatConsole::weblinkClick(s32 col, s32 row)
         u64 newtime = porting::getTimeMs();
 
         // 0.6 seconds should suffice
-        if (newtime - s_oldtime < 600)
+        if (newtime - s_oldtime < GUITheme::Timing::CHAT_WEBLINK_DEBOUNCE_MS)
                 return false;
         s_oldtime = newtime;
 

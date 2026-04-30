@@ -272,6 +272,6 @@ private:
         core::rect<s32> BgMiddle;
         core::rect<s32> Padding;
         core::vector2d<s32> ContentOffset;
-        video::SColor BgColor = video::SColor(0xFF,0xFF,0xFF,0xFF);
+        video::SColor BgColor = GUITheme::Colors::BUTTON_BG_DEFAULT;
         // END PATCH
 };

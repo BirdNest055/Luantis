@@ -102,7 +102,7 @@ private:
         // desired height [screen height fraction]
         f32 m_desired_height_fraction = 0.0f;
         // console open/close animation speed [screen height fraction / second]
-        f32 m_height_speed = 5.0f;
+        f32 m_height_speed = GUITheme::Timing::CHAT_HEIGHT_SPEED;
         // if nonzero, opening the console is inhibited [milliseconds]
         u32 m_open_inhibited = 0;
 
