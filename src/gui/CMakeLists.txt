@@ -31,8 +31,6 @@ set(gui_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/touchscreenlayout.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/touchscreeneditor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/drawItemStack.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/clay_renderer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/clay_gui_manager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/clay_pause_menu.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/GUITheme.cpp
         PARENT_SCOPE
 )
