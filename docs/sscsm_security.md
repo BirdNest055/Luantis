@@ -46,7 +46,9 @@ setting to anything higher than `localhost`.
 * Separate SSCSM process.
 * Sandboxing:
   * Linux: Uses SECCOMP.
-  * ... (FIXME: write down stuff when you implement)
+  * ... (NOTE: document SECCOMP filter rules when process isolation is implemented.
+    Key areas to document: allowed syscalls, sandboxed filesystem paths,
+    signal handling policy, and resource limits.)
 
 
 ## Limit where we call into SSCSM

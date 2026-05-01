@@ -7,7 +7,12 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 #
 #===------------------------------------------------------------------------===#
-# FIXME: Integrate with clang-tidy-diff.py
+# NOTE: This script could be integrated with clang-tidy-diff.py to run clang-tidy
+# only on changed files (diff-based mode) rather than all files in the compilation
+# database. Integration approach: call clang-tidy-diff.py with the same compilation
+# database and pipe the unified diff from git, or add a --diff mode to this script
+# that reads `git diff` output and filters the file list before invoking clang-tidy.
+# Benefit: significantly faster CI runs on incremental changes.
 
 """
 Parallel clang-tidy runner

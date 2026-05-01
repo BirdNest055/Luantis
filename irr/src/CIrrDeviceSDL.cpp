@@ -313,7 +313,10 @@ u32 CIrrDeviceSDL::getScancodeFromKey(const Keycode &key) const
                 return 0;
 
 #ifdef _IRR_USE_SDL3_
-        SDL_Keymod kmod = SDL_KMOD_NONE; // TODO: respect modifiers
+        SDL_Keymod kmod = SDL_KMOD_NONE; // NOTE: SDL3's SDL_GetScancodeFromKey takes a keymod parameter
+							   // for keys that change meaning with modifiers (e.g., shifted symbols).
+							   // Passing SDL_KMOD_NONE is correct for base scancode lookup, but if
+							   // shifted-key scancodes are needed, pass the current keymod state here.
         return SDL_GetScancodeFromKey(keynum, &kmod);
 #else
         // Modifiers not supported
@@ -324,7 +327,10 @@ u32 CIrrDeviceSDL::getScancodeFromKey(const Keycode &key) const
 Keycode CIrrDeviceSDL::getKeyFromScancode(const u32 scancode) const
 {
 #ifdef _IRR_USE_SDL3_
-        // TODO: SDL_HINT_KEYCODE_OPTIONS ?
+        // NOTE: SDL_HINT_KEYCODE_OPTIONS controls how SDL3 maps scancodes to keycodes
+        // (e.g., whether shifted keys return the shifted character). Not currently used,
+        // but may be needed if keycode mapping differs from the default behavior.
+        // See SDL3 docs for SDL_HINT_KEYCODE_OPTIONS for available values.
         auto keycode = SDL_GetKeyFromScancode((SDL_Scancode)scancode, SDL_KMOD_NONE, true);
 #else
         // Modifiers not supported
@@ -1125,8 +1131,12 @@ bool CIrrDeviceSDL::run()
         } // end while
 
 #if defined(_IRR_COMPILE_WITH_JOYSTICK_EVENTS_)
-        // TODO: Check if the multiple open/close calls are too expensive, then
-        // open/close in the constructor/destructor instead
+        // NOTE: SDL_UpdateJoysticks() is called every frame to poll joystick state.
+        // In SDL2, this opens/closes joystick devices on each call, which may be expensive.
+        // If profiling shows this is a bottleneck, move to a persistent-open model:
+        //   (a) Open joysticks in OnEvent(SDL_QUIT) setup or constructor.
+        //   (b) Close in destructor.
+        //   (c) Replace SDL_UpdateJoysticks() with per-joystick SDL_JoystickGetAxis/GetButton().
 
         // update joystick states manually
         SDL_UpdateJoysticks();

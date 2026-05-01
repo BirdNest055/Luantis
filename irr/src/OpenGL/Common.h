@@ -47,7 +47,11 @@ enum OpenGLSpec : u8
 	Core,
 	Compat,
 	ES,
-	// WebGL, // TODO
+	// WebGL, // NOTE: not yet supported. Adding WebGL spec requires:
+	//   (a) Emscripten-specific GL function loading (emscripten_webgl_* API).
+	//   (b) Shader version directive "#version 300 es" for WebGL 2 with different extension handling.
+	//   (c) Texture format restrictions (no depth textures in WebGL 1, limited FBO support).
+	//   (d) Separate context creation path via emscripten_webgl_create_context().
 };
 
 struct OpenGLVersion

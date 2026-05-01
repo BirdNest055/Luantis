@@ -260,9 +260,13 @@ TGA type 9 (RLE-compressed, color-mapped) is easy, it is not advisable
 to do so, as it is not backwards compatible with any engine version pre-5.5;
 content creators should therefore either use TGA type 1 or 10, or PNG.
 
-TODO: Types 1, 2 & 10 should have two test nodes each (i.e. bottom-top
-and top-bottom) for 16bpp (A1R5G5B5), 24bpp (B8G8R8), 32bpp (B8G8R8A8)
-colors.
+-- NOTE: Types 1, 2 & 10 should have two test nodes each (i.e. bottom-top
+-- and top-bottom) for 16bpp (A1R5G5B5), 24bpp (B8G8R8), 32bpp (B8G8R8A8)
+-- colors. Currently not all format/orientation combinations are covered by
+-- test nodes, which means regressions in TGA loading for specific bpp or
+-- row-order combinations may go undetected. To add coverage: create test
+-- node registrations for each missing (type, bpp, row-order) triple, with
+-- corresponding TGA texture files in the textures/ directory.
 
 Note: Luanti requires the optional TGA footer for a texture to load.
 If a TGA image does not load in Luanti, append eight (8) null bytes,

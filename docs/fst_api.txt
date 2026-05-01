@@ -54,7 +54,12 @@ methods:
 	name               = "tabname",      -- name of tab to create
 	caption            = "tab caption",  -- text to show for tab header. Either a string or a function: (tabview) -> string
 	cbf_button_handler = function(tabview, fields, tabname, tabdata), -- callback for button events
-	--TODO cbf_events         = function(tabview, event, tabname),           -- callback for events
+	--NOTE cbf_events = function(tabview, event, tabname),   -- callback for events
+	-- Not yet implemented. Would allow tabviews to receive custom events
+	-- (e.g., focus change, drag, resize) beyond the existing button_handler.
+	-- To implement: add an event dispatch path in the tabview update loop
+	-- that calls cbf_events(tabview, eventType, tabname) when an event
+	-- occurs that is not a formspec field submission.
 	cbf_formspec       = function(tabview, name, tabdata),            -- get formspec
 	tabsize            =
 		{

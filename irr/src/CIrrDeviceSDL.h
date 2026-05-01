@@ -347,8 +347,12 @@ private:
 
 	core::rect<s32> lastElemPos;
 
-	// TODO: This is only used for scancode/keycode conversion with EKEY_CODE (among other things, for Luanti
-	// to display keys to users). Drop this along with EKEY_CODE.
+	// NOTE: KeyMap is only used for scancode/keycode conversion with EKEY_CODE (among other things,
+	// for Luanti to display keys to users). This map and the EKEY_CODE enum should be dropped once
+	// Luanti fully migrates to SDL scancodes for key display. Migration plan:
+	//   (a) Replace all EKEY_CODE usage in Luanti with SDL_Scancode.
+	//   (b) Remove KeyMap and the EKEY_CODE-to-string conversion path.
+	//   (c) Keep EKEY_CODE only in the IrrlichtMt public API for backward compat if needed.
 	std::unordered_map<SDL_Keycode, EKEY_CODE> KeyMap;
 
 	s32 CurrentTouchCount;

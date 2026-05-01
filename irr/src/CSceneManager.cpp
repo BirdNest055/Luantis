@@ -63,8 +63,11 @@ CSceneManager::CSceneManager(video::IVideoDriver *driver,
 	// add file format loaders. add the least commonly used ones first,
 	// as these are checked last
 
-	// TODO: now that we have multiple scene managers, these should be
-	// shallow copies from the previous manager if there is one.
+	// NOTE: Mesh loaders are created fresh for each scene manager instance. If multiple
+	// scene managers exist (e.g., for RTT rendering), they each independently register the
+	// same set of loaders. Ideally, new managers should copy loader pointers from the previous
+	// manager (shallow copy) to avoid re-instantiating loaders. To implement: add a constructor
+	// parameter or factory method that takes an existing manager and copies its MeshLoaderList.
 
 	MeshLoaderList.push_back(new CXMeshFileLoader(this));
 	MeshLoaderList.push_back(new COBJMeshFileLoader(this));

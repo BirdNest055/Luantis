@@ -474,9 +474,11 @@ s32 CGUIStaticText::getTextHeight() const
 		s32 height = font->getDimension(L"A").Height + font->getKerning(L'A').Y;
 		return height * BrokenText.size();
 	} else {
-		// TODO: Text can have multiple lines which are not in BrokenText
-		// This is likely not correct. But as I have no time for further
-		// investigation I just fix it for now by return the true height here.
+		// NOTE: When WordWrap is off, Text may contain explicit newlines (\n) that are
+		// not reflected in BrokenText (which is only populated when WordWrap is on). This means
+		// BrokenText.size() would undercount lines. The current fix returns the true height via
+		// font->getDimension(), which accounts for embedded newlines. A proper fix would be to
+		// always populate BrokenText (even without word wrap) by splitting on \n characters.
 		return font->getDimension(Text.c_str()).Height;
 	}
 }

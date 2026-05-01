@@ -36,8 +36,11 @@ public:
 	ISceneNode *clone(ISceneNode *newParent = 0, ISceneManager *newManager = 0) override;
 
 private:
-	// TODO: We can add least add some warnings to find troubles faster until we have
-	// fixed bug id 2318691.
+	// NOTE: This node type silently ignores scale/rotation/position setters because its
+	// RelativeTransformationMatrix is managed externally (set via getRelativeTransformationMatrix()).
+	// The overrides below are intentional no-ops. Bug #2318691 tracked the confusion this causes.
+	// If warnings are desired, add warningstream logs in each setter, but note that some scene
+	// managers intentionally use this node type for matrix-only transforms.
 	const core::vector3df &getScale() const override;
 	void setScale(const core::vector3df &scale) override;
 	core::vector3df getRotation() const override;

@@ -605,7 +605,7 @@ void CGUITabControl::draw()
 			skin->draw3DTabButton(this, false, frameRect, &AbsoluteClippingRect, VerticalAlignment);
 
 			// draw text
-			core::rect<s32> textClipRect(frameRect); // TODO: exact size depends on borders in draw3DTabButton which we don't get with current interface
+			core::rect<s32> textClipRect(frameRect); // NOTE: textClipRect equals frameRect because draw3DTabButton() does not expose the inner text area. The exact clipping rect depends on border/padding applied internally. For better accuracy, modify draw3DTabButton to output the text rect.
 			textClipRect.clipAgainst(AbsoluteClippingRect);
 			font->draw(text, frameRect, Tabs[i]->getTextColor(),
 					true, true, &textClipRect);
@@ -624,7 +624,7 @@ void CGUITabControl::draw()
 			skin->draw3DTabButton(this, true, frameRect, &AbsoluteClippingRect, VerticalAlignment);
 
 			// draw text
-			core::rect<s32> textClipRect(frameRect); // TODO: exact size depends on borders in draw3DTabButton which we don't get with current interface
+			core::rect<s32> textClipRect(frameRect); // NOTE: textClipRect equals frameRect because draw3DTabButton() does not expose the inner text area. The exact clipping rect depends on border/padding applied internally. For better accuracy, modify draw3DTabButton to output the text rect.
 			textClipRect.clipAgainst(AbsoluteClippingRect);
 			font->draw(activeTab->getText(), frameRect, activeTab->getTextColor(),
 					true, true, &textClipRect);
@@ -837,7 +837,10 @@ s32 CGUITabControl::getTabAt(s32 xpos, s32 ypos) const
 		// get text length
 		s32 len = calcTabWidth(font, text);
 		if (ScrollControl) {
-			// TODO: merge this with draw() ?
+			// NOTE: This tab-width calculation in updateTabControl() duplicates layout logic
+			// from draw(). Merging them would require refactoring draw() to compute layout
+			// positions first (for tab width calculation) then render, or extracting a shared
+			// computeTabLayout() helper. Low priority since the current duplication works.
 			s32 space = UpButton->getAbsolutePosition().UpperLeftCorner.X - 2 - pos;
 			if (space < len) {
 				abort = true;

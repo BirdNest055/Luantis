@@ -1315,7 +1315,10 @@ void COpenGL3DriverBase::setBasicRenderStates(const SMaterial &material, const S
         }
 
         // Blend Factor
-        if (IR(material.BlendFactor) & 0xFFFFFFFF // TODO: why the & 0xFFFFFFFF?
+        if (IR(material.BlendFactor) & 0xFFFFFFFF // NOTE: The & 0xFFFFFFFF mask is a no-op on 32-bit: IR() returns u32,
+								   // and u32 & 0xFFFFFFFF == u32. It may be a leftover from when BlendFactor was
+								   // stored as f32 and IR() was used for integer reinterpretation. The mask could
+								   // be removed, but is kept for clarity/safety in case the type changes.
                         && material.MaterialType != EMT_ONETEXTURE_BLEND) {
                 E_BLEND_FACTOR srcRGBFact = EBF_ZERO;
                 E_BLEND_FACTOR dstRGBFact = EBF_ZERO;

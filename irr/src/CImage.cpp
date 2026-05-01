@@ -102,7 +102,7 @@ SColor CImage::getPixel(u32 x, u32 y) const
                 // SColor internally stores 0xAARRGGBB as a u32, which on little-endian lies in
                 // memory as [B][G][R][A]. The p[0],p[1],p[2] read here correctly extracts the
                 // R,G,B bytes from the 3-byte packed format and passes them to SColor(r,g,b)
-                // which re-packs them into native u32 order. The FIXME was about the conceptual
+                // which re-packs them into native u32 order. The original comment questioned the conceptual
                 // mismatch (memory order ≠ SColor register order), but the code is correct as
                 // written — it reads the source format's byte order directly.
                 u8 *p = Data + (y * 3) * Size.Width + (x * 3);
