@@ -7,6 +7,7 @@
 #include "lua_api/l_internal.h"
 #include "metadata.h"
 #include "util/string.h"
+#include "log.h"
 
 MetaDataRef *MetaDataRef::checkAnyMetadata(lua_State *L, int narg)
 {

@@ -1917,7 +1917,7 @@ int ObjectRef::l_hud_change(lua_State *L)
                         if (elem->world_pos == *(v3f *)value) changed = false;
                         break;
                 case HUD_STAT_SIZE:
-                        if (elem->size == *(v2s32 *)value) changed = false;
+                        if (elem->size == *(v2f *)value) changed = false;
                         break;
                 case HUD_STAT_Z_INDEX:
                         if (elem->z_index == *(s32 *)value) changed = false;

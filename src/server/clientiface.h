@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "debug.h"                      // for FATAL_ERROR_IF
 #include "irr_v3d.h"                   // for irrlicht datatypes
 
 #include "network/address.h"
