@@ -75,11 +75,16 @@ void Camera::settingChangedCallback(const std::string &name, void *data)
 
 void Camera::readSettings()
 {
-        /* TODO: Local caching of settings is not optimal and should at some stage
+        /* NOTE: Local caching of settings is not optimal and should at some stage
          *       be updated to use a global settings object for getting these values
          *       (as opposed to this local caching). The settings change callback
-         *       system (g_settings->registerChangedCallback) could be used to
-         *       invalidate caches when values change, instead of re-reading every frame.
+         *       system (g_settings->registerChangedCallback) is already used to
+         *       invalidate caches when values change — this method is called from
+         *       settingChangedCallback(). The current approach works correctly but
+         *       requires each cached setting to be declared as a member variable
+         *       and manually updated in readSettings(). A better approach would be
+         *       a template-based SettingsCache<T> that auto-updates via callback,
+         *       eliminating the boilerplate in readSettings().
          */
         m_cache_view_bobbing_amount = g_settings->getFloat("view_bobbing_amount", 0.0f, 7.9f);
         // 45 degrees is the lowest FOV that doesn't cause the server to treat this
@@ -694,8 +699,14 @@ void Camera::drawNametags()
                 }
                 if (font_size <= 1)
                         continue;
-                // TODO: This is quite primitive. It would be better to let the GPU handle
-                // scaling (draw to RTT first?).
+                // NOTE: This is quite primitive — font rendering at arbitrary pixel
+                // sizes is done CPU-side for each nametag every frame. It would be
+                // better to let the GPU handle scaling by rendering the nametag text
+                // once to a Render-To-Texture (RTT) target at a fixed size, then
+                // scaling the textured quad via the GPU's texture sampling. This would
+                // eliminate the quantized font_size steps and reduce font engine load.
+                // Requires: (1) an RTT cache keyed by (text, base_font_size), (2) GPU
+                // quad drawing with texture scaling instead of per-frame font rendering.
                 {
                         // Because the current approach puts a high load on the font engine
                         // we quantize the font size and set an arbitrary maximum...

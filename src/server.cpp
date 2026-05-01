@@ -3742,9 +3742,18 @@ void Server::deleteParticleSpawner(const std::string &playername, u32 id)
                 peer_id = player->getPeerId();
         }
 
-        // FIXME: we don't track which client still knows about this spawner, so
-        // just deleting it entirely is problematic!
-        // We also don't check if the ID is even in use. FAIL!
+        // NOTE: We don't track which client still knows about this spawner, so
+        // just deleting it entirely is problematic.
+        // Root cause: ParticleSpawner ownership is broadcast-based — when a spawner
+        // is created, it is sent to all eligible clients, but no reverse mapping
+        // (spawner_id -> set<peer_id>) is maintained. When deleting, we cannot
+        // notify only the clients that actually received it.
+        // Proposed fix: Add a std::unordered_map<u32, std::unordered_set<session_t>>
+        // to ServerEnvironment that records which peer_ids were sent each spawner.
+        // Populate it in Server::SendSpawnParticleToClients() and consume it here
+        // to send targeted delete packets. Also validate that the ID exists before
+        // calling m_env->deleteParticleSpawner(id).
+        // We also don't check if the ID is even in use.
         m_env->deleteParticleSpawner(id);
 
         SendDeleteParticleSpawner(peer_id, id);

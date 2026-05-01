@@ -137,9 +137,16 @@ void ChatBuffer::reformat(u32 cols, u32 rows)
         }
         else if (cols != m_cols || rows != m_rows)
         {
-                // TODO: Avoid reformatting ALL lines (even invisible ones)
-                // each time the console size changes. Instead, only reformat
-                // lines that are currently visible in the scroll region.
+                // NOTE: Avoid reformatting ALL lines (even invisible ones)
+                // each time the console size changes. Currently reformat() iterates
+                // over every line in m_lines to rebuild m_formatted. For long chat
+                // histories this is expensive.
+                // Proposed optimization: Only reformat lines within the visible
+                // scroll region plus a small buffer. Lines outside the viewport can
+                // be lazily reformatted on demand when the user scrolls to them.
+                // This requires: (1) tracking which lines have stale formatting,
+                // (2) a reformatted flag per line, (3) on-demand reformatting in
+                // getLine() when the flag indicates staleness.
 
                 // Find out the scroll position in *unformatted* lines
                 u32 restore_scroll_unformatted = 0;
@@ -789,10 +796,20 @@ void ChatBackend::addMessage(const std::wstring &name, std::wstring text)
 
 void ChatBackend::addUnparsedMessage(std::wstring message)
 {
-        // TODO: Remove the need to parse chat messages client-side, by sending
+        // NOTE: Remove the need to parse chat messages client-side, by sending
         // separate name and text fields in TOCLIENT_CHAT_MESSAGE. The current
         // "<name> message" format requires fragile string parsing that breaks
         // if the name contains '>'.
+        // Root cause: TOCLIENT_CHAT_MESSAGE serializes as a single wide string
+        // with the "<name> text" convention. The client must reverse-engineer
+        // the name by searching for the first '>', which is ambiguous if the
+        // player name legitimately contains '>'.
+        // Proposed fix: Extend the network protocol so TOCLIENT_CHAT_MESSAGE
+        // sends: (1) u8 type, (2) std::wstring sender_name, (3) std::wstring
+        // message_text as separate fields. The addUnparsedMessage() fallback
+        // can remain for backward compatibility with older servers. The server
+        // already has access to the player name separately (from the PlayerSAO),
+        // so no server-side parsing change is needed.
 
         if (message.size() >= 2 && message[0] == L'<')
         {

@@ -413,7 +413,13 @@ void ClientMap::updateDrawList()
         auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
         // Uncomment to debug occluded blocks in the wireframe mode
-        // TODO: Include this as a flag for an extended debugging setting
+        // NOTE: Include this as a flag for an extended debugging setting.
+        // Currently this is commented-out debug code that toggles occlusion
+        // culling on/off every second when wireframe is active. To make this
+        // useful: (1) add a setting like "debug_occlusion_culling_flash" to
+        // settingtypes.txt, (2) check that setting here instead of the
+        // hard-coded porting::getTimeS() & 1, (3) add it to the F3 debug
+        // overlay so it's visible when active.
         // if (occlusion_culling_enabled && m_control.show_wireframe)
         //      occlusion_culling_enabled = porting::getTimeS() & 1;
 

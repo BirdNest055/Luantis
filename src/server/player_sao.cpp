@@ -693,8 +693,17 @@ bool PlayerSAO::checkMovementCheat()
         player_max_jump = m_player->movement_speed_jump * m_player->physics_override.jump;
         // NOTE: Bouncy nodes cause practically unbound increase in Y speed,
         // until this can be verified correctly, tolerate higher jumping speeds.
-        // TODO: Track vertical speed from bouncy nodes separately so that
+        // Root cause: The anticheat only checks position deltas, not velocity.
+        // Bouncy nodes (group:bouncy) apply impulse forces that accumulate
+        // across frames (e.g. standing on a bounce block triggers repeated
+        // upward acceleration). The 2.0x multiplier is a heuristic to avoid
+        // false positives, but it also weakens cheat detection.
+        // Proposed fix: Track vertical speed from bouncy nodes separately so that
         // the anticheat can distinguish legitimate bouncy launches from teleportation.
+        // This requires: (1) a per-player "bounce_velocity_y" field updated on
+        // collision with bouncy nodes, (2) decaying this velocity each tick by
+        // gravity, (3) comparing player_max_jump + bounce_velocity_y against the
+        // observed vertical displacement. The 2.0x multiplier can then be removed.
         player_max_jump *= 2.0;
         player_max_jump = MYMAX(player_max_jump, speed_climb);
         player_max_jump = MYMAX(player_max_jump, override_max_V);
@@ -711,10 +720,19 @@ bool PlayerSAO::checkMovementCheat()
         float d_horiz = diff.getLength();
         float required_time = d_horiz / player_max_walk;
 
-        // NOTE: Checking downwards movement is not easily possible currently,
-        // the server could calculate speed differences to examine the gravity.
-        // TODO: Implement vertical speed tracking so the anticheat can verify
-        // that falling speed does not exceed the expected gravity acceleration.
+        // NOTE: Checking downwards movement is not easily possible currently.
+        // Root cause: The anticheat only compares positions between checks
+        // (m_last_good_position vs current), with no velocity state. When a
+        // player falls, the server cannot distinguish between legitimate gravity
+        // acceleration and teleportation downward. Upward movement is checked
+        // against player_max_jump, but downward speed is unbounded by this check.
+        // Proposed fix: Implement vertical speed tracking so the anticheat can
+        // verify that falling speed does not exceed the expected gravity
+        // acceleration. This requires: (1) storing the player's last known
+        // vertical velocity, (2) computing expected fall speed as
+        // v = v0 + gravity * dtime, (3) comparing observed d_vert/dtime
+        // against the expected range. This is complex because the server
+        // does not simulate client physics (water slowing, climbing, etc.).
         if (d_vert > 0) {
                 // In certain cases (swimming, climbing, flying) walking speed is applied
                 // vertically

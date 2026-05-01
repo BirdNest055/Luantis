@@ -293,8 +293,14 @@ void Client::loadMods()
 
         // If client scripting is disabled by the server, don't load builtin or
         // client-provided mods.
-        // TODO Delete this code block when server-sent CSM and verifying of builtin are
-        // complete.
+        // NOTE: Delete this code block when server-sent CSM and verifying of builtin are
+        // complete. This guard prevents client-provided mods from loading when the server
+        // sets CSM_RF_LOAD_CLIENT_MODS. Once server-sent CSM is fully implemented and
+        // builtin integrity can be verified, client-side mods will either be replaced by
+        // server-sent ones or explicitly trusted, making this restriction unnecessary.
+        // Migration path: (1) Implement server-sent CSM loading, (2) add builtin hash
+        // verification in Client::loadMods(), (3) remove this block and the
+        // CSM_RF_LOAD_CLIENT_MODS flag handling.
         if (checkCSMRestrictionFlag(CSMRestrictionFlags::CSM_RF_LOAD_CLIENT_MODS)) {
                 warningstream << "Client-provided mod loading is disabled by server." <<
                         std::endl;

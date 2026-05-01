@@ -1805,7 +1805,13 @@ void Game::toggleMinimap(bool shift_pressed)
         else
                 mapper->nextMode();
 
-        // TODO: When legacy minimap is deprecated, keep only HUD minimap stuff here
+        // NOTE: When legacy minimap is deprecated, keep only HUD minimap stuff here.
+        // The code below (lines 1812-1819) is a compatibility shim that maps the old
+        // fixed minimap mode system (MINIMAP_TYPE_RADAR etc.) to the new HUD-based
+        // minimap. It can be removed when: (1) the legacy mode toggle (mapper->nextMode)
+        // is replaced entirely by HUD minimap element control, (2) HUD_FLAG_MINIMAP_RADAR_VISIBLE
+        // is no longer needed as a separate flag, (3) all games that use the minimap
+        // have migrated to the HUD API for minimap configuration.
 
         // Not so satisying code to keep compatibility with old fixed mode system
         // -->
