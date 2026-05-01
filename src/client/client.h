@@ -263,6 +263,7 @@ public:
         void sendUpdateClientInfo(const ClientDynamicInfo &info);
 
         ClientEnvironment& getEnv() { return m_env; }
+        const ClientEnvironment& getEnv() const { return m_env; }
         ITextureSource *tsrc() { return getTextureSource(); }
         ISoundManager *sound() { return getSoundManager(); }
         static const std::string &getBuiltinLuaPath();
@@ -419,8 +420,11 @@ public:
         // IGameDef interface
         bool isClient() override { return true; }
         IItemDefManager* getItemDefManager() override;
+        const IItemDefManager* getItemDefManager() const override;
         const NodeDefManager* getNodeDefManager() override;
+        const NodeDefManager* getNodeDefManager() const override;
         ICraftDefManager* getCraftDefManager() override;
+        const ICraftDefManager* getCraftDefManager() const override;
         ITextureSource* getTextureSource();
         virtual IWritableShaderSource* getShaderSource();
         u16 allocateUnknownNodeId(const std::string &name) override;
@@ -488,6 +492,10 @@ public:
         const std::string &getFormspecPrepend() const;
 
         inline MeshGrid getMeshGrid()
+        {
+                return m_mesh_grid;
+        }
+        inline const MeshGrid& getMeshGrid() const
         {
                 return m_mesh_grid;
         }

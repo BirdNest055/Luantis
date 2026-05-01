@@ -890,6 +890,10 @@ void InventoryList::checkResizeLock()
         Inventory
 */
 
+// Static sentinel items for Inventory::getItem() when list is not found
+ItemStack Inventory::empty_item;
+ItemStack Inventory::empty_item_mut;
+
 Inventory::~Inventory()
 {
         clear();

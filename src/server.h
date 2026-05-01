@@ -353,10 +353,14 @@ public:
         bool isClient() override { return false; }
         // Under envlock
         IItemDefManager* getItemDefManager() override;
+        const IItemDefManager* getItemDefManager() const override;
         const NodeDefManager* getNodeDefManager() override;
+        const NodeDefManager* getNodeDefManager() const override;
         ICraftDefManager* getCraftDefManager() override;
+        const ICraftDefManager* getCraftDefManager() const override;
         u16 allocateUnknownNodeId(const std::string &name) override;
         IRollbackManager *getRollbackManager() override { return m_rollback; }
+        const IRollbackManager *getRollbackManager() const override { return m_rollback; }
         EmergeManager *getEmergeManager() { return m_emerge.get(); }
         ModStorageDatabase *getModStorageDatabase() override { return m_mod_storage_database; }
 

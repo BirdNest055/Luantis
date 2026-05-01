@@ -126,6 +126,9 @@ public:
         f32 getWantedRange() const { return m_control.wanted_range; }
         f32 getCameraFov() const { return m_camera_fov; }
 
+        // Const-safe client access
+        const Client* getClient() const { return m_client; }
+
         void onSettingChanged(std::string_view name, bool all);
 
 protected:

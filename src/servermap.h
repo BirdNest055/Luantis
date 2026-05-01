@@ -122,6 +122,7 @@ public:
         void listAllLoadedBlocks(std::vector<v3s16> &dst);
 
         MapgenParams *getMapgenParams();
+        const MapgenParams *getMapgenParams() const;
 
         bool saveBlock(MapBlock *block) override;
         static bool saveBlock(MapBlock *block, MapDatabase *db, int compression_level = -1);
@@ -151,8 +152,10 @@ public:
         void PrintInfo(std::ostream &out) override;
 
         bool isSavingEnabled(){ return m_map_saving_enabled; }
+        bool isSavingEnabled() const { return m_map_saving_enabled; }
 
         u64 getSeed();
+        u64 getSeed() const;
 
         /*!
          * Fixes lighting in one map block.
@@ -209,6 +212,9 @@ private:
         bool m_map_metadata_changed = true;
 
         MapDatabaseAccessor m_db;
+
+        // Const accessor for the map database
+        const MapDatabaseAccessor& getDatabase() const { return m_db; }
 
         // Map metrics
         MetricGaugePtr m_loaded_blocks_gauge;

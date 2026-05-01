@@ -317,7 +317,17 @@ Map & ServerEnvironment::getMap()
         return *m_map;
 }
 
+const Map & ServerEnvironment::getMap() const
+{
+        return *m_map;
+}
+
 ServerMap & ServerEnvironment::getServerMap()
+{
+        return *m_map;
+}
+
+const ServerMap & ServerEnvironment::getServerMap() const
 {
         return *m_map;
 }

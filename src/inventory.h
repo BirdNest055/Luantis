@@ -300,6 +300,23 @@ public:
         const InventoryList * getList(const std::string &name) const;
         const std::vector<InventoryList *> &getLists() const { return m_lists; }
         bool deleteList(const std::string &name);
+
+        // Shorthand: get item from a specific list by name and index
+        const ItemStack &getItem(const std::string &list_name, u32 index) const
+        {
+                const InventoryList *list = getList(list_name);
+                if (!list)
+                        return empty_item;
+                return list->getItem(index);
+        }
+        ItemStack &getItem(const std::string &list_name, u32 index)
+        {
+                InventoryList *list = getList(list_name);
+                if (!list)
+                        return empty_item_mut;
+                return list->getItem(index);
+        }
+
         // A shorthand for adding items. Returns leftover item (possibly empty).
         ItemStack addItem(const std::string &listname, const ItemStack &newitem)
         {
@@ -337,4 +354,8 @@ private:
         std::vector<InventoryList*> m_lists;
         IItemDefManager *m_itemdef;
         bool m_dirty = true;
+
+        // Sentinel items returned when list is not found
+        static ItemStack empty_item;
+        static ItemStack empty_item_mut;
 };

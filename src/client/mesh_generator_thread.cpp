@@ -11,6 +11,60 @@
 #include "map.h"
 #include "util/directiontables.h"
 #include "porting.h"
+#include "log.h"
+
+// MeshGeneratorUpdateListener: registers with g_settings to listen for
+// changes to mesh generation settings (smooth_lighting, water reflections,
+// mesh generation interval) and updates cached values accordingly.
+// TODO: implement full callback registration with g_settings->registerChangedCallback().
+class MeshGeneratorUpdateListener
+{
+        bool m_smooth_lighting = false;
+        bool m_enable_water_reflections = false;
+        u16 m_generation_interval = 0;
+
+        static void settingsCallback(const std::string &name, void *userdata)
+        {
+                auto *self = static_cast<MeshGeneratorUpdateListener *>(userdata);
+                self->onSettingsChange(name);
+        }
+
+        void onSettingsChange(const std::string &name)
+        {
+                if (name == "smooth_lighting")
+                        m_smooth_lighting = g_settings->getBool("smooth_lighting");
+                else if (name == "enable_water_reflections")
+                        m_enable_water_reflections = g_settings->getBool("enable_water_reflections");
+                else if (name == "mesh_generation_interval")
+                        m_generation_interval = g_settings->getU16("mesh_generation_interval");
+        }
+
+public:
+        MeshGeneratorUpdateListener()
+        {
+                m_smooth_lighting = g_settings->getBool("smooth_lighting");
+                m_enable_water_reflections = g_settings->getBool("enable_water_reflections");
+                m_generation_interval = g_settings->getU16("mesh_generation_interval");
+
+                // TODO: Register callbacks once the listener is owned by
+                // MeshUpdateQueue or MeshUpdateManager:
+                // g_settings->registerChangedCallback("smooth_lighting", settingsCallback, this);
+                // g_settings->registerChangedCallback("enable_water_reflections", settingsCallback, this);
+                // g_settings->registerChangedCallback("mesh_generation_interval", settingsCallback, this);
+        }
+
+        ~MeshGeneratorUpdateListener()
+        {
+                // TODO: g_settings->deregisterAllChangedCallbacks(this);
+        }
+
+        bool getSmoothLighting() const { return m_smooth_lighting; }
+        bool getEnableWaterReflections() const { return m_enable_water_reflections; }
+        u16 getGenerationInterval() const { return m_generation_interval; }
+};
+
+// TODO: Instantiate MeshGeneratorUpdateListener in MeshUpdateQueue and use
+// it instead of the direct g_settings reads in fillDataFromMapBlocks().
 
 /*
         QueuedMeshUpdate

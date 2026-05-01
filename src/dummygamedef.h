@@ -18,66 +18,69 @@
 
 class DummyGameDef : public IGameDef {
 public:
-	DummyGameDef():
-		m_itemdef(createItemDefManager()),
-		m_nodedef(createNodeDefManager()),
-		m_craftdef(createCraftDefManager()),
-		m_mod_storage_database(new Database_Dummy())
-	{
-	}
+        DummyGameDef():
+                m_itemdef(createItemDefManager()),
+                m_nodedef(createNodeDefManager()),
+                m_craftdef(createCraftDefManager()),
+                m_mod_storage_database(new Database_Dummy())
+        {
+        }
 
-	~DummyGameDef()
-	{
-		delete m_mod_storage_database;
-		delete m_craftdef;
-		delete m_nodedef;
-		delete m_itemdef;
-	}
+        ~DummyGameDef()
+        {
+                delete m_mod_storage_database;
+                delete m_craftdef;
+                delete m_nodedef;
+                delete m_itemdef;
+        }
 
-	bool isClient() override { return false; }
-	IItemDefManager *getItemDefManager() override { return m_itemdef; }
-	const NodeDefManager *getNodeDefManager() override { return m_nodedef; }
-	NodeDefManager* getWritableNodeDefManager() { return m_nodedef; }
-	ICraftDefManager *getCraftDefManager() override { return m_craftdef; }
+        bool isClient() override { return false; }
+        IItemDefManager *getItemDefManager() override { return m_itemdef; }
+        const IItemDefManager *getItemDefManager() const override { return m_itemdef; }
+        const NodeDefManager *getNodeDefManager() override { return m_nodedef; }
+        const NodeDefManager *getNodeDefManager() const override { return m_nodedef; }
+        NodeDefManager* getWritableNodeDefManager() { return m_nodedef; }
+        ICraftDefManager *getCraftDefManager() override { return m_craftdef; }
+        const ICraftDefManager *getCraftDefManager() const override { return m_craftdef; }
 
-	u16 allocateUnknownNodeId(const std::string &name) override
-	{
-		return m_nodedef->allocateDummy(name);
-	}
+        u16 allocateUnknownNodeId(const std::string &name) override
+        {
+                return m_nodedef->allocateDummy(name);
+        }
 
-	const std::vector<ModSpec> &getMods() const override
-	{
-		static std::vector<ModSpec> emptymodspec;
-		return emptymodspec;
-	}
-	const ModSpec* getModSpec(const std::string &modname) const override { return nullptr; }
-	ModStorageDatabase *getModStorageDatabase() override { return m_mod_storage_database; }
+        const std::vector<ModSpec> &getMods() const override
+        {
+                static std::vector<ModSpec> emptymodspec;
+                return emptymodspec;
+        }
+        const ModSpec* getModSpec(const std::string &modname) const override { return nullptr; }
+        ModStorageDatabase *getModStorageDatabase() override { return m_mod_storage_database; }
 
-	bool joinModChannel(const std::string &channel) override { return false; }
-	bool leaveModChannel(const std::string &channel) override { return false; }
-	bool sendModChannelMessage(const std::string &channel, const std::string &message) override
-	{
-		return false;
-	}
-	ModChannel *getModChannel(const std::string &channel) override { return nullptr; }
+        bool joinModChannel(const std::string &channel) override { return false; }
+        bool leaveModChannel(const std::string &channel) override { return false; }
+        bool sendModChannelMessage(const std::string &channel, const std::string &message) override
+        {
+                return false;
+        }
+        ModChannel *getModChannel(const std::string &channel) override { return nullptr; }
 
 protected:
-	IItemDefManager *m_itemdef = nullptr;
-	NodeDefManager *m_nodedef = nullptr;
-	ICraftDefManager *m_craftdef = nullptr;
-	ModStorageDatabase *m_mod_storage_database = nullptr;
+        IItemDefManager *m_itemdef = nullptr;
+        NodeDefManager *m_nodedef = nullptr;
+        ICraftDefManager *m_craftdef = nullptr;
+        ModStorageDatabase *m_mod_storage_database = nullptr;
 
 #if CHECK_CLIENT_BUILD()
-	static std::unique_ptr<NodeVisuals> constructNodeVisuals(ContentFeatures *f)
-	{
-		return std::unique_ptr<NodeVisuals>(new NodeVisuals(f));
-	}
-	static void setNodeVisuals(ContentFeatures &f, std::unique_ptr<NodeVisuals> v = nullptr)
-	{
-		if (v == nullptr)
-			v = constructNodeVisuals(&f);
-		v->f = &f;
-		f.visuals = v.release(); // Destructed by ~ContentFeatures
-	}
+        static std::unique_ptr<NodeVisuals> constructNodeVisuals(ContentFeatures *f)
+        {
+                return std::unique_ptr<NodeVisuals>(new NodeVisuals(f));
+        }
+        static void setNodeVisuals(ContentFeatures &f, std::unique_ptr<NodeVisuals> v = nullptr)
+        {
+                if (v == nullptr)
+                        v = constructNodeVisuals(&f);
+                v->f = &f;
+                f.visuals = v.release(); // Destructed by ~ContentFeatures
+        }
 #endif
 };

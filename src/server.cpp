@@ -4000,12 +4000,27 @@ IItemDefManager *Server::getItemDefManager()
         return m_itemdef;
 }
 
+const IItemDefManager *Server::getItemDefManager() const
+{
+        return m_itemdef;
+}
+
 const NodeDefManager *Server::getNodeDefManager()
 {
         return m_nodedef;
 }
 
+const NodeDefManager *Server::getNodeDefManager() const
+{
+        return m_nodedef;
+}
+
 ICraftDefManager *Server::getCraftDefManager()
+{
+        return m_craftdef;
+}
+
+const ICraftDefManager *Server::getCraftDefManager() const
 {
         return m_craftdef;
 }

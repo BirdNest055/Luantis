@@ -179,7 +179,18 @@ MapgenParams *ServerMap::getMapgenParams()
         return settings_mgr.mapgen_params;
 }
 
+const MapgenParams *ServerMap::getMapgenParams() const
+{
+        assert(settings_mgr.mapgen_params != NULL);
+        return settings_mgr.mapgen_params;
+}
+
 u64 ServerMap::getSeed()
+{
+        return getMapgenParams()->seed;
+}
+
+u64 ServerMap::getSeed() const
 {
         return getMapgenParams()->seed;
 }
@@ -787,6 +798,17 @@ MapBlock *ServerMap::loadBlock(const std::string &blob, v3s16 p3d, bool save_aft
                 // this flag and skip invalid blocks. Invalid blocks should be scheduled
                 // for re-generation by the emerge manager. The flag should also be
                 // persisted so that invalid blocks are not served to clients on restart.
+
+                // Mark the block as invalid using the FLAG_INVALID bit so it can be
+                // detected and re-generated. This prevents corrupt data from being
+                // served to clients or processed by active block modifiers.
+                if (block) {
+                        block->setFlag(MapBlock::FLAG_INVALID);
+                        warningstream << "Marked block ("
+                                << p3d.X << "," << p3d.Y << "," << p3d.Z
+                                << ") as FLAG_INVALID due to deserialization error"
+                                << std::endl;
+                }
 
                 if(g_settings->getBool("ignore_world_load_errors")){
                         errorstream<<"Ignoring block load error. Duck and cover! "

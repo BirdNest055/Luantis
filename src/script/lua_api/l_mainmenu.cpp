@@ -942,6 +942,21 @@ int ModApiMainMenu::l_download_file(lua_State *L)
 
         CHECK_SECURE_PATH(L, target, true)
 
+        // Error handling: reject URLs that don't match expected patterns.
+        // The download_file API is potentially dangerous because it allows
+        // arbitrary file downloads from the main menu. Validate that the URL
+        // uses a safe scheme (http/https) and doesn't reference local resources.
+        std::string url_str(url);
+        if (url_str.find("://") == std::string::npos
+                        || (!str_starts_with(url_str, "http://")
+                                && !str_starts_with(url_str, "https://"))) {
+                errorstream << "ModApiMainMenu::l_download_file: "
+                        << "Rejected download of URL with invalid scheme: "
+                        << url_str << std::endl;
+                lua_pushboolean(L, false);
+                return 1;
+        }
+
         lua_pushboolean(L, GUIEngine::downloadFile(url, target));
         return 1;
 }

@@ -101,6 +101,19 @@ MapBlock *Map::getBlockNoCreateNoEx(v3s16 p3d)
         return block;
 }
 
+const MapBlock *Map::getBlockNoCreateNoEx(v3s16 p3d) const
+{
+        // Direct lookup without cache mutation for const-correctness
+        v2s16 p2d(p3d.X, p3d.Z);
+        auto n = m_sectors.find(p2d);
+        if (n == m_sectors.end())
+                return nullptr;
+        MapSector *sector = n->second;
+        if (!sector)
+                return nullptr;
+        return sector->getBlockNoCreateNoEx(p3d.Y);
+}
+
 MapBlock *Map::getBlockNoCreate(v3s16 p3d)
 {
         MapBlock *block = getBlockNoCreateNoEx(p3d);

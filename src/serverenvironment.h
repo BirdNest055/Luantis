@@ -118,8 +118,10 @@ public:
         void init();
 
         Map & getMap();
+        const Map & getMap() const;
 
         ServerMap & getServerMap();
+        const ServerMap & getServerMap() const;
 
         // NOTE: Remove this accessor. Direct access to the scripting interface
         // breaks encapsulation. Callers should use ServerEnvironment methods

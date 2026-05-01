@@ -2459,13 +2459,26 @@ IItemDefManager* Client::getItemDefManager()
 {
         return m_itemdef;
 }
+const IItemDefManager* Client::getItemDefManager() const
+{
+        return m_itemdef;
+}
 const NodeDefManager* Client::getNodeDefManager()
+{
+        return m_nodedef;
+}
+const NodeDefManager* Client::getNodeDefManager() const
 {
         return m_nodedef;
 }
 ICraftDefManager* Client::getCraftDefManager()
 {
         return NULL;
+        //return m_craftdef;
+}
+const ICraftDefManager* Client::getCraftDefManager() const
+{
+        return nullptr;
         //return m_craftdef;
 }
 ITextureSource* Client::getTextureSource()

@@ -16,6 +16,11 @@ class MtEvent;
 // conflates audio concerns with game interaction events. Migration: create
 // src/game_events.h, move all MtEvent subclasses there, update includes in
 // sound_maker.h, game.cpp, and any other consumers.
+// REFACTOR: SoundMaker should be split into separate concerns:
+//   1. InteractSound (player step, jump, punch sounds) → src/client/sound/interact_sound.h
+//   2. NodeSound (dig, place, node sounds) → src/client/sound/node_sound.h
+//   3. Event dispatch should go to src/game_events.h
+// This would reduce coupling and make it easier to test sound logic independently.
 #include "mtevent.h"
 #include "mapnode.h"
 class NodeDugEvent : public MtEvent

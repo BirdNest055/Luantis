@@ -128,12 +128,14 @@ public:
         MapBlock * getBlockNoCreate(v3s16 p);
         // Returns NULL if not found
         MapBlock * getBlockNoCreateNoEx(v3s16 p);
+        const MapBlock * getBlockNoCreateNoEx(v3s16 p) const;
 
         /* Server overrides */
         virtual MapBlock * emergeBlock(v3s16 p, bool create_blank=true)
         { return getBlockNoCreateNoEx(p); }
 
         inline const NodeDefManager * getNodeDefManager() { return m_nodedef; }
+        inline const NodeDefManager * getNodeDefManager() const { return m_nodedef; }
 
         bool isValidPosition(v3s16 p);
 
