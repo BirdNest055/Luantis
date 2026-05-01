@@ -1,7 +1,7 @@
 # AI Codebase Reference — Luanti-Secure Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-04-27 | **Project Version:** v9.24
+> **Last Updated:** 2026-05-02 | **Project Version:** v9.54
 
 ---
 
@@ -21,8 +21,8 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 10. Documentation and encryption data flow guide (v9.10)
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
 
-**Repository:** https://github.com/BirdNest055/Clawtest
-**Current branch:** `clawtest-v9.24-fix-settingtypes-context`
+**Repository:** https://github.com/BirdNest055/Luantis
+**Current branch:** `clawtest-v9.54-fix-todo-items`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -35,11 +35,16 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 - **`clawtest-v9.11` branch:** ECDH forward secrecy, test fixes
 - **`clawtest-v9.22-settings-panel-fix` branch:** Settings panel fix, both secure/insecure modes work
 - **`clawtest-v9.23-log-toggle` branch:** Log toggle feature, encryption_log_level setting
-- **`clawtest-v9.24-fix-settingtypes-context` branch:** Current — fixes encryption_log_level settingtypes context
+- **`clawtest-v9.24-fix-settingtypes-context` branch:** Fixes encryption_log_level settingtypes context
+- **`clawtest-v9.44-voice-server-authority` branch:** Voice chat server authority
+- **`clawtest-v9.50-centralized-gui` branch:** GUITheme centralized system (93+ constants, 14 GUI files refactored)
+- **`clawtest-v9.51-gui-theme-editor` branch:** WYSIWYG GUITheme web editor (Svelte/Vite)
+- **`clawtest-v9.53-guitheme-test-fix` branch:** GUITheme test improvements + drift detection
+- **`clawtest-v9.54-fix-todo-items` branch:** Current — 21 TODO/FIXME/compiler-warning fixes
 
-**Commit on clawtest-v9.24:**
+**Commit on clawtest-v9.54:**
 ```
-v9.24: Fix encryption_log_level settingtypes context [server,client] → [common]
+fix: Resolve 20+ TODO/FIXME items — compiler warnings, dead code, typos, and code quality (v9.54)
 ```
 
 ---
@@ -323,6 +328,13 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.22 | `clawtest-v9.22-settings-panel-fix` | Settings panel fix — write all 16 g_settings keys, sync activated_at, both secure/insecure modes work |
 | v9.23 | `clawtest-v9.23-log-toggle` | Log toggle feature — --no-log/--log in start scripts, encryption_log_level setting |
 | v9.24 | `clawtest-v9.24-fix-settingtypes-context` | Settingtypes context fix — encryption_log_level [server,client] → [common] |
+| v9.42 | `clawtest-v9.42` | ESC key not opening pause menu fix — direct ESC flag bypassing scancode system |
+| v9.43 | `clawtest-v9.43` | Settingtypes parentheses parsing fix — nested parentheses in readable names |
+| v9.44 | `clawtest-v9.44-voice-server-authority` | Voice chat server authority |
+| v9.50 | `clawtest-v9.50-centralized-gui` | GUITheme centralized system — 93+ constants across 8 namespaces, 14 GUI files refactored, 89 tests |
+| v9.51 | `clawtest-v9.51-gui-theme-editor` | WYSIWYG GUITheme web editor — Svelte 4 + Vite, live preview, import/export GUITheme.h |
+| v9.53 | `clawtest-v9.53-guitheme-test-fix` | GUITheme drift detection, guiScene.cpp dead constants fix, missing sizing constants |
+| v9.54 | `clawtest-v9.54-fix-todo-items` | 21 TODO/FIXME fixes — compiler warnings (7), dead code/typos (5), FIXME/TODO resolution (9) |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
@@ -453,5 +465,5 @@ When bumping the version number, update ALL of these:
 4. **start_server.sh potential crash** — may still have edge cases; pause-on-exit helps debug
 5. **Crypto layer reconciliation** — X25519 ECDH is now fully integrated; two parallel crypto APIs remain in `src/network/crypto/` (P-256/ECDSA) not yet integrated
 6. **Key rotation wire protocol** — `rotateKeys()` exists but requires a protocol exchange to coordinate with the peer; no TOSERVER_KEY_ROTATION / TOCLIENT_KEY_ROTATION packet types yet
-7. **Compiler warnings in test files** (sign compare, unused variables) — see docs/TODO_FIXME_LIST.md
+7. **Compiler warnings in test files (FIXED in v9.54)** — 7 compiler warnings resolved: removed dead `getSSCMMode()`, fixed sign-compare in `test_crypto.cpp`, fixed unused-but-set-variable in `test_encrypted_packet_format.cpp` and `test_peer_encryption_state.cpp`
 8. **Encryption log spam (SOLVED in v9.23+v9.24)** — Verbose per-packet `[ENC:TRACE]` logging previously generated 180MB log files and caused game slowdown. Fixed with `--no-log`/`--log` toggle in start scripts (prevents any log data generation when off) and `encryption_log_level` setting (none/error/action/trace). The `encryption_log_level` setting's context annotation was also fixed from `[server,client]` to `[common]` in v9.24 because the Luanti settingtypes parser only accepts single context values (`common`, `client`, `server`, `world_creation`).

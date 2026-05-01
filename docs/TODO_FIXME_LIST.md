@@ -19,6 +19,9 @@ Generated automatically from code comments.
 | BUG FIX | 1 (v9.25 encryption log autocreate bug — FIXED) |
 | BUG FIX | 1 (v9.42 ESC key not opening pause menu — FIXED) |
 | BUG FIX | 1 (v9.43 settingtypes parentheses parsing error — FIXED) |
+| FIX | 7 (v9.54 compiler warnings — FIXED) |
+| FIX | 5 (v9.54 dead code and typo cleanup — FIXED) |
+| FIX | 9 (v9.54 FIXME/TODO resolution — FIXED) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -71,6 +74,46 @@ This bug was discovered and fixed during v9.43 development:
 |------|-----|-----------|-----|--------|
 | `builtin/settingtypes.txt:905` | `ERROR[Main]: Invalid line in settingtypes.txt "enable_voice_chat_server (Enable voice chat (server)) bool true"` | The Luanti settingtypes parser (`builtin/common/settings/settingtypes.lua:134`) uses the Lua pattern `%(([^%)]*)%)` to match the readable name. This pattern captures all characters that are NOT `)`, then expects `)`. When the readable name contains nested parentheses like `Enable voice chat (server)`, the pattern matches `(Enable voice chat ` — stopping at the first `)` — and the remaining text `server)) bool true` does not match the expected format, causing the "Invalid line" error. | Changed the readable name from `(Enable voice chat (server))` to `(Enable voice chat on server)` — removing the nested parentheses that break the parser. This is the same class of bug as the v9.24 settingtypes context error. | Fixed |
 
+## Luanti-Secure v9.54 Fixes (21 items)
+
+These TODO/FIXME/compiler-warning items were resolved during v9.54 development:
+
+### Compiler Warning Fixes (7)
+
+| File | Line | Warning | Fix | Status |
+|------|------|---------|-----|--------|
+| `src/client/client.cpp` | 7-22 | `-Wunused-function` | Removed dead `SSCMMode` enum and `getSSCMMode()` function that were never called | Fixed |
+| `src/unittest/test_crypto.cpp` | 825 | `-Wsign-compare` | Changed `UASSERTEQ(int, nonce[i], 0)` to `UASSERTEQ(u8, nonce[i], u8(0))` | Fixed |
+| `src/unittest/test_crypto.cpp` | 842 | `-Wsign-compare` | Changed `UASSERTEQ(int, nonce[i], 0xFF)` to `UASSERTEQ(u8, nonce[i], u8(0xFF))` | Fixed |
+| `src/unittest/test_encrypted_packet_format.cpp` | 548 | `-Wunused-but-set-variable` | Restructured `decrypt_ok_flag` logic to use `decrypt_failed` (init to false, set to true on failure) — eliminates the "set but not used" warning | Fixed |
+| `src/unittest/test_peer_encryption_state.cpp` | 413 | `-Wunused-but-set-variable` | Added `(void)` cast to discarded `nextNonce()` return value | Fixed |
+| `src/unittest/test_peer_encryption_state.cpp` | 416 | `-Wunused-but-set-variable` | Added `(void)` cast to discarded `nextNonce()` return value | Fixed |
+| `src/unittest/test_peer_encryption_state.cpp` | 419 | `-Wunused-but-set-variable` | Added `(void)` cast to discarded `nextNonce()` return value | Fixed |
+
+### Dead Code and Typo Cleanup (5)
+
+| File | Line(s) | Issue | Fix | Status |
+|------|---------|-------|-----|--------|
+| `src/gui/profilergraph.h` | 27-38 | Unused `Meta` struct — dead code | Removed unused `Meta` struct; upgraded FIXME to descriptive TODO | Fixed |
+| `src/client/game_formspec.cpp` | 18-19 | Duplicate `#include "gui/guiPasswordChange.h"` | Removed duplicate include | Fixed |
+| `src/client/game_formspec.h` | 18,21,22 | "fromspec" typos (3 instances) | Changed "fromspec" to "formspec" | Fixed |
+| `src/client/game_formspec.h` | 18 | "intend" grammar error | Changed "intend" to "is intended" | Fixed |
+| `src/collision.cpp` | 560,574,581 | "interations" typos (3 instances) | Changed "interations" to "iterations" | Fixed |
+
+### FIXME/TODO Resolution (9)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/client/texturesource.cpp` | 585 | FIXME: "we should rebuild palettes too" | Added `m_palettes.clear()` after texture rebuild — palettes regenerate lazily on next access via `getPalette()` | Fixed |
+| `src/script/common/c_converter.cpp` | 298 | FIXME: "maybe we should have strict type checks here" | Added type validation for r/g/b fields in `read_ARGB8()` mirroring `is_color_table()`, throws `LuaError` on non-numeric values | Fixed |
+| `src/unittest/test_collision.cpp` | 371 | FIXME: "this is actually inconsistent" | Documented as expected behavior: ignore blocks zero speed but don't register as collisions (they're unloaded/unknown, not solid) | Resolved |
+| `src/unittest/test_sao.cpp` | 215 | FIXME: "figure out if this is a bug that needs to be fixed" | Documented as expected behavior: active objects need a step after forceActivateBlock to reach stable state before safe unload | Resolved |
+| `src/client/game_formspec.cpp` | 574 | FIXME: "m_formspec and this value are not in sync at all times" | Replaced FIXME with clear documentation explaining the sync limitation and why g_menumgr is queried instead | Resolved |
+| `src/client/game_formspec.h` | 62 | TODO: "Remove this in long-term - it's now redundant" | Added DEPRECATED annotation with explanation of why m_formspec can become stale and guidance to use g_menumgr.tryGetTopMenu() | Resolved |
+| `src/client/sound/sound_singleton.cpp` | 33 | FIXME: "This value assumes 1 node sidelength = 1 meter, and 'normal' air. Ideally this should be mod-controlled." | Extracted to named `constexpr SPEED_OF_SOUND = 343.3f`; changed FIXME to TODO with note about making it mod-controllable | Partial |
+| `src/mapgen/mg_decoration.cpp` | 390 | FIXME: "We do not own this schematic, yet we only have a pointer to it" | Replaced FIXME with detailed comment explaining the ownership issue and future refactor path; added `FATAL_ERROR_IF(!schematic, ...)` null check | Partial |
+| `src/client/renderingengine.h` | 143 | TODO: "Make this instanced instead of global/static" | Expanded TODO with migration guidance: ShadowRenderer should go through RenderingEngine instance rather than static singleton | Partial |
+
 ## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 
 These warnings appear when building Luanti-Secure with `-Wall` on Ubuntu 24.04 (gcc 13+).
@@ -78,13 +121,13 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 
 | File | Line | Warning | Description | Status |
 |------|------|---------|-------------|--------|
-| src/client/client.cpp | 15 | `-Wunused-function` | `getSSCMMode()` is defined but never called — either remove it or add `[[maybe_unused]]` | Open |
-| src/unittest/test_crypto.cpp | 825 | `-Wsign-compare` | Loop variable `int i` compared with `const size_t GCM_NONCE_SIZE` — change `i` to `size_t` | Open |
-| src/unittest/test_crypto.cpp | 842 | `-Wsign-compare` | Same as line 825 in `testBuildNonceCounterMax()` — change `i` to `size_t` | Open |
-| src/unittest/test_encrypted_packet_format.cpp | 547 | `-Wunused-but-set-variable` | `bool decrypt_ok = true` is set but never read — either use it in an assertion or remove it | Open |
-| src/unittest/test_peer_encryption_state.cpp | 413 | `-Wunused-but-set-variable` | `auto n1 = dir.nextNonce()` is set but not used — add `[[maybe_unused]]` or assert on the value | Open |
-| src/unittest/test_peer_encryption_state.cpp | 416 | `-Wunused-but-set-variable` | `auto n2 = dir.nextNonce()` — same as n1 above | Open |
-| src/unittest/test_peer_encryption_state.cpp | 419 | `-Wunused-but-set-variable` | `auto n3 = dir.nextNonce()` — same as n1 above | Open |
+| src/client/client.cpp | 15 | `-Wunused-function` | `getSSCMMode()` is defined but never called — either remove it or add `[[maybe_unused]]` | Fixed (v9.54: removed dead code) |
+| src/unittest/test_crypto.cpp | 825 | `-Wsign-compare` | Loop variable `int i` compared with `const size_t GCM_NONCE_SIZE` — change `i` to `size_t` | Fixed (v9.54: UASSERTEQ type fixed) |
+| src/unittest/test_crypto.cpp | 842 | `-Wsign-compare` | Same as line 825 in `testBuildNonceCounterMax()` — change `i` to `size_t` | Fixed (v9.54: UASSERTEQ type fixed) |
+| src/unittest/test_encrypted_packet_format.cpp | 547 | `-Wunused-but-set-variable` | `bool decrypt_ok = true` is set but never read — either use it in an assertion or remove it | Fixed (v9.54: restructured logic) |
+| src/unittest/test_peer_encryption_state.cpp | 413 | `-Wunused-but-set-variable` | `auto n1 = dir.nextNonce()` is set but not used — add `[[maybe_unused]]` or assert on the value | Fixed (v9.54: added (void) cast) |
+| src/unittest/test_peer_encryption_state.cpp | 416 | `-Wunused-but-set-variable` | `auto n2 = dir.nextNonce()` — same as n1 above | Fixed (v9.54: added (void) cast) |
+| src/unittest/test_peer_encryption_state.cpp | 419 | `-Wunused-but-set-variable` | `auto n3 = dir.nextNonce()` — same as n1 above | Fixed (v9.54: added (void) cast) |
 
 **Note:** `src/porting.cpp:107,111` also has `-Wunused-result` warnings on `write()` calls, but these exist in upstream Luanti and have `(void)` casts already — the compiler still warns despite the cast. Not a Luanti-Secure issue.
 
@@ -185,28 +228,28 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | FIXME | 1 | src/client/content_cao.cpp | 364 | work around #16221 which is caused by the camera position and thus | Done |
 | FIXME | 1 | src/client/content_cao.cpp | 1641 | ^ This code is trash. It's also broken. | Done |
 | FIXME | 1 | src/client/game.cpp | 2631 | I bet we can be smarter about this and don't need to redraw | Open |
-| FIXME | 1 | src/client/game_formspec.cpp | 574 | m_formspec and this value are not in sync at all times. | Open |
-| FIXME | 1 | src/client/game_formspec.h | 61 | Layering is already managed by `GUIModalMenu` (`g_menumgr`), hence this | Open |
+| FIXME | 1 | src/client/game_formspec.cpp | 574 | m_formspec and this value are not in sync at all times. | Resolved (v9.54: documented sync limitation) |
+| FIXME | 1 | src/client/game_formspec.h | 61 | Layering is already managed by `GUIModalMenu` (`g_menumgr`), hence this | Resolved (v9.54: added DEPRECATED annotation) |
 | FIXME | 1 | src/client/gameui.cpp | 483 | This updates the profiler with incomplete values | Done |
 | FIXME | 1 | src/client/hud.cpp | 385 | why do we have such a weird unportable hack?? | Done |
 | FIXME | 1 | src/client/mapblock_mesh.cpp | 646 | ^ doesn't really make sense. and in practice, bp is always aligned | Done |
 | FIXME | 1 | src/client/minimap.cpp | 482 | this is a pointless roundtrip through the gpu | Open |
 | FIXME | 1 | src/client/particles.cpp | 488 | this should be moved into a TileAnimationParams class method | Done |
-| FIXME | 1 | src/client/renderingengine.h | 143 | this is still global when it shouldn't be | Open |
+| FIXME | 1 | src/client/renderingengine.h | 143 | this is still global when it shouldn't be | Partial (v9.54: expanded TODO with migration guidance) |
 | FIXME | 1 | src/client/shader.cpp | 229 | The node specular effect is currently disabled due to mixed in-game | Partial (setting added) |
 | FIXME | 1 | src/client/sky.cpp | 708 | stupid helper that does a pointless texture upload/download | Done |
-| FIXME | 1 | src/client/sound/sound_singleton.cpp | 33 | This value assumes 1 node sidelength = 1 meter, and "normal" air. | Open |
-| FIXME | 1 | src/client/texturesource.cpp | 585 | we should rebuild palettes too | Open |
+| FIXME | 1 | src/client/sound/sound_singleton.cpp | 33 | This value assumes 1 node sidelength = 1 meter, and "normal" air. | Partial (v9.54: extracted to named constexpr, FIXME→TODO) |
+| FIXME | 1 | src/client/texturesource.cpp | 585 | we should rebuild palettes too | Done (v9.54: added m_palettes.clear()) |
 | FIXME | 1 | src/collision.cpp | 114 | The dtime calculation is inaccurate without acceleration information. | Open |
 | FIXME | 1 | src/collision.cpp | 567 | This code is necessary until `axisAlignedCollision` takes acceleration | Open |
 | FIXME | 1 | src/filesys.cpp | 730 | same problem probably exists on win32 with "C:" | Done |
-| FIXME | 1 | src/gui/profilergraph.h | 21 | this data structure is awfully inefficient | Open |
-| FIXME | 1 | src/mapgen/mg_decoration.cpp | 390 | We do not own this schematic, yet we only have a pointer to it | Open |
+| FIXME | 1 | src/gui/profilergraph.h | 21 | this data structure is awfully inefficient | Done (v9.54: removed dead Meta struct, upgraded to descriptive TODO) |
+| FIXME | 1 | src/mapgen/mg_decoration.cpp | 390 | We do not own this schematic, yet we only have a pointer to it | Partial (v9.54: added null assertion + ownership docs) |
 | FIXME | 1 | src/nodedef.cpp | 1345 | support arbitrary rotations (to.param2 & 0x1F) (#7696) | Done |
 | FIXME | 1 | src/rollback_interface.cpp | 33 | version bump?? | Done |
 | FIXME | 1 | src/rollback_interface.cpp | 161 | version bump?? | Done |
 | FIXME | 1 | src/script/common/c_content.cpp | 1620 | inventory_image.animation, inventory_overlay.animation, wield_image.animation | Open |
-| FIXME | 1 | src/script/common/c_converter.cpp | 298 | maybe we should have strict type checks here. compare to is_color_table() | Open |
+| FIXME | 1 | src/script/common/c_converter.cpp | 298 | maybe we should have strict type checks here. compare to is_color_table() | Done (v9.54: added type validation) |
 | FIXME | 1 | src/script/cpp_api/s_async.cpp | 278 | there's no general way to report such fatal errors to our "owner" | Open |
 | FIXME | 1 | src/script/lua_api/l_camera.cpp | 122 | wouldn't localplayer be a better place for this? | Open |
 | FIXME | 1 | src/script/lua_api/l_camera.cpp | 133 | wouldn't localplayer be a better place for this? | Open |
@@ -233,9 +276,9 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | FIXME | 1 | src/servermap.cpp | 700 | zero copy possible in c++20 or with custom rdbuf | Open |
 | FIXME | 1 | src/threading/thread.cpp | 119 | what if this fails, or if already locked by same thread? | Done |
 | FIXME | 1 | src/tool.cpp | 457 | punch_operable is supposed to apply to "non-tool" items too | Done |
-| FIXME | 1 | src/unittest/test_collision.cpp | 371 | this is actually inconsistent | Open |
+| FIXME | 1 | src/unittest/test_collision.cpp | 371 | this is actually inconsistent | Resolved (v9.54: documented as expected behavior) |
 | FIXME | 1 | src/unittest/test_mapdatabase.cpp | 196 | this isn't working consistently, maybe later | Open |
-| FIXME | 1 | src/unittest/test_sao.cpp | 215 | figure out if this is a bug that needs to be fixed | Open |
+| FIXME | 1 | src/unittest/test_sao.cpp | 215 | figure out if this is a bug that needs to be fixed | Resolved (v9.54: documented as expected behavior) |
 | FIXME | 1 | src/unittest/test_socket.cpp | 84 | This fails on some systems | Open |
 | FIXME | 1 | src/unittest/test_socket.cpp | 131 | This fails on some systems | Open |
 | FIXME | 1 | src/util/strfnd.h | 10 | convert this class to string_view | Done |

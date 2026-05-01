@@ -1,7 +1,7 @@
 # AI Agent Instructions — Luanti-Secure Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-27 | **Applicable Versions:** v7, v8, v9.x, v9.24, and all future development
+> **Last Updated:** 2026-05-02 | **Applicable Versions:** v7, v8, v9.x, v9.24, v9.50+, and all future development
 
 ---
 
@@ -107,15 +107,20 @@
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
 | `clawtest-upload` | Luanti-Secure development (previous) | `main` |
 | `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
-| `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
-| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development (current) | `clawtest-v9.23-log-toggle` |
+| `clawtest-v9.11` | v9.11 development | `clawtest-v9.10` |
+| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development | `clawtest-v9.23-log-toggle` |
+| `clawtest-v9.44-voice-server-authority` | Voice chat server authority | Previous branch |
+| `clawtest-v9.50-centralized-gui` | GUITheme centralized system (93+ constants) | `clawtest-v9.44-voice-server-authority` |
+| `clawtest-v9.51-gui-theme-editor` | WYSIWYG GUITheme web editor (Svelte) | `clawtest-v9.50-centralized-gui` |
+| `clawtest-v9.53-guitheme-test-fix` | GUITheme test improvements + drift detection | `clawtest-v9.51-gui-theme-editor` |
+| `clawtest-v9.54-fix-todo-items` | TODO/FIXME resolution + compiler warning fixes | `clawtest-v9.53-guitheme-test-fix` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.24-fix-settingtypes-context`
+- The current branch is `clawtest-v9.54-fix-todo-items`
 
 ### 3.2 Commit Conventions
 
@@ -309,9 +314,46 @@ When adding a new feature to this project, ensure ALL of these are done:
 
 ## 10. Repository Information
 
-- **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.24-fix-settingtypes-context`
-- **Previous branch:** `clawtest-v9.23-log-toggle`
+- **GitHub URL:** https://github.com/BirdNest055/Luantis
+- **Current branch:** `clawtest-v9.54-fix-todo-items`
+- **Previous branch:** `clawtest-v9.53-guitheme-test-fix`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.24
+- **Current version:** v9.54
+
+---
+
+## 11. GUITheme System (v9.50+)
+
+### 11.1 Overview
+
+The GUITheme system provides centralized GUI styling constants in `src/gui/GUITheme.h` and `src/gui/GUITheme.cpp`. It replaces scattered hardcoded values across 14+ GUI files.
+
+### 11.2 Namespaces
+
+| Namespace | Count | Purpose |
+|-----------|-------|---------|
+| `GUITheme::Colors` | 35 | All GUI colors (backgrounds, text, borders) |
+| `GUITheme::Sizing` | 42 | Dimensions, padding, margins, radii |
+| `GUITheme::Timing` | 11 | Animation durations, fade times |
+| `GUITheme::ButtonModifiers` | 2 | Button state multipliers |
+| `GUITheme::Fonts` | 8 | Font paths and sizes |
+| `GUITheme::Sounds` | 1 | UI sound effect paths |
+| `GUITheme::Dialogs` | 6 | Dialog dimensions and positions |
+| `GUITheme::validate()` | - | Runtime validation (drift detection) |
+
+### 11.3 Rules
+
+- ALL GUI styling constants MUST go in `GUITheme.h` — never hardcode in individual GUI files
+- Use `GUITheme::Colors::BUTTON_BG` instead of `video::SColor(255, 60, 60, 60)` etc.
+- Run `GUITheme::validate()` in debug builds to catch drift (constants that don't match their intended values)
+- 14 GUI files have been refactored to use GUITheme constants
+- 89 unit tests in `gui_theme_test/gui_theme_test.cpp` cover all constants
+
+### 11.4 WYSIWYG Editor
+
+A Svelte-based web editor lives in `gui-theme-editor/`:
+- Live preview of formspec elements
+- Import/export of `GUITheme.h` files
+- Preset themes (Default, Dark, Light, Compact, Retro)
+- Run with `npm run dev` from `gui-theme-editor/`

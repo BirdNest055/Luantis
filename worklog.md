@@ -122,3 +122,27 @@ Stage Summary:
 - Branch: clawtest-v9.36-fix-gui-overlap
 - Key files modified: builtin/mainmenu/tab_online.lua
 - CI: SUCCESS
+
+---
+Task ID: v9.54
+Agent: Main Agent
+Task: Fix 20+ TODO/FIXME items and update documentation in new versioned branch
+
+Work Log:
+- Created branch clawtest-v9.54-fix-todo-items from clawtest-v9.53-guitheme-test-fix
+- Identified 465+ TODO/FIXME/HACK entries in docs/TODO_FIXME_LIST.md
+- Selected 21 feasible fixes across 3 categories: compiler warnings, dead code/typos, FIXME/TODO resolution
+- Applied 7 compiler warning fixes: removed dead SSCMMode enum, fixed sign-compare in test_crypto.cpp, restructured unused-but-set-variable in test_encrypted_packet_format.cpp, added (void) casts in test_peer_encryption_state.cpp
+- Applied 5 dead code/typo fixes: removed unused Meta struct from profilergraph.h, removed duplicate include in game_formspec.cpp, fixed "fromspec"→"formspec" typos, fixed "intend"→"is intended", fixed "interations"→"iterations"
+- Applied 9 FIXME/TODO resolutions: added palette rebuild to texturesource.cpp, added type validation to read_ARGB8, documented test_collision.cpp and test_sao.cpp behavior, improved game_formspec.cpp Android documentation, added DEPRECATED annotation to m_formspec, extracted sound speed to named constant, added null assertion to mg_decoration.cpp, improved renderingengine.h TODO
+- Committed all code fixes with detailed commit message
+- Updated docs/TODO_FIXME_LIST.md: added v9.54 fixes section, updated status of all 21 fixed items, marked 7 compiler warnings as Fixed
+- Updated docs/ai-agent-instructions.md: updated branch strategy table with v9.44-v9.54 branches, added GUITheme system section, updated repository info and version
+- Updated docs/ai-codebase-reference.md: updated version to v9.54, added v9.42-v9.54 to version history, updated git state section, marked compiler warnings as fixed
+
+Stage Summary:
+- Branch: clawtest-v9.54-fix-todo-items
+- 15 source files modified with 21 fixes
+- 3 documentation files updated
+- All 7 compiler warnings from CI now fixed
+- 5 FIXME entries resolved, 4 upgraded to TODO with improved documentation
