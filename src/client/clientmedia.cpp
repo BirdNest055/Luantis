@@ -245,9 +245,12 @@ void ClientMediaDownloader::initialStep(Client *client)
 		// hash set format and truncate the hashes to 6 bytes -- at the cost of
 		// a false-positive rate of 2^-48 -- which is 70% less space.
 
-		// minor fixme: this loop ignores m_httpfetch_active_limit
+		// NOTE: This loop ignores m_httpfetch_active_limit, meaning all
+		// remote server index fetches are started simultaneously. In
+		// practice this is fine because index.mth files are small, but with
+		// many remote servers it could exceed the active HTTP fetch limit.
 
-		// another minor fixme, unlikely to matter in normal usage:
+		// NOTE: Additionally, these index.mth fetches count against
 		// these index.mth fetches do (however) count against
 		// m_httpfetch_active_limit when starting actual media file
 		// requests, so if there are lots of remote servers that are

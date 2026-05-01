@@ -713,7 +713,10 @@ public:
 
 #if CHECK_CLIENT_BUILD()
         // Set of all shader IDs used by leaves-like nodes
-        // (kind of a hack but is needed for dynamic shadows)
+        // NOTE: This is a design compromise for dynamic shadows — leaves nodes
+        // need special shadow rendering (dithered transparency), and tracking
+        // their shader IDs in a separate list is the simplest way to apply the
+        // shadow pass filter without a per-material flag in the shader system.
         std::vector<u32> m_leaves_materials;
 #endif
 

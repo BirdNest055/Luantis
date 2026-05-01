@@ -3885,7 +3885,8 @@ bool Server::dynamicAddMedia(const DynamicMediaArgs &a)
 
                 // Newer clients get asked to fetch the file (asynchronous)
                 pkt << a.token;
-                // Older clients have an awful hack that just throws the data at them
+                // Older clients use a legacy protocol path that embeds the full
+                // file data directly in the packet (synchronous transfer).
                 legacy_pkt.putLongString(filedata);
 
                 ClientInterface::AutoLock clientlock(m_clients);
@@ -4265,8 +4266,10 @@ void dedicated_server_loop(Server &server, volatile std::sig_atomic_t &kill)
          */
 
         for(;;) {
-                // This is kind of a hack but can be done like this
-                // because server.step() is very light
+                // NOTE: Using sleep_ms() for the server loop is a simple but imprecise
+                // timing approach. It works because server.step() is lightweight, but
+                // drift accumulates over time. A more accurate approach would use a
+                // condition variable with a timed wait or track the next step deadline.
                 sleep_ms((int)(steplen*1000.0f));
                 server.step();
 

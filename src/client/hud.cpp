@@ -397,7 +397,7 @@ void Hud::drawLuaElements(const v3s16 &camera_offset)
 				//   float hud_scale = g_settings->getFloat("hud_scale");
 				//   float dpi_factor = porting::getDisplayDensity();
 				//   font_size = base_font_size * hud_scale * dpi_factor;
-				// This eliminates the need for the offset-based hack entirely.
+				// This eliminates the need for the offset-based workaround entirely.
 				if (font_size > 3 && e->offset.X < -20)
 					font_size -= 3;
 #endif

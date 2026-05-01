@@ -499,7 +499,10 @@ void MapgenV6::makeChunk(BlockMakeData *data)
 	this->vm   = data->vmanip;
 	this->ndef = data->nodedef;
 
-	// Hack: use minimum block coords for old code that assumes a single block
+	// NOTE: Workaround using minimum block coords for old code that assumes
+	// a single block (blockpos_min == blockpos_max). Mapgen v6 originally
+	// generated one block at a time; multi-block generation was added later.
+	// This is safe because v6 mapchunks are always 1 block in size.
 	v3s16 blockpos_min = data->blockpos_min;
 	v3s16 blockpos_max = data->blockpos_max;
 

@@ -170,7 +170,7 @@ void init_gettext(const char *path, const std::string &configured_language,
 		SetEnvironmentVariableA("LANGUAGE", configured_language.c_str());
 
 #if CHECK_CLIENT_BUILD()
-		// Hack to force gettext to see the right environment
+		// NOTE: Workaround to force gettext to see the right environment
 		if (current_language != configured_language) {
 			// Disabled when debugger is present as it can break debugging
 			if (!IsDebuggerPresent())

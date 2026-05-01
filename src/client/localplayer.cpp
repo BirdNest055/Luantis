@@ -376,7 +376,7 @@ void LocalPlayer::move(f32 dtime, Environment *env,
         v3f sneak_max = m_collisionbox.getExtent() * 0.49f;
 
         if (m_sneak_ladder_detected) {
-                // restore legacy behavior (this makes the m_speed.Y hack necessary)
+                // restore legacy behavior (this makes the m_speed.Y workaround necessary)
                 sneak_max = v3f(0.4f * BS, 0.0f, 0.4f * BS);
         }
 

@@ -42,9 +42,9 @@ public:
                         for (uint8_t d = 0; d < Dim; ++d)
                                 if (e.point[d] < min[d] || e.point[d] > max[d])
                                         goto next;
-                        cb(e.point, e.id); // NOTE: Verified — range is inclusive on both
+                        cb(e.point, e.id); // NOTE: Range is inclusive on both
                         // ends (>= min, <= max), which is the correct contract for AABB
-                        // range queries. Former "TODO check" reminder resolved.
+                        // range queries.
                         next: {}
                 }
         }

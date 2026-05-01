@@ -650,7 +650,11 @@ int ModApiMainMenu::l_create_world(lua_State *L)
         }
 
         // Set the settings for world creation
-        // this is a bad hack but the best we have right now..
+        // NOTE: This temporarily overwrites global settings with the requested
+        // world-creation settings, then restores them afterward. This is a
+        // workaround because loadGameConfAndInitWorld() reads from g_settings
+        // rather than accepting parameters. A cleaner approach would be to pass
+        // the settings directly or use a temporary Settings object.
         StringMap backup;
         for (auto &it : use_settings) {
                 if (g_settings->existsLocal(it.first))

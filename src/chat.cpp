@@ -396,7 +396,9 @@ u32 ChatBuffer::formatChatLine(const ChatLine &line, u32 cols,
                                 frag_length = space_pos + 1;
 
                         temp_frag.text = line.text.substr(in_pos, frag_length);
-                        // A hack so this frag remembers mark_newline for the layout phase
+                        // NOTE: Using INT_MAX as a sentinel column value so the layout
+                        // phase knows this fragment starts a new line, avoiding a
+                        // separate boolean field in the fragment struct.
                         temp_frag.column = mark_newline ? INT_MAX : 0;
 
                         if (http_pos == 0) {

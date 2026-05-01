@@ -733,7 +733,7 @@ core::dimension2d<u32> CGUITTFont::getDimension(const wchar_t* text) const
 
 core::dimension2d<u32> CGUITTFont::getDimension(const std::u32string& utext) const
 {
-	// Get the maximum font height.  Unfortunately, we have to do this hack as
+	// Get the maximum font height. Unfortunately, we have to adjust this as
 	// Irrlicht will draw things wrong.  In FreeType, the font size is the
 	// maximum size for a single glyph, but that glyph may hang "under" the
 	// draw line, increasing the total font height to beyond the set size.

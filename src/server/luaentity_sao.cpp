@@ -27,7 +27,9 @@ LuaEntitySAO::LuaEntitySAO(ServerEnvironment *env, v3f pos, const std::string &d
                 std::istringstream is(data, std::ios::binary);
                 // Servers < 5.0.0-dev (PROTOCOL_VERSION < 37) had improper compatibility code,
                 // only handling exactly 'version=0' and 'version=1'. See commit 67049eba. Thus,
-                // we need another variable to build on top of 'version=1'. Ugly hack but works™
+                // we need another variable to build on top of 'version=1'. This is an
+                // ugly compatibility workaround but necessary for backward-compatible
+                // serialization.
                 u8 version2 = 0;
                 u8 version = readU8(is);
 

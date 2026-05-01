@@ -336,7 +336,9 @@ void read_object_properties(lua_State *L, int index,
         int hp_max = 0;
         if (getintfield(L, -1, "hp_max", hp_max)) {
                 prop->hp_max = (u16)rangelim(hp_max, 0, U16_MAX);
-                // hp_max = 0 is sometimes used as a hack to keep players dead, only validate for entities
+                // NOTE: hp_max = 0 is used as a workaround to keep players dead
+                // (a dead player with hp_max=0 cannot be revived). We only validate
+                // this for entities, not players, to allow the death-lock pattern.
                 if (prop->hp_max == 0 && sao->getType() != ACTIVEOBJECT_TYPE_PLAYER)
                         throw LuaError("The hp_max property may not be 0 for entities!");
 
@@ -432,8 +434,10 @@ void read_object_properties(lua_State *L, int index,
         }
         lua_pop(L, 1);
 
-        // This hack exists because the name 'node' easily collides with mods own
-        // usage (or in this case literally builtin/game/falling.lua).
+        // NOTE: The field is read as 'node' here despite 'wield_item' being the
+        // canonical name in the entity definition. This alias exists because
+        // 'node' easily collides with mods' own usage (e.g., falling.lua).
+        // The 'wield_item' name should be preferred in new code.
         if (!fallback) {
                 lua_getfield(L, -1, "node");
                 if (lua_istable(L, -1)) {

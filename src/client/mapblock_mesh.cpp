@@ -648,8 +648,7 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
         v3s16 bp = data->m_blockpos;
         // Generate minimap mapblocks if needed.
         // NOTE: bp is always aligned to the mesh grid, so no alignment step is
-        // needed here. Previously there was a FIXME about potential misalignment,
-        // but the mesh grid is now guaranteed to provide aligned block positions.
+        // needed here. The mesh grid is guaranteed to provide aligned block positions.
         if (data->m_generate_minimap) {
                 // meshgen area always fits into a grid cell
                 m_minimap_mapblocks.resize(mesh_grid.getCellVolume(), nullptr);
