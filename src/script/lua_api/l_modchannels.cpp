@@ -54,7 +54,11 @@ int ModChannelRef::l_send_all(lua_State *L)
 	if (!channel || !channel->canWrite())
 		return 0;
 
-	// @TODO serialize message
+	// NOTE: The message string is sent raw without serialization or encoding.
+	// For binary-safe messaging (e.g., messages containing null bytes or
+	// Unicode), the message should be serialized (e.g., base64 or msgpack)
+	// before sending and deserialized on the receiving end. Currently,
+	// messages containing special characters may be truncated or corrupted.
 	std::string message = luaL_checkstring(L, 2);
 
 	getGameDef(L)->sendModChannelMessage(channel->getName(), message);

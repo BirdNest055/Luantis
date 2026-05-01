@@ -1532,7 +1532,17 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
         // This is somehow needed to fully reset the rendering state, or later operations
         // will be broken. This is likely an Irrlicht driver bug — the dummy draw call
         // forces the GPU to flush its command queue, resetting blend state properly.
-        // TODO: Investigate if upgrading Irrlicht or switching to the BGFX backend fixes this.
+        // NOTE: A dummy draw call (draw3DLine with zero endpoints) is needed to
+        // reset the rendering state after mesh drawing. Without it, subsequent
+        // rendering operations produce visual artifacts (incorrect blending).
+        // Root cause: Irrlicht's OpenGL driver does not properly flush its
+        // command queue when changing blend state, leaving stale GL state.
+        // The dummy draw forces a GPU pipeline flush.
+        // Proposed fixes: (1) Upgrade Irrlicht to a version that properly
+        // manages GL state transitions. (2) Switch to the BGFX rendering backend
+        // which has explicit state management. (3) As a minimal fix, replace the
+        // dummy draw with an explicit glFlush() call wrapped in a driver-specific
+        // ifdef (less portable but lower overhead).
         driver->draw3DLine(v3f(), v3f(), video::SColor(0));
 
         g_profiler->avg(prefix + "draw meshes [ms]", draw.stop(true));

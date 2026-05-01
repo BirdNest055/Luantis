@@ -363,7 +363,13 @@ const v3f GenericCAO::getPosition() const
         if (m_matrixnode) {
         // Work around #16221: camera position offset not in sync with player CAO position.
         // Restrict this workaround to local player only as suggested in original FIXME.
-        // TODO: Better solution would keep player and camera positions in sync.
+        // NOTE: A proper fix would synchronize the player CAO position and camera
+        // position through a shared update cycle rather than applying camera offset
+        // as a post-hoc workaround. The root cause is that the scene graph
+        // (MatrixNode) and the camera are updated at different points in the frame,
+        // leading to a one-frame offset. Fix: Update both in the same step, or
+        // derive the camera position directly from the scene graph node instead of
+        // maintaining a separate pos_translator for the CAO.
         if (m_env && m_env->getLocalPlayer() &&
                         m_env->getLocalPlayer()->getCAO() == this) {
                 GenericCAO::updateParentChain();

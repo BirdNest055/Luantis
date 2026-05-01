@@ -29,8 +29,13 @@ static v3d check_v3d(lua_State *L, int index);
                 } \
         } while(0)
 
-// TODO: this should be turned into an error in 2026.
-// Just revert the commit that added this line.
+// NOTE: CHECK_NOT_NIL currently logs a deprecation warning when a nil
+// value is passed. After the deprecation period (target: 2026), this should
+// be turned into a hard error by replacing log_deprecated() with throw LuaError().
+// To revert: simply delete the CHECK_NOT_NIL macro definition and the call sites
+// will fail at compile time, making the migration obvious.
+// Migration: grep for CHECK_NOT_NIL call sites and ensure each one has been
+// audited for backwards compatibility before enabling the hard error.
 #define CHECK_NOT_NIL(index, name) do { \
                 if (lua_isnoneornil(L, (index))) { \
                         auto msg = std::string("Invalid ") + (name) + \

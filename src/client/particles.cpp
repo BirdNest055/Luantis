@@ -484,7 +484,12 @@ void ParticleSpawner::spawnParticle(ClientEnvironment *env, float radius,
 		return;
 
 	// synchronize animation length with particle life if desired
-	// Moved to TileAnimationParams::calculateForParticle (FIXME #488)
+	// NOTE: Animation length synchronization was moved from here to
+	// TileAnimationParams::calculateForParticle() (see #488). The original
+	// inline code was fragile because it mixed particle lifetime logic with
+	// animation parameter parsing. The new method is called from both
+	// particle creation paths (spawn and server-specified) to ensure
+	// consistent animation timing regardless of how the particle is created.
 	if (pp.animation.type != TAT_NONE) {
 		pp.animation.calculateForParticle(pp.expirationtime);
 	}

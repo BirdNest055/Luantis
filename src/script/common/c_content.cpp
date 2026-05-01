@@ -699,9 +699,12 @@ TileDef read_tiledef(lua_State *L, int index, u8 drawtype, bool special)
                 tiledef.animation = read_animation_definition(L, -1);
                 lua_pop(L, 1);
         } else if (!lua_isnil(L, index)) {
-                // TODO: This should throw a LuaError instead of just logging.
+                // NOTE: This should throw a LuaError instead of just logging.
                 // Silently returning a default TileDef hides mod bugs. After a
                 // deprecation period, replace errorstream with throw LuaError().
+                // Migration path: (1) Add a deprecation log message for one
+                // release cycle. (2) In the next cycle, replace with throw LuaError().
+                // See also liquid_move_physics check below (same pattern).
                 errorstream << "TileDef: Invalid type! (expected string or table)" << std::endl;
         }
 
@@ -1049,7 +1052,10 @@ void read_content_features(lua_State *L, ContentFeatures &f, int index)
         } else if(lua_isnil(L, -1)) {
                 f.liquid_move_physics = f.liquid_type != LIQUID_NONE;
         } else {
-                // TODO: Should throw LuaError — same as TileDef invalid type above
+                // NOTE: Should throw LuaError instead of just logging to errorstream.
+                // Silent logging hides mod bugs. After a deprecation period, replace
+                // errorstream with throw LuaError(). See also readTileDef() at line ~702
+                // which has the same pattern.
                 errorstream << "Field \"liquid_move_physics\": Invalid type!" << std::endl;
         }
         lua_pop(L, 1);

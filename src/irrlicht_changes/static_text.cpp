@@ -24,7 +24,7 @@ StaticText::StaticText(const EnrichedString &text, bool border,
 : IGUIStaticText(environment, parent, id, rectangle),
         HAlign(EGUIA_UPPERLEFT), VAlign(EGUIA_UPPERLEFT),
         Border(border), WordWrap(false), Background(background),
-        RestrainTextInside(true), RightToLeft(false),
+        OverrideColorEnabled(true), RestrainTextInside(true), RightToLeft(false),
         OverrideFont(0), LastBreakFont(0)
 {
         setText(text);
@@ -246,13 +246,13 @@ video::SColor StaticText::getActiveColor() const
 //! color in the gui skin.
 void StaticText::enableOverrideColor(bool enable)
 {
-        // TODO
+        OverrideColorEnabled = enable;
 }
 
 
 bool StaticText::isOverrideColorEnabled() const
 {
-        return true;
+        return OverrideColorEnabled;
 }
 
 

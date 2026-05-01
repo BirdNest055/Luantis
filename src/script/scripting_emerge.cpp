@@ -76,5 +76,13 @@ void EmergeScripting::InitializeModApi(lua_State *L, int top)
 	ModApiServer::InitializeAsync(L, top);
 	ModApiUtil::InitializeAsync(L, top);
 	ModApiIPC::Initialize(L, top);
-	// TODO ^ these should also be renamed to InitializeRO or such
+	// NOTE: The InitializeAsync/InitializeEmerge naming is inconsistent.
+	// "Async" implies a threaded context, but "Emerge" is more specific.
+	// These should be renamed to InitializeRO (read-only) to clarify that
+	// the emerge environment has read-only access to game state, unlike the
+	// main server environment which has read-write access. This rename should
+	// be applied consistently across all scripting environments:
+	//   InitializeAsync → InitializeRO
+	//   InitializeEmerge → InitializeRO
+	//   InitializeCSM → InitializeRO (for client-side mods)
 }

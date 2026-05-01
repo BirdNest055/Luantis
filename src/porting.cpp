@@ -570,7 +570,12 @@ bool setSystemPaths()
         if (user_path_env) {
                 path_user = std::move(user_path_env.value());
         } else {
-                // TODO: luanti with migration
+                // NOTE: Path still uses "minetest" for backward compatibility.
+                // Migration plan: change to "luanti" and add a one-time migration:
+                //   1. If new path ($HOME/.luanti or $XDG_*/luanti) exists → use it
+                //   2. Else if old path exists → move it to new path, then use new path
+                //   3. Else → create new path
+                // This must be coordinated across all platforms (Linux, macOS, other).
                 path_user = std::string(getHomeOrFail()) + DIR_DELIM "." "minetest";
         }
 
@@ -599,7 +604,12 @@ bool setSystemPaths()
         if (user_path_env) {
                 path_user = std::move(user_path_env.value());
         } else {
-                // TODO: luanti with migration
+                // NOTE: Path still uses "minetest" for backward compatibility.
+                // Migration plan: change to "luanti" and add a one-time migration:
+                //   1. If new path ($HOME/.luanti or $XDG_*/luanti) exists → use it
+                //   2. Else if old path exists → move it to new path, then use new path
+                //   3. Else → create new path
+                // This must be coordinated across all platforms (Linux, macOS, other).
                 path_user = std::string(getHomeOrFail())
                         + "/Library/Application Support/" "minetest";
         }
@@ -617,7 +627,12 @@ bool setSystemPaths()
         if (user_path_env) {
                 path_user = std::move(user_path_env.value());
         } else {
-                // TODO: luanti with migration
+                // NOTE: Path still uses "minetest" for backward compatibility.
+                // Migration plan: change to "luanti" and add a one-time migration:
+                //   1. If new path ($HOME/.luanti or $XDG_*/luanti) exists → use it
+                //   2. Else if old path exists → move it to new path, then use new path
+                //   3. Else → create new path
+                // This must be coordinated across all platforms (Linux, macOS, other).
                 path_user  = std::string(getHomeOrFail()) + DIR_DELIM "." "minetest";
         }
         return true;
@@ -725,11 +740,21 @@ void initializePaths()
         const char *cache_dir = getenv("XDG_CACHE_HOME");
         const char *home_dir = getenv("HOME");
         if (cache_dir && cache_dir[0] != '\0') {
-                // TODO: luanti with migration
+                // NOTE: Path still uses "minetest" for backward compatibility.
+                // Migration plan: change to "luanti" and add a one-time migration:
+                //   1. If new path ($HOME/.luanti or $XDG_*/luanti) exists → use it
+                //   2. Else if old path exists → move it to new path, then use new path
+                //   3. Else → create new path
+                // This must be coordinated across all platforms (Linux, macOS, other).
                 path_cache = std::string(cache_dir) + DIR_DELIM "minetest";
         } else if (home_dir) {
                 // Then try $HOME/.cache/PROJECT_NAME
-                // TODO: luanti with migration
+                // NOTE: Path still uses "minetest" for backward compatibility.
+                // Migration plan: change to "luanti" and add a one-time migration:
+                //   1. If new path ($HOME/.luanti or $XDG_*/luanti) exists → use it
+                //   2. Else if old path exists → move it to new path, then use new path
+                //   3. Else → create new path
+                // This must be coordinated across all platforms (Linux, macOS, other).
                 path_cache = std::string(home_dir) + DIR_DELIM ".cache"
                         DIR_DELIM "minetest";
         } else {

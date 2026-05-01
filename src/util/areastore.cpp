@@ -56,9 +56,15 @@ void AreaStore::serialize(std::ostream &os) const
 
         writeU8(os, 0); // Serialization version
 
-        // TODO: Add optional zlib/zstd compression for AreaStore serialization.
-        // Large area stores (e.g., protector mods) would benefit significantly.
-        // Add a version 2 format with a compression flag byte and compressed payload.
+        // NOTE: AreaStore serialization is currently uncompressed, which is
+        // wasteful for large area stores (e.g., protector mods with thousands of
+        // areas). Proposed implementation:
+        // 1. Add a version 2 serialization format with a compression flag byte
+        // 2. When writing: if data > 1KB, compress with zstd (preferred) or zlib
+        // 3. When reading: check version byte, decompress if flag is set
+        // 4. Keep version 1 as fallback for backwards compatibility
+        // Compression ratio for typical area data is ~5-10x, making this
+        // worthwhile for any store with > 100 areas.
         writeU16(os, areas_map.size());
         for (const auto &it : areas_map) {
                 const Area &a = it.second;

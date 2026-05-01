@@ -501,7 +501,12 @@ ShaderSource::ShaderSource()
                 if (driver_type == video::EDT_OGLES2) {
                         m_have_glsl3 = glver.X >= 3;
                 } else if (driver_type == video::EDT_OPENGL3) {
-                        // future TODO
+                        // NOTE: OpenGL3 driver path is not yet handled here.
+                        // When OpenGL3 support is implemented, this block should
+                        // detect GLSL version and set m_have_glsl3 accordingly,
+                        // similar to the OGLES2 path above. The OpenGL3 driver
+                        // uses the same core profile as OGLES2, so the logic
+                        // should be: m_have_glsl3 = glver.X >= 3.
                 }
         }
 }

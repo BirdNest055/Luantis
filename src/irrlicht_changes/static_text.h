@@ -163,6 +163,7 @@ namespace gui
 		bool Border;
 		bool WordWrap;
 		bool Background;
+		bool OverrideColorEnabled;
 		bool RestrainTextInside;
 		bool RightToLeft;
 

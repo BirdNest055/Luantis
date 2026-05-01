@@ -357,7 +357,12 @@ u32 ChatBuffer::formatChatLine(const ChatLine &line, u32 cols,
                                 frag_length = 6;  // Frag is at least "http://"
 
                                 // Chars to mark end of weblink
-                                // TODO? replace this with a safer (slower) regex whitelist?
+                                // NOTE: Weblink URL detection uses a blacklist approach
+                                // (delim_chars = \''";) rather than a whitelist of allowed URL
+                                // characters. This can be tricked by crafted URLs. A whitelist
+                                // regex (e.g., [a-zA-Z0-9:/_.~?&%+=@-]) would be safer but
+                                // slower for long messages. If performance is a concern, consider
+                                // std::regex with an optimized DFA or a hand-rolled state machine.
                                 static const std::wstring delim_chars = L"\'\";";
                                 wchar_t tempchar = linestring[in_pos+frag_length];
                                 while (frag_length < remaining_in_input &&

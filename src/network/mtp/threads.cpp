@@ -1641,7 +1641,15 @@ SharedBuffer<u8> ConnectionReceiveThread::handlePacketType_Reliable(Channel *cha
         if (channel->incoming_reliables.getFirstSeqnum(queued_seqnum)) {
                 if (queued_seqnum == seqnum) {
                         BufferedPacketPtr queued_packet = channel->incoming_reliables.popFirst();
-                        /** TODO find a way to verify the new against the old packet */
+                        /** NOTE: When a retransmitted reliable packet arrives with the
+                            same seqnum as one already queued, the old packet is discarded
+                            and replaced with the new one. Ideally we would verify that
+                            the payloads match (same seqnum should imply same content).
+                            However, the comparison is not trivial because the inner packet
+                            may have been processed differently (e.g., split reassembly).
+                            Proposed fix: Store a SHA-256 hash of each queued packet's
+                            payload and compare hashes before discarding the old packet.
+                            Log a warning on mismatch to detect retransmission bugs. */
                 }
         }
 

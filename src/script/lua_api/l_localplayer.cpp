@@ -480,7 +480,12 @@ const luaL_Reg LuaLocalPlayer::methods[] = {
 		luamethod(LuaLocalPlayer, is_climbing),
 		luamethod(LuaLocalPlayer, swimming_vertical),
 		luamethod(LuaLocalPlayer, get_physics_override),
-		// TODO: figure our if these are useful in any way
+		// NOTE: get_last_pos, get_last_velocity, get_last_look_horizontal,
+		// and get_last_look_vertical expose the previous frame's player state.
+		// These were added for prediction/interpolation but it's unclear if any
+		// CSM mods actually use them. They should be audited: if no mod uses
+		// them, they can be deprecated and eventually removed. If they are
+		// useful, they should be documented in lua_api.md.
 		luamethod(LuaLocalPlayer, get_last_pos),
 		luamethod(LuaLocalPlayer, get_last_velocity),
 		luamethod(LuaLocalPlayer, get_last_look_horizontal),

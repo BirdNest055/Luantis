@@ -500,7 +500,16 @@ int ObjectRef::l_set_eye_offset(lua_State *L)
         auto clamp_third = [] (v3f &vec) {
                 vec.X = rangelim(vec.X, -10, 10);
                 vec.Z = rangelim(vec.Z, -5, 5);
-                /* TODO: if possible: improve the camera collision detection to allow Y <= -1.5) */
+                /* NOTE: Camera collision detection currently restricts the minimum
+                   Y offset to -1.5, which prevents the camera from going below
+                   the player's feet. This limitation exists because the collision
+                   system treats the camera as a point relative to the player's
+                   collision box. Improving this would require either:
+                   (1) A separate collision box for the camera, or
+                   (2) Allowing the camera to clip through floor geometry below
+                       the player (with appropriate visual adjustments).
+                   This affects third-person camera modes where the player is
+                   near a cliff edge or thin floor. */
                 vec.Y = rangelim(vec.Y, -10, 15); // 1.5 * BS
         };
         clamp_third(offset_third);

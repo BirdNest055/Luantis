@@ -352,7 +352,12 @@ void ClientLauncher::setting_changed_callback(const std::string &name, void *dat
 
 static video::ITexture *loadTexture(video::IVideoDriver *driver, const char *path)
 {
-        // FIXME?: it would be cleaner to do this through a ITextureSource, but we don't have one
+        // NOTE: Loading textures directly through IVideoDriver rather than
+        // ITextureSource because the client launcher runs before the full client
+        // is initialized (no ITextureSource available yet). This bypasses the
+        // texture caching and naming system. A proper fix would be to either:
+        // (1) Initialize ITextureSource earlier in the launch sequence, or
+        // (2) Move the texture loading to after the client is created.
         video::ITexture *texture = nullptr;
         verbosestream << "Loading texture " << path << std::endl;
         if (auto *image = driver->createImageFromFile(path); image) {
