@@ -140,10 +140,12 @@ public:
 	// can provide these directly since it owns the MapgenParams.
 	MapgenParams *mgparams;
 
-	// Hackish workaround:
-	// For now, EmergeManager must hold onto a ptr to the Map's setting manager
-	// since the Map can only be accessed through the Environment, and the
+	// NOTE: Workaround — EmergeManager must hold onto a ptr to the Map's setting
+	// manager since the Map can only be accessed through the Environment, and the
 	// Environment is not created until after script initialization.
+	// To fix: Make MapSettingsManager accessible independently of the Environment,
+	// or restructure initialization so EmergeManager gets the Map ptr after
+	// Environment creation.
 	MapSettingsManager *map_settings_mgr;
 
 	// Methods

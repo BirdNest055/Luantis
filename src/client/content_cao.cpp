@@ -1862,8 +1862,10 @@ void GenericCAO::updateMeshCulling()
 
         if (hidden) {
                 // Hide the mesh by culling both front and
-                // back faces. Serious hackyness but it works for our
+                // back faces. This is a workaround but it works for our
                 // purposes. This also preserves the skeletal armature.
+                // A proper solution would use node->setVisible(false), but that
+                // can break skeletal armature updates on some Irrlicht versions.
                 node->forEachMaterial([] (auto &mat) {
                         mat.BackfaceCulling = true;
                         mat.FrontfaceCulling = true;

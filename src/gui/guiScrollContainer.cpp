@@ -27,7 +27,9 @@ bool GUIScrollContainer::OnEvent(const SEvent &event)
 		Environment->setFocus(m_scrollbar);
 		bool retval = m_scrollbar->OnEvent(event);
 
-		// a hacky fix for updating the hovering and co.
+		// NOTE: Workaround for updating hover state after scrollbar events.
+		// The scrollbar's OnEvent() consumes the event, so we manually
+		// recalculate the hovered element to keep the UI state consistent.
 		IGUIElement *hovered_elem = getElementFromPoint(core::position2d<s32>(
 				event.MouseInput.X, event.MouseInput.Y));
 		SEvent mov_event = event;
