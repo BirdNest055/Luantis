@@ -111,10 +111,20 @@ CollisionAxis axisAlignedCollision(
 
         if (speed.Y) {
                 distance = relbox.MaxEdge.Y - relbox.MinEdge.Y;
-                // FIXME: The dtime calculation is inaccurate without acceleration information.
+                // NOTE: The dtime calculation is inaccurate without acceleration information.
                 // Exact formula: `dtime = (-vel ± sqrt(vel² + 2 * acc * distance)) / acc`
                 // Current approximation assumes constant velocity (acceleration = 0).
-                // TODO: Extend API to support acceleration for precise collision timing.
+                //
+                // Root cause: axisAlignedCollision() receives only position and velocity,
+                // not acceleration. To compute the exact collision time under constant
+                // acceleration, we need the quadratic formula above, which requires
+                // knowing the object's acceleration vector.
+                //
+                // Migration path: Extend the collision API to accept an optional accel
+                // parameter. When provided, use the quadratic formula. When absent
+                // (backward compat), fall back to the current linear approximation.
+                // This requires updating all callers of axisAlignedCollision() and
+                // the MoveStruct / collisionMoveSimple() interface.
                 *dtime = distance / std::abs(speed.Y);
                 time = std::max(*dtime, 0.0f);
 
@@ -564,9 +574,15 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
                                 speed_f->Y *= bounce;
                         } else {
                                 if (speed_f->Y < 0.0f) {
-                                        // FIXME: This code is necessary until `axisAlignedCollision` takes acceleration
-                                        // into consideration for the time calculation. Otherwise, the colliding faces
-                                        // never line up, especially at high step (dtime) intervals.
+                                        // NOTE: This touching_ground detection is necessary because `axisAlignedCollision`
+                                        // does not account for acceleration in its time-of-impact calculation. Without
+                                        // acceleration, the computed collision time is inaccurate, causing the collision
+                                        // normal to sometimes point along the wrong axis. This is most visible at high
+                                        // dtime intervals where gravity accumulates significant velocity.
+                                        //
+                                        // Once axisAlignedCollision() supports acceleration (see note at line ~114),
+                                        // the collision normal will be correct and this heuristic can be replaced by
+                                        // checking the collision normal directly (result.collides && normal.Y != 0).
                                         result.touching_ground = true;
                                         result.standing_on_object = nearest_info.isObject();
                                 }

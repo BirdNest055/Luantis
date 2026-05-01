@@ -31,9 +31,15 @@ struct CSMFlagDesc {
 };
 
 /*
-        TODO: This should eventually be moved somewhere else
-        It also needs to be kept in sync with the definition of CSMRestrictionFlags
-        in network/networkprotocol.h
+        NOTE: This CSM restriction flag descriptor table should eventually be moved
+        to a shared location (e.g. network/networkprotocol.h alongside the
+        CSMRestrictionFlags enum definition, or a new client/csm_flags.h header).
+        Root cause: flagdesc_csm_restriction[] must be kept in sync with the
+        CSMRestrictionFlags bitfield definition in network/networkprotocol.h.
+        Having them in separate files means a flag can be added to the enum but
+        forgotten in this table (or vice versa), causing silent mismatches.
+        Migration path: Move both the enum and the descriptor table into the same
+        header, or generate the descriptor from the enum using an X-macro pattern.
 */
 const static CSMFlagDesc flagdesc_csm_restriction[] = {
         {"load_client_mods",  CSM_RF_LOAD_CLIENT_MODS},

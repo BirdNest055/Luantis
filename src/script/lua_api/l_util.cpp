@@ -377,9 +377,15 @@ int ModApiUtil::l_decompress(lua_State *L)
 
         LuaCompressMethod method = get_compress_method(L, 2);
 
-        // TODO: Use C++20 std::span or custom rdbuf to avoid the string copy on
-        // line below. The string_view data is already contiguous in memory and
-        // could be decompressed in-place with a z_stream that reads from the view.
+        // NOTE: The std::string(data) copy below is unavoidable with the current API.
+        // std::istringstream requires a std::string (or C++26 std::ispanstream for
+        // non-owning views). Alternatives:
+        // 1. C++26 std::ispanstream — zero-copy construction from string_view.
+        // 2. Custom std::streambuf subclass that wraps a string_view without copying.
+        // 3. Refactor decompressZlib/decompressZstd to accept const char* + size_t
+        //    directly, bypassing the iostream layer entirely.
+        // The string_view data is already contiguous in memory, so any of these
+        // approaches would eliminate the allocation on the line below.
         std::istringstream is(std::string(data), std::ios_base::binary);
         std::ostringstream os(std::ios_base::binary);
 

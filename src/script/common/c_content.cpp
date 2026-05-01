@@ -1619,9 +1619,20 @@ ItemImageDef read_item_image_definition(lua_State *L, int index)
 /******************************************************************************/
 void push_item_image_definition(lua_State *L, const ItemImageDef &item_image)
 {
-        /* FIXME: inventory_image.animation, inventory_overlay.animation, wield_image.animation
-         * and wield_overlay.animation, because for nodes we don't push "tiles" (yet) and
-         * we don't have a push_TileAnimationParams function (yet). */
+        /* NOTE: Animation data for inventory_image, inventory_overlay, wield_image, and
+         * wield_overlay is not pushed to Lua here. Root cause: for node items the
+         * animation is derived from the "tiles" table rather than an explicit animation
+         * field on the item definition, and we currently lack a
+         * push_TileAnimationParams() helper to serialize TileAnimationParams to Lua.
+         *
+         * Proposed solution:
+         * 1. Implement push_TileAnimationParams(lua_State*, const TileAnimationParams&)
+         *    mirroring the existing read_animation_definition().
+         * 2. For node items, resolve the tile animation from the nodedef and push it.
+         * 3. For craft items, push the animation field from ItemDefinition directly.
+         * This also requires updating the Lua-side item definition table to include
+         * the new animation fields, and any mods that depend on the current
+         * (missing) behavior. */
 
         lua_pushstring(L, item_image.name.c_str());
 

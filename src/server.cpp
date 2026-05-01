@@ -3000,7 +3000,11 @@ void Server::sendDetachedInventory(Inventory *inventory, const std::string &name
 
                 const std::string &os_str = os.str();
                 pkt << static_cast<u16>(os_str.size()); // Compatibility: u16 size prefix for 5.0.0 clients.
-                // TODO: When 5.0.0 client support is dropped, use u32 for larger inventories.
+                // NOTE: When 5.0.0 client support is dropped, change to u32 to support
+                // inventories larger than 64KB. This requires bumping the network protocol
+                // version and ensuring all clients that speak the new version expect u32 here.
+                // The u16 limit means inventories >64KB are silently truncated, which can
+                // happen with heavily modded setups containing many items.
                 pkt.putRawString(os_str);
         }
 

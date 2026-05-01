@@ -128,3 +128,92 @@
 2026-04-25 10:53:56: ACTION[Main]: World at [/tmp/clawtest-enc-test-25571/world]
 2026-04-25 10:53:56: ACTION[Main]: Server for gameid="devtest" listening on [::]:30003.
 2026-04-25 10:54:01: ACTION[Main]: Server: Shutting down
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:05:39: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:05:39: WARNING[Main]: Irrlicht: Could not create window: Could not initialize OpenGL / GLES library
+2026-05-01 09:05:39: WARNING[Main]: Irrlicht: Could not create window: Could not initialize OpenGL / GLES library
+2026-05-01 09:05:39: WARNING[Main]: Irrlicht: Could not create window: Could not initialize OpenGL / GLES library
+2026-05-01 09:05:39: WARNING[Main]: Irrlicht: Could not create window: Could not initialize OpenGL / GLES library
+2026-05-01 09:05:39: WARNING[Main]: Irrlicht: Could not create window: Could not initialize OpenGL / GLES library
+2026-05-01 09:05:39: ERROR[Main]: Irrlicht: Could not create window and context!
+2026-05-01 09:05:39: ERROR[Main]: Could not initialize any supported video driver!
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:15:57: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:15:57: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:18:09: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:18:09: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:19:35: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:19:35: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:21:16: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:21:16: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:23:48: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:23:48: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:25:21: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:26:14: ERROR[Main]: Audio: Global Initialization: Failed to open device
+
+
+-------------
+  Separator
+-------------
+
+2026-05-01 09:28:15: [Main]: Automatically selecting world at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:28:15: ERROR[Main]: Audio: Global Initialization: Failed to open device
+2026-05-01 09:28:15: ACTION[ServerStart]: [log] modname="log"
+2026-05-01 09:28:15: ACTION[ServerStart]: [log] modpath="/home/z/my-project/Luantis/games/devtest/mods/log"
+2026-05-01 09:28:15: ACTION[ServerStart]: [log] worldpath="/home/z/my-project/Luantis/bin/../worlds/world"
+2026-05-01 09:28:15: ACTION[ServerStart]: [log] Callback: on_mods_loaded()
+2026-05-01 09:28:15: ACTION[ServerStart]: World at [/home/z/my-project/Luantis/bin/../worlds/world]
+2026-05-01 09:28:15: ACTION[ServerStart]: Server for gameid="devtest" listening on 127.0.0.1:54301.
+2026-05-01 09:28:15: ACTION[Main]: [ENC:TRACE] Encryption trace file: /home/z/my-project/Luantis/bin/../encryption_trace.log
+2026-05-01 09:28:16: ACTION[Server]: [give_initial_stuff] Giving initial stuff to singleplayer
+2026-05-01 09:28:16: ACTION[Server]: singleplayer [127.0.0.1] joins game. List of players: singleplayer
+2026-05-01 09:28:16: ACTION[Main]: [ENC:SECURITY] Security score updated from live connection state | old_score=30 | new_score=0 | encryption_active=no | ecdh_completed=no | session_id=
+2026-05-01 09:28:18: ACTION[Main]: CHAT: This is the "Development Test" [devtest], meant only for testing and development.
+2026-05-01 09:28:56: ACTION[Server]: singleplayer leaves game. List of players: 
+2026-05-01 09:28:56: ACTION[ServerStop]: Server: Shutting down
