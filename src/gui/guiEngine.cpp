@@ -659,8 +659,13 @@ bool GUIEngine::downloadFile(const std::string &url, const std::string &target)
                 fs::DeleteSingleFileOrEmptyDirectory(target, true);
                 return false;
         }
-        // TODO: Stream the response data directly into the file instead of buffering
-        // the entire response in memory. Use a streaming HTTP write callback.
+        // NOTE: The entire HTTP response is buffered in fetch_result.data before
+        // being written to disk. For large downloads, this wastes memory. A streaming
+        // approach would write chunks as they arrive. Implementation: modify
+        // httpfetch to accept a write callback (std::function<bool(const std::string&)>)
+        // that writes each chunk to the file. This requires refactoring
+        // httpfetch_sync_interruptible() to support incremental response handling
+        // and updating the HTTPFetchResult API.
         target_file << fetch_result.data;
 
         return true;

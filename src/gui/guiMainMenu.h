@@ -16,7 +16,10 @@ struct MainMenuDataForScript {
         std::string errormessage = "";
 };
 
-// TODO: Unify with GameStartData (src/gameparams.h) — see cross-reference there.
+// NOTE: MainMenuData overlaps with GameStartData (src/gameparams.h).
+// Both structs contain: name, password, address, port, etc. See cross-reference
+// in gameparams.h. Migration: define a shared connection_params struct, have both
+// MainMenuData and GameStartData compose it, and remove the duplicate fields.
 struct MainMenuData {
         // Client options
         std::string servername;
