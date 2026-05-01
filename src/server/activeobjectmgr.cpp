@@ -118,7 +118,7 @@ void ActiveObjectMgr::invalidateActiveObjectObserverCaches()
 
 void ActiveObjectMgr::updateObjectPos(u16 id, v3f pos)
 {
-        // HACK: Only update the spatial index if the object already exists in
+        // NOTE (was HACK): Only update the spatial index if the object already exists in
         // m_active_objects. During object creation, updateObjectPos() can be called
         // before the object is fully inserted into m_active_objects (race between
         // construction and position initialization). Without this guard, we would

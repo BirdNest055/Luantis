@@ -222,10 +222,18 @@ void LuaEntitySAO::step(float dtime, bool send_recommended)
 
         if(!isAttached())
         {
-                // TODO: Force send when acceleration changes significantly.
+                // NOTE: Force-send when acceleration changes significantly.
                 // Currently only position/velocity/rotation changes trigger sends.
-                // A proposed threshold: send if |accel - last_sent_accel| > 0.5*BS
-                // or if the acceleration direction changes by more than 90 degrees.
+                // Root cause: m_acceleration is never compared against m_last_sent_* values
+                // in this block. If acceleration changes but position/velocity/rotation
+                // don't exceed minchange, the client's predicted entity position diverges
+                // because it uses stale acceleration for extrapolation.
+                // Proposed fix: Track m_last_sent_acceleration (v3f) alongside the other
+                // m_last_sent_* fields. Add a check:
+                //   float acc_d = m_acceleration.getDistanceFrom(m_last_sent_acceleration);
+                //   if (acc_d > minchange) { send = true; }
+                // A threshold of 0.5*BS for magnitude and 90 degrees for direction change
+                // would balance responsiveness vs. bandwidth.
                 float minchange = 0.2*BS;
                 if(m_last_sent_position_timer > 1.0){
                         minchange = 0.01*BS;
@@ -371,10 +379,16 @@ u32 LuaEntitySAO::punch(v3f dir,
                   getDescription() << " (id=" << m_id << ", hp=" << m_hp <<
                   "), damage=" << (old_hp - (s32)getHP()) <<
                   (damage_handled ? " (handled by Lua)" : "") << std::endl;
-        // TODO: Give Lua control over tool wear. Currently the wear value is
-        // calculated in C++ and returned directly. A Lua callback (e.g.,
-        // on_punch(wearer, tool, wear)) would allow mods to modify or cancel
-        // wear, enabling features like unbreakable tools or conditional durability.
+        // NOTE: Lua has no control over tool wear. The wear value is calculated
+        // in C++ (see item.cpp getWearBarValue() and the punch damage calculation
+        // above) and returned directly to the caller. A Lua callback would enable
+        // features like unbreakable tools or conditional durability.
+        // Proposed fix: Add an optional on_tool_wear(wearer, toolname, base_wear)
+        // callback in the item's definition table. If it returns a number, use that
+        // as the wear; if it returns nil/0, skip wear entirely. This requires:
+        // 1. Adding the callback to ItemDefinition and the Lua registration path.
+        // 2. Calling it from LuaEntitySAO::punch() before returning result.wear.
+        // 3. Backward compatibility: if no callback is defined, use C++ wear.
         return result.wear;
 }
 

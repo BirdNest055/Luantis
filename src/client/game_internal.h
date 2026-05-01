@@ -350,12 +350,25 @@ private:
         IntervalLimiter profiler_interval;
 
         /*
-         * TODO: Local caching of settings is not optimal and should at some stage
+         * NOTE: Local caching of settings is not optimal and should at some stage
          *       be updated to use a global settings object for getting these values
-         *       (as opposed to this local caching). The settings change callback
-         *       system (g_settings->registerChangedCallback) could be used to
-         *       invalidate caches when values change. See also Camera::readSettings()
-         *       in src/client/camera.cpp which has the same pattern.
+         *       (as opposed to this local caching).
+         *
+         * Root cause: Each m_cache_* field is read from g_settings once at startup
+         * and never refreshed. If a user changes a setting at runtime (via /set or
+         * the settings menu), the cached value becomes stale until restart.
+         *
+         * Proposed fix:
+         *   1. Register a settings change callback via
+         *      g_settings->registerChangedCallback("setting_key", callback, this)
+         *      for each cached setting, updating the corresponding m_cache_* field.
+         *   2. Alternatively, replace all m_cache_* fields with direct
+         *      g_settings->getBool()/getFloat() calls — the Settings class already
+         *      caches internally via its mutex-protected map, so the overhead is
+         *      minimal. This eliminates the stale-cache problem entirely.
+         *   3. If callbacks are used, deregister in the destructor.
+         * See also: Camera::readSettings() in camera.cpp, ServerEnvironment
+         * m_cache_* in serverenvironment.h — same pattern.
          */
         bool m_cache_doubletap_jump;
         bool m_cache_toggle_sneak_key;

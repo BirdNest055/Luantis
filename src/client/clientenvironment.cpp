@@ -129,7 +129,7 @@ void ClientEnvironment::step(float dtime)
                 if (!free_move) {
                         // Gravity
                         if (!is_climbing && !lplayer->in_liquid)
-                                // HACK: The factor 2 applied to gravity is an arbitrary multiplier that
+                                // NOTE (was HACK): The factor 2 applied to gravity is an arbitrary multiplier that
                                 // compensates for the collision system not accounting for acceleration
                                 // (see collision.cpp:114). Without this factor, entities fall at roughly
                                 // half the expected speed because the collision time calculation assumes
@@ -148,7 +148,7 @@ void ClientEnvironment::step(float dtime)
                         if (!is_climbing && lplayer->in_liquid &&
                                         !lplayer->swimming_vertical &&
                                         !lplayer->swimming_pitch)
-                                // HACK: Same factor-2 compensation as gravity above — liquid sinking
+                                // NOTE (was HACK): Same factor-2 compensation as gravity above — liquid sinking
                                 // also uses the constant-velocity time approximation in the collision
                                 // system, so we double the sink speed to compensate. Once acceleration-
                                 // aware collision is implemented, remove the *2 and adjust

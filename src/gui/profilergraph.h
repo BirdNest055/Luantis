@@ -18,10 +18,24 @@ namespace video {
 class ProfilerGraph
 {
 private:
-        // TODO: This data structure is awfully inefficient — Piece copies the
+        // NOTE: This data structure is awfully inefficient — Piece copies the
         // entire Profiler::GraphValues (std::map<std::string, float>) into a
-        // deque entry every frame. Consider using a ring buffer of flat arrays
-        // or per-graph deques keyed by metric name to reduce per-frame allocations.
+        // deque entry every frame.
+        //
+        // Root cause: Profiler::GraphValues is a std::map<std::string, float>.
+        // Each put() call copies the entire map into a new Piece, then appends
+        // it to m_log. With ~60 put() calls/sec and potentially hundreds of
+        // profiler keys, this creates significant per-frame allocation overhead.
+        //
+        // Proposed fix options:
+        //   1. Ring buffer of flat arrays: replace std::deque<Piece> with a
+        //      fixed-size circular buffer of std::vector<std::pair<std::string,float>>
+        //      to avoid map node allocations per frame.
+        //   2. Per-graph deques keyed by metric name: store each metric's time
+        //      series in its own deque<float>, eliminating redundant string
+        //      copies and enabling O(1) per-metric append.
+        //   3. Shared string pool: intern metric names once, reference by index
+        //      in each frame's data, reducing string copy overhead.
         struct Piece
         {
                 Piece(const Profiler::GraphValues &v) : values(v) {}

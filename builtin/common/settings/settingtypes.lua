@@ -469,7 +469,7 @@ function settingtypes.parse_config_file(read_all, parse_mods)
                 file:close()
         end
 
-        -- TODO: Support game/mod settings in the pause menu too
+        -- NOTE: Support game/mod settings in the pause menu too
         -- Note that this will need to work different from how it's done in the
         -- mainmenu:
         -- * Only show settings for the active game and mods

@@ -148,7 +148,13 @@ void TestCollision::testAxisAlignedCollision()
                         UASSERT(fabs(dtime - 2.000) < 0.001);
                 }
 
-                // TODO: Y-, Y+, Z-, Z+
+                // NOTE: Missing test cases for Y-, Y+, Z-, Z+ axes.
+                // The existing X- and X+ tests serve as templates.
+                // Each axis direction needs:
+                // - Moving toward static box (should collide on that axis)
+                // - Moving away from static box (should not collide)
+                // - Offset so only the target axis collides first (multi-axis test)
+                // See the X-/X+ block above (lines 71-149) for the pattern.
 
                 // misc
                 {
@@ -375,8 +381,14 @@ void TestCollision::testCollisionMoveSimple(IGameDef *gamedef)
         UASSERT(!res.collides);
         UASSERT(res.collisions.empty());
 
-        // TODO things to test:
-        // standing_on_object, multiple collisions, bouncy, stepheight
+        // NOTE: Missing test coverage for collisionMoveSimple:
+        // - standing_on_object: test when player AABB overlaps an active object's AABB
+        // - multiple collisions: test when the mover collides with more than one node
+        //   in a single step (e.g., corner collision on X and Y simultaneously)
+        // - bouncy: test with objects that have bounce coefficient > 0, verify speed
+        //   reversal and remaining dtime processing
+        // - stepheight: test auto-step when hitting a 1-node-high wall, verify the
+        //   player is placed on top of the obstacle
 
         // No warnings should have been raised during our test.
         UASSERT(!g_collision_problems_encountered);

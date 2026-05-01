@@ -339,14 +339,19 @@ local function create_world_buttonhandler(this, fields)
                 fields["key_enter"] then
 
                 if fields["key_enter"] then
-                        -- HACK: Pressing Enter while focused on an input box can cause the
+                        -- NOTE: Pressing Enter while focused on an input box can cause the
                         -- key_enter event to fire on the *new* formspec that appears after the
                         -- current one is dismissed, because the button underneath the cursor
                         -- receives the key release. The timestamp lets the parent dialog
                         -- discard stale Enter events that arrive within the same frame.
+                        -- Root cause: The engine's input system does not bind key-down/key-up
+                        -- events to a specific formspec instance. When a formspec is dismissed
+                        -- on key-down, the subsequent key-up is delivered to whichever form
+                        -- is now active, potentially triggering its default button.
                         -- Removal: Requires engine-level input debouncing that ties key-down
-                        -- and key-up events to the same formspec instance, so a key release
-                        -- on a different formspec cannot trigger a new action.
+                        -- and key-up events to the same formspec instance (e.g., a formspec
+                        -- session ID in the input event struct), so a key release on a
+                        -- different formspec cannot trigger a new action.
                         this.parent.dlg_create_world_closed_at = core.get_us_time()
                 end
 

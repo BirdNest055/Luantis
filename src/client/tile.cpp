@@ -48,7 +48,7 @@ void TileLayer::applyMaterialOptions(video::SMaterial &material, int layer) cons
          *
          * However, doing so intrudes the "Z space" of the overlay of the next node
          * so that leads to inconsistent Z-sorting again. :(
-         * HACK: PolygonOffset is applied to the base layer only when an overlay
+         * NOTE (was HACK): PolygonOffset is applied to the base layer only when an overlay
          * exists. Without this guard, the offset would also shift the base layer
          * relative to adjacent nodes' overlays, causing inconsistent Z-sorting.
          * Removal requires a rendering approach that properly layers base and

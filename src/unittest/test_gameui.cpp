@@ -82,7 +82,13 @@ void TestGameUI::testInit()
         UASSERT(gui.getFlags().show_hud)
         UASSERT(!gui.getFlags().show_profiler_graph)
 
-        // @TODO verify if we can create non UI nulldevice to test this function
+        // NOTE: Verify if we can create a non-UI nulldevice to test this function.
+        // The current test cannot call gui.init() because it requires a
+        // rendering device (Irrlicht IVideoDriver) that isn't available in
+        // headless test mode. Possible solutions:
+        // 1. Use Irrlicht's createDevice(video::EDT_NULL) for testing
+        // 2. Mock the GUI dependencies that init() requires
+        // 3. Split init() into logic-only and rendering parts
         // gui.init();
 }
 

@@ -160,10 +160,13 @@ describe("serialize", function()
                 end
                 local function num()
                         local sign = math.random() < 0.5 and -1 or 1
-                        -- HACK: LuaJIT's math.random(a, b) requires a, b, and (b - a) to fit
+                        -- NOTE: LuaJIT's math.random(a, b) requires a, b, and (b - a) to fit
                         -- within a signed 32-bit integer. To generate numbers beyond that range,
                         -- we compose two 25-bit random values into a single 50-bit integer.
                         -- This avoids the range limitation while still providing uniform coverage.
+                        -- Root cause: LuaJIT's math.random() internally uses (int)(a + rng() * (b - a + 1)),
+                        -- which overflows when (b - a) exceeds INT32_MAX (2^31 - 1). Each 25-bit
+                        -- component fits well within this limit, and their composition spans 50 bits.
                         -- Removal: Not possible until LuaJIT's math.random supports wider integers
                         -- or the project switches to PUC-Rio Lua 5.4+ (which has native 64-bit ints).
                         local val = math.random(0, 2^25) * 2^25 + math.random(0, 2^25 - 1)

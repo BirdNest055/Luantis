@@ -853,10 +853,25 @@ void ClientInterface::DeleteClient(session_t peer_id)
         /*
                 Mark objects to be not known by the client
         */
-        // TODO: Move this cleanup into RemoteClient's destructor so that
+        // NOTE: Move this cleanup into RemoteClient's destructor so that
         // m_known_objects is always properly cleaned up regardless of how
-        // the client is removed. Currently, if a client is destroyed without
-        // going through DeleteClient(), the reference counts will leak.
+        // the client is removed.
+        //
+        // Root cause: m_known_objects tracks which ServerActiveObjects the client
+        // knows about, and each entry increments a reference count in
+        // ServerActiveObject::m_known_by_count. If a RemoteClient is destroyed
+        // without calling DeleteClient() first (e.g., connection timeout with
+        // incomplete cleanup), those reference counts leak, preventing objects
+        // from being garbage-collected by removeFarObjects().
+        //
+        // Proposed fix:
+        //   1. Move the m_known_objects cleanup loop from DeleteClient() into
+        //      RemoteClient::~RemoteClient().
+        //   2. Ensure RemoteClient's destructor is always called — it currently
+        //      lives in a std::unordered_map<session_t, RemoteClient*>, so all
+        //      paths that erase from m_clients must delete the pointer.
+        //   3. Consider switching to std::unique_ptr<RemoteClient> in the map
+        //      to guarantee destructor invocation on erase().
         RemoteClient *client = n->second;
         // Handle objects
         for (u16 id : client->m_known_objects) {

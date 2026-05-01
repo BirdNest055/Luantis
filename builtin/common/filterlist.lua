@@ -244,7 +244,12 @@ function filterlist.raw_index_by_uid(self, uid)
 
 
         -- If there are more elements than one with same name uid can't decide which
-        -- one is meant. self shouldn't be possible but just for sure.
+        -- one is meant. This shouldn't be possible but just for sure.
+        -- NOTE: The uid_match mechanism assumes unique UIDs in the raw list.
+        -- If duplicates exist (e.g., two worlds with the same path), the function
+        -- returns 0 to indicate ambiguity. The caller should handle this case.
+        -- A future improvement could log a warning when duplicates are detected
+        -- during list construction rather than silently returning 0 here.
         if elementcount > 1 then
                 elementidx=0
         end

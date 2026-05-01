@@ -121,9 +121,19 @@ public:
 
         ServerMap & getServerMap();
 
-        // TODO: Remove this accessor. Direct access to the scripting interface
+        // NOTE: Remove this accessor. Direct access to the scripting interface
         // breaks encapsulation. Callers should use ServerEnvironment methods
         // that delegate to the script, rather than getting the raw pointer.
+        //
+        // Migration steps:
+        //   1. Audit all call sites of getScriptIface() — they are in ServerEnvironment
+        //      itself, LuaEntitySAO, PlayerSAO, and various Server methods.
+        //   2. For each call site, add a forwarding method to ServerEnvironment
+        //      (e.g., luaentity_Rightclick(), player_on_cheat()).
+        //   3. Make getScriptIface() private and friend the remaining callers.
+        //   4. Eventually remove the accessor entirely.
+        // Blocked on: large number of call sites and the need to avoid virtual
+        // dispatch overhead in hot paths.
         ServerScripting* getScriptIface()
         { return m_script; }
 
@@ -408,10 +418,22 @@ private:
 
 
         /*
-         * TODO: These cached settings are initialized once in the constructor and
-         * never updated when the corresponding settings change at runtime. Add a
-         * settings change callback (e.g., via g_settings->registerChangedCallback)
-         * so that m_cache_* values stay in sync with runtime setting changes.
+         * NOTE: These cached settings are initialized once in the constructor and
+         * never updated when the corresponding settings change at runtime.
+         *
+         * Root cause: The m_cache_* members are read from g_settings once during
+         * ServerEnvironment construction and stored as plain floats. No callback
+         * is registered with g_settings->registerChangedCallback(), so runtime
+         * changes (e.g., via /set or settings tab) are invisible until restart.
+         *
+         * Proposed fix:
+         *   1. Add a static settingsChangedCallback() that updates each m_cache_*
+         *      member from g_settings when the corresponding key changes.
+         *   2. Register the callback in the constructor for each setting key:
+         *      g_settings->registerChangedCallback("active_block_mgmt_interval",
+         *          settingsChangedCallback, this);
+         *   3. Unregister in the destructor via g_settings->deregisterChangedCallback().
+         * This pattern is already used by Camera::readSettings() and GameInternal.
          */
         float m_cache_active_block_mgmt_interval;
         float m_cache_abm_interval;

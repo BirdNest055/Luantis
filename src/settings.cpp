@@ -122,10 +122,15 @@ Settings & Settings::operator=(const Settings &other)
         if (&other == this)
                 return *this;
 
-        // TODO: Make the copy assignment operator private or deleted.
+        // NOTE: This copy assignment operator should be deleted (= delete).
         // Settings objects should not be copied — use references or pointers.
-        // The FATAL_ERROR_IF guard below prevents copying of hierarchical Settings,
-        // but a compile-time check (deleted/private operator=) would be better.
+        // The FATAL_ERROR_IF guard below prevents copying of hierarchical Settings
+        // at runtime, but a compile-time check (deleted operator=) would be better.
+        // Migration plan: Audit all call sites that copy Settings objects (grep for
+        // "Settings " and "= other_settings"). Convert them to use const Settings&
+        // or Settings*. Once all copies are eliminated, delete this operator.
+        // The main blocker is code like: Settings s = *g_settings; which must be
+        // changed to: const Settings &s = *g_settings;
         FATAL_ERROR_IF(m_hierarchy || other.m_hierarchy,
                 "Cannot copy or overwrite Settings object that belongs to a hierarchy");
 

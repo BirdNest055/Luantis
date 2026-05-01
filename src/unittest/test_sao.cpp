@@ -71,8 +71,23 @@ void TestSAO::runTests(IGameDef *gamedef)
         }
 
         // unfortunately we have to create a lot since a DummyMap doesn't cut it.
-        // TODO: best to factor entity mgmt out of ServerEnvironment, also
+        // NOTE: best to factor entity mgmt out of ServerEnvironment, also
         //       EmergeManager should become mockable
+        //
+        //       Root cause: This test requires a full ServerEnvironment because
+        //       SAO lifecycle (create, step, remove) is tightly coupled to it.
+        //       Entity management (add/remove/getActiveObject) should be in its
+        //       own class (e.g., EntityManager) with a virtual interface that
+        //       can be mocked for unit tests without needing ServerMap, EmergeManager,
+        //       or a running server.
+        //
+        //       Proposed fix:
+        //         1. Extract entity management methods from ServerEnvironment into
+        //            a new EntityManager class.
+        //         2. Make EmergeManager an interface (IEmergeManager) with a mock
+        //            implementation for tests.
+        //         3. Replace this test's Server/ServerMap/EmergeManager setup with
+        //            lightweight mocks.
         MetricsBackend mb;
         EmergeManager emerge(&server, &mb);
         auto map = std::make_unique<ServerMap>(server.getWorldPath(), gamedef, &emerge, &mb);
@@ -254,11 +269,15 @@ void TestSAO::testStaticToFalse(ServerEnvironment *env)
 
 #if 0
         /*
-         * FIXME: needs investigation
-         * When using this code path the test fails and there's also a warning.
-         * The problem is that the block is unloaded while the object is still in the
-         * active list, removeFarObjects() has no chance at doing something.
-         * This seems to be a general issue that in practice only applies with static_save=false.
+         * NOTE: This code path is disabled (#if 0) because it exposes a general
+         * bug: when a block is unloaded while an object is still in the active
+         * list, removeFarObjects() has no chance to run, leaving stale state.
+         * This only manifests in practice with static_save=false entities.
+         * To fix:
+         *   1. Ensure step() always calls removeFarObjects() before block unloading.
+         *   2. Or: when unloading a block, force-migrate its active objects to
+         *      static data in the block before removing them from the active list.
+         * Re-enable this test section once the underlying bug is fixed.
          */
         map.timerUpdate(10.0f, 5.0f, -1);
         env->step(m_step_interval);

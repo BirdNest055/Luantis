@@ -203,10 +203,14 @@ core.register_entity(":__builtin:falling_node", {
                         if not nd or nd.buildable_to then
                                 core.remove_node(np)
                         else
-                                -- 'walkable' is used to mean "falling nodes can't replace this"
-                                -- here. Normally we would collide with the walkable node itself
-                                -- and place our node on top (so `n2.name == "air"`), but we
-                                -- re-check this in case we ended up inside a node.
+                                -- NOTE: 'walkable' is repurposed here to mean "falling nodes
+                                -- cannot replace this node". Normally the falling entity would
+                                -- collide with the walkable surface above and place on top
+                                -- (where n2.name == "air"), but in edge cases the entity can
+                                -- end up inside a node. In that case, if the interior node is
+                                -- not diggable or is walkable, the falling node cannot displace
+                                -- it and the placement fails, causing the falling node to drop
+                                -- as an item instead.
                                 if not nd.diggable or nd.walkable then
                                         return false
                                 end
@@ -234,8 +238,13 @@ core.register_entity(":__builtin:falling_node", {
         end,
 
         on_step = function(self, dtime, moveresult)
-                -- Fallback code since collision detection can't tell us
-                -- about liquids (which do not collide)
+                -- NOTE: Collision detection does not report collisions with liquid nodes
+                -- (they have liquidtype ~= "none" but are non-solid, so the physics engine
+                -- passes through them). This fallback manually checks the node below the
+                -- falling entity each step. If it's a liquid and the entity floats, the
+                -- entity places itself on the liquid surface. A cleaner solution would be
+                -- for the engine to include liquid collisions in moveresult, but that would
+                -- require changes to the collision detection pipeline in C++.
                 if self.floats then
                         local pos = self.object:get_pos()
 
@@ -310,10 +319,11 @@ core.register_entity(":__builtin:falling_node", {
                         -- Since we don't want to visually teleport, drop as item
                         failure = true
                 elseif distance.y >= 2 then
-                        -- Doors consist of a hidden top node and a bottom node that is
-                        -- the actual door. Despite the top node being solid, the moveresult
-                        -- almost always indicates collision with the bottom node.
-                        -- Compensate for this by checking the top node
+                        -- NOTE: Door nodes consist of a hidden top part and a visible bottom
+                        -- part. The collision system typically reports collision with the
+                        -- bottom node (bcp), but the top node at bcp+1 is the one the
+                        -- falling entity should land on. This check compensates for that
+                        -- mismatch by verifying the top node is walkable before placing.
                         bcp.y = bcp.y + 1
                         bcn = core.get_node(bcp)
                         local def = core.registered_nodes[bcn.name]
