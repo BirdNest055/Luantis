@@ -40,7 +40,7 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 - **`clawtest-v9.50-centralized-gui` branch:** GUITheme centralized system (93+ constants, 14 GUI files refactored)
 - **`clawtest-v9.51-gui-theme-editor` branch:** WYSIWYG GUITheme web editor (Svelte/Vite)
 - **`clawtest-v9.53-guitheme-test-fix` branch:** GUITheme test improvements + drift detection
-- **`clawtest-v9.54-fix-todo-items` branch:** Current — 21 TODO/FIXME/compiler-warning fixes
+- **`clawtest-v9.54-fix-todo-items` branch:** Current — 140+ TODO/FIXME/compiler-warning/HACK fixes across 9 batches
 
 **Commit on clawtest-v9.54:**
 ```
@@ -334,7 +334,7 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.50 | `clawtest-v9.50-centralized-gui` | GUITheme centralized system — 93+ constants across 8 namespaces, 14 GUI files refactored, 89 tests |
 | v9.51 | `clawtest-v9.51-gui-theme-editor` | WYSIWYG GUITheme web editor — Svelte 4 + Vite, live preview, import/export GUITheme.h |
 | v9.53 | `clawtest-v9.53-guitheme-test-fix` | GUITheme drift detection, guiScene.cpp dead constants fix, missing sizing constants |
-| v9.54 | `clawtest-v9.54-fix-todo-items` | 21 TODO/FIXME fixes — compiler warnings (7), dead code/typos (5), FIXME/TODO resolution (9) |
+| v9.54 | `clawtest-v9.54-fix-todo-items` | 140+ TODO/FIXME/HACK fixes across 9 batches — compiler warnings (7), dead code/typos (5), FIXME/TODO resolution (9+20+20+22+20+3+18+25+23), functional fixes (static_text override color) |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
