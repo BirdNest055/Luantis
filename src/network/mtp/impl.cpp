@@ -30,7 +30,9 @@ namespace con
         #define PROFILE(a) a
 #endif
 
-// TODO: Clean this up.
+// TODO: Remove the LOG(a) passthrough macro. It does nothing — LOG(x) is
+// equivalent to just x. All LOG(stream << ...) calls should be inlined
+// as direct stream writes. The macro only obscures intent.
 #define LOG(a) a
 
 #define PING_INTERVAL 5.0f

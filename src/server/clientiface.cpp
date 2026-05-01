@@ -846,7 +846,10 @@ void ClientInterface::DeleteClient(session_t peer_id)
         /*
                 Mark objects to be not known by the client
         */
-        //TODO this should be done by client destructor!!!
+        // TODO: Move this cleanup into RemoteClient's destructor so that
+        // m_known_objects is always properly cleaned up regardless of how
+        // the client is removed. Currently, if a client is destroyed without
+        // going through DeleteClient(), the reference counts will leak.
         RemoteClient *client = n->second;
         // Handle objects
         for (u16 id : client->m_known_objects) {

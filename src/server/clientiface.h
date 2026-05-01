@@ -514,9 +514,12 @@ private:
         // Connection
         std::shared_ptr<con::IConnection> m_con;
 
-        // FIXME?: as far as I can tell this lock is pointless because only the server
-        // thread ever touches the clients. Consider how getClientNoEx() returns
-        // a raw pointer too.
+        // NOTE: This mutex appears unnecessary since only the server thread accesses
+        // m_clients. However, removing it would be risky without auditing all call
+        // sites. Some code paths (e.g., scripting callbacks, async operations) may
+        // indirectly access clients from different threads. Keep until a full audit
+        // confirms single-threaded access. Also note: getClientNoEx() returns a raw
+        // pointer — callers must not store it across thread boundaries.
         std::recursive_mutex m_clients_mutex;
         // Connected clients (behind the mutex)
         RemoteClientMap m_clients;

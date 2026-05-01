@@ -5,9 +5,9 @@
 #pragma once
 
 /*
-	All kinds of constants.
+        All kinds of constants.
 
-	Cross-platform compatibility stuff should go in porting.h.
+        Cross-platform compatibility stuff should go in porting.h.
 
     Some things here are legacy.
 */
@@ -90,6 +90,9 @@
 // Number of different files to try to save a player to if the first fails
 // (because of a case-insensitive filesystem)
 // TODO: Use case-insensitive player names instead of this hack.
+// The proper fix would be to normalize player names to lowercase at the
+// authentication layer, so that "Player" and "player" are treated as the
+// same account. This would eliminate the need for PLAYER_FILE_ALTERNATE_TRIES.
 #define PLAYER_FILE_ALTERNATE_TRIES 1000
 
 // For screenshots a serial number is appended to the filename + datetimestamp

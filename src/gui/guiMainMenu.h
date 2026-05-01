@@ -9,36 +9,36 @@
 
 struct MainMenuDataForScript {
 
-	MainMenuDataForScript() = default;
+        MainMenuDataForScript() = default;
 
-	// Whether the server has requested a reconnect
-	bool reconnect_requested = false;
-	std::string errormessage = "";
+        // Whether the server has requested a reconnect
+        bool reconnect_requested = false;
+        std::string errormessage = "";
 };
 
-// TODO: unify with GameStartData
+// TODO: Unify with GameStartData (src/gameparams.h) — see cross-reference there.
 struct MainMenuData {
-	// Client options
-	std::string servername;
-	std::string serverdescription;
-	// If empty, we're hosting a server.
-	// This may or may not be in "simple singleplayer mode".
-	std::string address;
-	std::string port;
-	std::string name;
-	std::string password;
-	// Whether to reconnect
-	bool do_reconnect = false;
+        // Client options
+        std::string servername;
+        std::string serverdescription;
+        // If empty, we're hosting a server.
+        // This may or may not be in "simple singleplayer mode".
+        std::string address;
+        std::string port;
+        std::string name;
+        std::string password;
+        // Whether to reconnect
+        bool do_reconnect = false;
 
-	// Server options
-	int selected_world = 0;
-	// If true, we're hosting a server and *are* in "simple singleplayer mode".
-	bool simple_singleplayer_mode = false;
+        // Server options
+        int selected_world = 0;
+        // If true, we're hosting a server and *are* in "simple singleplayer mode".
+        bool simple_singleplayer_mode = false;
 
-	// Data to be passed to the script
-	MainMenuDataForScript script_data;
+        // Data to be passed to the script
+        MainMenuDataForScript script_data;
 
-	ELoginRegister allow_login_or_register = ELoginRegister::Any;
+        ELoginRegister allow_login_or_register = ELoginRegister::Any;
 
-	MainMenuData() = default;
+        MainMenuData() = default;
 };
