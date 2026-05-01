@@ -133,7 +133,17 @@ void drawItemStack(
                         auto &p = imesh->buffer_info[j];
                         p.applyOverride(c);
 
-                        // TODO: could be moved to a shader
+                        // NOTE: Vertex coloring is done CPU-side here via
+                        // colorizeMeshBuffer()/setMeshBufferColor(). This could be
+                        // moved to a GPU shader for better performance.
+                        // Root cause: The Irrlicht pipeline doesn't expose a generic
+                        // per-vertex color override shader, so we modify vertex data
+                        // on the CPU and flag the buffer as dirty.
+                        // Proposed migration: Add a uniform vec4 u_baseColor to the
+                        // item rendering shader. In the vertex shader, multiply
+                        // vColor by u_baseColor. On the C++ side, set the uniform
+                        // instead of calling colorizeMeshBuffer(). This avoids
+                        // CPU-side vertex updates and GPU upload each frame.
                         if (p.needColorize(c)) {
                                 buf->setDirty(scene::EBT_VERTEX);
                                 if (imesh->needs_shading)

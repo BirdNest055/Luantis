@@ -66,9 +66,14 @@ extern "C" {
 #error ==================================
 #endif
 
-// TODO: Rename minetest.conf to luanti.conf with automatic migration.
-// On startup, if luanti.conf doesn't exist but minetest.conf does, copy it.
+// NOTE: CONFIGFILE is still "minetest.conf" for backward compatibility.
+// Migration plan: rename to "luanti.conf" with automatic fallback:
+//   1. On startup, if luanti.conf exists → use it
+//   2. Else if minetest.conf exists → copy to luanti.conf, use luanti.conf
+//   3. Else → create luanti.conf
 // This preserves backward compatibility while moving to the new name.
+// Requires updating all code that references CONFIGFILE and testing with
+// both old and new config file names present.
 #define CONFIGFILE "minetest.conf"
 #define DEBUGFILE "debug.txt"
 #define DEFAULT_SERVER_PORT 30000

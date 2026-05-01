@@ -1642,7 +1642,15 @@ void GenericCAO::processMessage(const std::string &data)
                         {
                                         updateAnimation();
                         }
-                        // TODO: Refactor this animation code - it's poorly structured and broken.
+                        // NOTE: The animation code here is fragile - it mixes animation
+                        // selection logic with local player special-casing and the
+                        // is_known check. A proper refactor would:
+                        // 1. Separate animation state machine from the network command
+                        //    handler (AO_CMD_SET_ANIMATION).
+                        // 2. Unify local vs. remote player animation paths through a
+                        //    single updateAnimation() entry point.
+                        // 3. Replace the ad-hoc local_animations checks with a
+                        //    priority-based animation stack.
                 }
         } else if (cmd == AO_CMD_SET_ANIMATION_SPEED) {
                 m_animation_speed = readF32(is);

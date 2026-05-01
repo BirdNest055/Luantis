@@ -546,7 +546,12 @@ local function get_formspec(dialogdata)
                 core.settings:get_bool("touch_gui") and "padding[0.01,0.01]" or "",
                 "bgcolor[#0000]",
 
-                -- HACK: this is needed to allow resubmitting the same formspec
+                -- HACK: Toggling a trivial difference (trailing space) forces the engine
+                -- to treat this as a new formspec submission, since showFormspec() silently
+                -- ignores calls with identical formspec strings. Without this, navigating
+                -- between settings tabs would fail to refresh the displayed content.
+                -- Removal: Requires engine support for formspec versioning or a "force
+                -- redisplay" flag in showFormspec().
                 formspec_show_hack and " " or "",
 
                 "box[0,0;", tostring(tabsize.width), ",", tostring(tabsize.height), ";#0000008C]",

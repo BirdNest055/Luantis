@@ -197,6 +197,9 @@ extern thread_local LogStream tracestream;
 // Replace with warningstream/verbosestream/tracestream as appropriate.
 // derr_con → warningstream or errorstream (for errors/warnings)
 // dout_con → verbosestream or tracestream (for debug output)
+// Migration: search all call sites and replace derr_con/dout_con with the
+// appropriate stream. Once all references are removed, delete these externs
+// and their definitions in log.cpp. Blocked on: no current consumer audit.
 extern thread_local LogStream derr_con;
 extern thread_local LogStream dout_con;
 

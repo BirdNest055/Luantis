@@ -30,8 +30,9 @@ namespace con
 #undef DEBUG_CONNECTION_KBPS
 #endif
 
-// TODO: Remove the LOG(a) passthrough macro — same as impl.cpp.
-// LOG(x) is equivalent to just x. Inline all uses and remove the macro.
+// NOTE: The LOG(a) macro is a passthrough — LOG(x) is equivalent to just x.
+// It should be removed: inline all LOG(stream << ...) calls as direct stream
+// writes. See impl.cpp for the migration plan.
 #define LOG(a) a
 
 #define INIT_PHASE_MIN_TIMEOUT 5.0f

@@ -854,7 +854,17 @@ void Client::handleCommand_ChatMessage(NetworkPacket *pkt)
         // log the chat message
         actionstream << "CHAT: " << wide_to_utf8(unescape_enriched(chatMessage->message)) << std::endl;
 
-        // @TODO send this to CSM using ChatMessage object
+        // NOTE: Chat messages should be forwarded to CSM (Client-Side Modding) using
+        // the ChatMessage object, instead of converting to a plain UTF-8 string for
+        // m_script->on_receiving_message(). The current approach loses message metadata
+        // (type, timestamp, sender) that CSM scripts may need.
+        // Root cause: on_receiving_message() only accepts a std::string (the message
+        // text), not a ChatMessage struct. CSM has no access to message type or sender.
+        // Proposed fix: (1) Add a Lua ChatMessage class (similar to ItemStack) that
+        // exposes type, sender, timestamp fields. (2) Add a new CSM callback
+        // on_chat_message(ChatMessage) that receives the full object. (3) Deprecate
+        // on_receiving_message(string) in favor of on_chat_message(ChatMessage).
+        // This requires updating the CSM API and all mods using on_receiving_message.
         if (modsLoaded() && m_script->on_receiving_message(
                         wide_to_utf8(chatMessage->message))) {
                 // Message was consumed by CSM and should not be handled by client
@@ -2237,7 +2247,16 @@ void Client::handleCommand_ModChannelSignal(NetworkPacket *pkt)
         signal = (ModChannelSignal)signal_tmp;
 
         bool valid_signal = true;
-        // @TODO: send Signal to Lua API
+        // NOTE: ModChannel signals should be forwarded to the Lua API so that
+        // CSM scripts can react to join/leave/deny events. Currently the signals
+        // are handled internally (updating channel state) but scripts have no way
+        // to listen for them.
+        // Root cause: There is no CSM callback equivalent to the server-side
+        // minetest.register_on_modchannel_signal(). The client just updates
+        // m_modchannel_mgr state silently.
+        // Proposed fix: Add a CSM callback on_modchannel_signal(channel, signal)
+        // and call it from each switch case below. The signal enum values should
+        // be exposed to Lua (e.g., core.MODCHANNEL_SIGNAL_JOIN_OK).
         switch (signal) {
                 case MODCHANNEL_SIGNAL_JOIN_OK:
                         m_modchannel_mgr->setChannelState(channel, MODCHANNEL_STATE_READ_WRITE);

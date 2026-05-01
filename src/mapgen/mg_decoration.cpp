@@ -131,7 +131,15 @@ void Decoration::placeDeco(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax)
         PcgRandom ps(blockseed + 53);
         int carea_size = nmax.X - nmin.X + 1;
         if (nmax.Z - nmin.Z + 1 != carea_size) {
-                // TODO: this is a stupid restriction, which we should lift
+                // NOTE: placeDeco requires a square XZ area (nmax.X - nmin.X + 1 ==
+                // nmax.Z - nmin.Z + 1). This restriction exists because the decoration
+                // grid division algorithm (sidelen subdivision) assumes equal X and Z
+                // dimensions. To lift this:
+                //   1. Replace `carea_size` with separate `carea_x` and `carea_z`
+                //   2. Use independent x0/z0 loop bounds based on each dimension
+                //   3. Adjust p2d_min/p2d_max calculation for rectangular regions
+                // In practice, mapchunks are always square (80×80), so this only
+                // matters for edge cases or non-standard chunk sizes.
                 throw BaseException("Decoration::placeDeco requires a square area (XZ)");
         }
 

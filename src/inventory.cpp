@@ -545,11 +545,17 @@ void InventoryList::serialize(std::ostream &os, bool incremental) const
                         os<<"Item ";
                         item.serialize(os);
                 }
-                // TODO: Implement incremental serialization. When the incremental
-                // flag is set, unchanged items should output "Keep" instead of the
-                // full item data, reducing network bandwidth for large inventories.
-                // Requires adding an m_modified flag to ItemStack and clearing it
-                // after serialization.
+                // NOTE: Incremental serialization is not yet implemented. When the
+                // incremental flag is set, unchanged items should output "Keep" instead
+                // of the full item data, reducing network bandwidth for large inventories.
+                // Root cause: ItemStack has no dirty-tracking mechanism.
+                // Proposed solution:
+                //   1. Add `bool m_modified = true` to ItemStack, set on any mutation
+                //   2. In serialize(), when incremental=true: output "Keep" for
+                //      unmodified items, full data for modified ones, then clear flag
+                //   3. In deSerialize(), handle "Keep" by retaining the existing item
+                // Migration: requires a protocol version bump since older clients
+                // won't understand "Keep" tokens in inventory streams.
                 os<<"\n";
         }
 

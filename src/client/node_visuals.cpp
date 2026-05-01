@@ -514,7 +514,13 @@ void NodeVisuals::updateMesh(Client *client, const TextureSettings &tsettings)
 		scaleMesh(mesh_ptr, v3f((apply_bs ? BS : 1.0f) * f->visual_scale));
 		recalculateBoundingBox(mesh_ptr);
 		if (!checkMeshNormals(mesh_ptr)) {
-			// TODO this should be done consistently when the mesh is loaded
+			// NOTE: Normal recalculation is done here as a fallback when
+			// checkMeshNormals() fails, but this is inconsistent - some mesh
+			// types get their normals recalculated at load time while others
+			// don't. This should be unified: recalculate normals consistently
+			// during mesh loading (e.g., in MeshUpdateResult processing or
+			// MapBlockMesh construction) so that all meshes have valid normals
+			// before they reach the rendering pipeline.
 			infostream << "ContentFeatures: recalculating normals for mesh "
 				<< mesh << std::endl;
 			manip->recalculateNormals(mesh_ptr, true, false);

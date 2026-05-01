@@ -140,10 +140,21 @@ public:
                 return m_device->run();
         }
 
-        // TODO: Make this instanced instead of global/static.
-        // ShadowRenderer access should go through the RenderingEngine instance
-        // (e.g. m_device->getSceneManager()) rather than through a static singleton.
-        // This would allow multiple RenderingEngine instances for testing or split-screen.
+        // NOTE: ShadowRenderer is accessed through a static singleton rather than
+        // per-instance. This prevents multiple RenderingEngine instances (e.g., for
+        // testing or split-screen) from having independent shadow renderers.
+        // Root cause: s_singleton is a static raw pointer, and get_shadow_renderer()
+        // dereferences it to reach core->get_shadow_renderer(). All shadow-related
+        // code calls RenderingEngine::get_shadow_renderer() globally.
+        // Proposed migration:
+        //   (1) Make ShadowRenderer a member of RenderingEngine (or its Core), not
+        //       a global accessor. Change call sites to get the renderer from their
+        //       local RenderingEngine& instead of the static method.
+        //   (2) For call sites that don't have a RenderingEngine reference, thread
+        //       one through (e.g., via ClientMap or the rendering context).
+        //   (3) Remove s_singleton and get_shadow_renderer() static method.
+        // This is a large refactor touching many files but is necessary for proper
+        // multi-instance support.
         static ShadowRenderer *get_shadow_renderer()
         {
                 if (s_singleton && s_singleton->core)

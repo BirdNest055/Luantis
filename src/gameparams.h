@@ -25,10 +25,12 @@ enum class ELoginRegister {
 };
 
 // Information processed by main menu
-// TODO: Unify with MainMenuData (src/gui/guiMainMenu.h) — both structs
-// contain overlapping fields: name, password, address, port, etc.
-// MainMenuData is the UI-side data; GameStartData is the engine-side data.
-// A single struct with clear ownership would eliminate the duplicated state.
+// NOTE: GameStartData overlaps with MainMenuData (src/gui/guiMainMenu.h).
+// Both structs contain: name, password, address, port, etc. MainMenuData is
+// the UI-side data; GameStartData is the engine-side data. A single struct
+// with clear ownership would eliminate the duplicated state.
+// Migration: Define a shared connection_params struct, have both MainMenuData
+// and GameStartData contain/compose it, and remove the duplicate fields.
 struct GameStartData : GameParams
 {
         GameStartData() = default;

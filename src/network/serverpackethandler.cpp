@@ -2026,7 +2026,17 @@ void Server::handleCommand_ModChannelMsg(NetworkPacket *pkt)
                 return;
         }
 
-        // @TODO: filter, rate limit
+        // NOTE: Mod channel messages from clients have no rate limiting or
+        // content filtering. A malicious client could flood a mod channel.
+        // Root cause: broadcastModChannelMessage() is called directly without
+        // any checks on message frequency or content.
+        // Proposed fix: (1) Per-player rate limit: track per-peer message counts
+        // in a sliding window (e.g., max 10 messages/second per channel per player).
+        // (2) Per-channel rate limit: cap total messages per channel per second.
+        // (3) Content filter: optionally sanitize or reject messages containing
+        // control characters or exceeding a size limit. The rate limiter could be
+        // implemented similarly to the chat message rate limiting in
+        // handleCommand_ChatMessage().
 
         broadcastModChannelMessage(channel_name, channel_msg, peer_id);
 }

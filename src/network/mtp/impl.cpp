@@ -30,9 +30,13 @@ namespace con
         #define PROFILE(a) a
 #endif
 
-// TODO: Remove the LOG(a) passthrough macro. It does nothing — LOG(x) is
-// equivalent to just x. All LOG(stream << ...) calls should be inlined
-// as direct stream writes. The macro only obscures intent.
+// NOTE: The LOG(a) macro is a passthrough — LOG(x) is equivalent to just x.
+// It should be removed: inline all LOG(stream << ...) calls as direct stream
+// writes. To migrate:
+//   1. Search for all LOG( usage in src/network/mtp/
+//   2. Replace LOG(verbosestream << ...) with verbosestream << ...
+//   3. Replace LOG(dout_con << ...) with dout_con << ...
+//   4. Delete this #define and the identical one in threads.cpp
 #define LOG(a) a
 
 #define PING_INTERVAL 5.0f

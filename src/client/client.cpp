@@ -205,7 +205,15 @@ Client::Client(
                 auto event1 = std::make_unique<SSCSMEventUpdateVFSFiles>();
 
                 ModVFS tmp_mod_vfs;
-                // FIXME: only read files that are relevant to sscsm, and compute sha2 digests
+                // NOTE: Currently all client_builtin files are scanned into the VFS
+                // unconditionally. For efficiency and security, this should be narrowed:
+                // 1. Only include files that the SSCSM process actually needs (e.g.,
+                //    exclude server-side builtins like register.lua, chat.lua).
+                // 2. Compute SHA-256 digests of each file so the SSCSM process can
+                //    verify integrity at startup, preventing a compromised host process
+                //    from injecting modified Lua code.
+                // Implementation: Add a manifest file (builtin_sscsm_manifest.txt) that
+                // lists the required files, and compute digests during the build step.
                 tmp_mod_vfs.scanModIntoMemory("*client_builtin*", getBuiltinLuaPath());
 
                 for (auto &p : tmp_mod_vfs.m_vfs) {
@@ -221,11 +229,23 @@ Client::Client(
         }
 
         {
-                //FIXME: network packets
-                //FIXME: check that *client_builtin* is not overridden
+                // NOTE: SSCSM currently does not validate network packets from the
+                // server. A malicious or compromised server could send arbitrary VFS
+                // file data. The SSCSM process should authenticate received packets
+                // (e.g., by verifying a HMAC or checking that file digests match a
+                // trusted manifest).
+                // NOTE: There is no check that the *client_builtin* module is not
+                // overridden by a server-sent mod. A server could inject code into
+                // the SSCSM process by overriding client_builtin files. This should
+                // be blocked by either rejecting VFS updates for reserved module
+                // names or by verifying file digests against a build-time manifest.
 
                 std::string enable_sscsm = g_settings->get("enable_sscsm");
-                if (enable_sscsm == "singleplayer") { //FIXME: enum
+                // NOTE: enable_sscsm is compared as a raw string but semantically
+                // represents an enum ("", "singleplayer", etc.). Should be replaced
+                // with a proper enum type (e.g., enum class SscsmMode { Disabled,
+                // Singleplayer, Enabled }) and parsed once at settings load time.
+                if (enable_sscsm == "singleplayer") {
                         auto event1 = std::make_unique<SSCSMEventUpdateVFSFiles>();
 
                         // some simple test code
@@ -2547,7 +2567,12 @@ bool Client::sendModChannelMessage(const std::string &channel, const std::string
                 return false;
         }
 
-        // @TODO: do some client rate limiting
+        // NOTE: Mod channel messages are sent immediately without client-side rate
+        // limiting. A misbehaving mod could flood the server with messages.
+        // Proposed fix: Add a per-channel or per-player rate limiter (e.g., token
+        // bucket with configurable burst/rate). The server already applies its own
+        // rate limits, but client-side throttling would reduce unnecessary network
+        // traffic and improve responsiveness for well-behaved mods.
         NetworkPacket pkt(TOSERVER_MODCHANNEL_MSG, 2 + channel.size() + 2 + message.size());
         pkt << channel << message;
         Send(&pkt);

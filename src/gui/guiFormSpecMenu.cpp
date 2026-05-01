@@ -3360,7 +3360,16 @@ void GUIFormSpecMenu::legacySortElements(std::list<IGUIElement *>::iterator from
         // 2: Sort the container
         std::stable_sort(elements.begin(), elements.end(),
                         [this] (const IGUIElement *a, const IGUIElement *b) -> bool {
-                // TODO: getSpecByID is a linear search. It should made O(1), or cached here.
+                // NOTE: getSpecByID is a linear search over m_fields. It should be O(1).
+                // Root cause: m_fields is a std::vector<FieldSpec> with no index by ID.
+                // getSpecByID() scans the entire vector each call, making sort O(n log n * n)
+                // where n = number of fields.
+                // Proposed fix: Add an unordered_map<int, size_t> m_field_by_id that maps
+                // field ID → index in m_fields, updated whenever m_fields is modified.
+                // Alternatively, cache the FieldSpec* for all IDs before sorting:
+                //   std::unordered_map<int, const FieldSpec*> cache;
+                //   for (auto &f : m_fields) cache[f.fid] = &f;
+                // This avoids N lookups during sort and is a minimal change.
                 const FieldSpec *spec_a = getSpecByID(a->getID());
                 const FieldSpec *spec_b = getSpecByID(b->getID());
                 // The comparison has to be compatible with strict weak ordering

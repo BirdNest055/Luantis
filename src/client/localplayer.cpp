@@ -932,9 +932,13 @@ void LocalPlayer::old_move(f32 dtime, Environment *env,
                         if (position.Y < new_y)
                                 position.Y = new_y;
                         /*
-                                Collision seems broken, since player is sinking when
+                                NOTE: Collision seems broken, since player is sinking when
                                 sneaking over the edges of current sneaking_node.
-                                TODO (when collision is fixed): Set Y-speed only to 0
+                                Root cause: axisAlignedCollision() does not account for
+                                acceleration, so the collision time estimate is inaccurate
+                                (see collision.cpp NOTE at ~line 114). This causes the
+                                player to sink through the sneak node's edge.
+                                When collision is fixed: Set Y-speed only to 0
                                 when position.Y < new_y, not unconditionally. The
                                 unconditional reset prevents legitimate downward movement.
                         */
@@ -943,7 +947,12 @@ void LocalPlayer::old_move(f32 dtime, Environment *env,
                 }
         }
 
-        // TODO: This shouldn't be hardcoded but decided by the server
+        // NOTE: Step height is hardcoded client-side. It should be sent by the
+        // server (e.g., as a player property or object property) so that mods
+        // can customize it. The server already sends other movement params via
+        // the SetPlayerMovement protocol; stepheight could be added there.
+        // Migration: add stepheight to PlayerControlOverride or object properties,
+        // send it in the same packet as movement_speed_* etc., and read it here.
         float player_stepheight = touching_ground ? (BS * 0.6f) : (BS * 0.2f);
 
         v3f accel_f;

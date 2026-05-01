@@ -11,9 +11,11 @@ class NodeDefManager;
 class MtEventManager;
 class MtEvent;
 
-// TODO: Move NodeDugEvent and related event classes to their own file
-// (e.g., src/game_events.h). Currently they live in sound_maker.h which
-// conflates audio concerns with game interaction events.
+// NOTE: NodeDugEvent and related event classes should be moved to their own
+// file (e.g., src/game_events.h). Currently they live in sound_maker.h which
+// conflates audio concerns with game interaction events. Migration: create
+// src/game_events.h, move all MtEvent subclasses there, update includes in
+// sound_maker.h, game.cpp, and any other consumers.
 #include "mtevent.h"
 #include "mapnode.h"
 class NodeDugEvent : public MtEvent

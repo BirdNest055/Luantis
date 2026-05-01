@@ -42,11 +42,13 @@ public:
         virtual ModIPCStore *getModIPCStore() { return nullptr; }
 
         // Shorthands
-        // TODO: these should be made const-safe so that a const IGameDef* is
-        //       actually usable. This requires adding const overloads to the
-        //       virtual getters above (getItemDefManager, getCraftDefManager,
-        //       getRollbackManager) and then providing const versions here.
-        //       ndef() is already const-correct since getNodeDefManager() is.
+        // NOTE: These shorthands should be made const-safe so that a const IGameDef*
+        // is actually usable. This requires adding const overloads to the virtual
+        // getters above (getItemDefManager, getCraftDefManager, getRollbackManager)
+        // and then providing const versions here. ndef() is already const-correct
+        // since getNodeDefManager() returns const NodeDefManager*.
+        // Migration: add `virtual const IItemDefManager* getItemDefManager() const`
+        // (and similarly for others), then add const idef()/cdef()/rollback() here.
         IItemDefManager  *idef()     { return getItemDefManager(); }
         const NodeDefManager  *ndef() { return getNodeDefManager(); }
         ICraftDefManager *cdef()     { return getCraftDefManager(); }

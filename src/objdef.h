@@ -53,9 +53,18 @@ protected:
 // WARNING: Ownership of ObjDefs is transferred to the ObjDefManager it is
 // added/set to.  Note that ObjDefs managed by ObjDefManager are NOT refcounted,
 // so the same ObjDef instance must not be referenced multiple
-// TODO: Add const overloads for getter methods (getByName, getRaw)
-// so that const ObjDefManager* can be used for lookups. Currently
-// getByName() returns non-const ObjDef* even though it's a const method.
+// NOTE: ObjDefManager lacks const-correct getter overloads. Currently:
+//   - getByName() is const but returns non-const ObjDef*
+//   - get() is const but returns non-const ObjDef*
+//   - getRaw() returns non-const ObjDef*
+// Adding const overloads would allow const ObjDefManager* to be used for
+// read-only lookups. Migration:
+//   1. Add: const ObjDef* getByName(const std::string &name) const;
+//          const ObjDef* get(ObjDefHandle handle) const;
+//          const ObjDef* getRaw(size_t idx) const;
+//   2. Existing non-const versions delegate to const versions via const_cast
+//   3. Update callers that only need read access to use const refs
+// Blocked on: no immediate bug, but prevents const-correct API design.
 class ObjDefManager {
 public:
         ObjDefManager(IGameDef *gamedef, ObjDefType type);

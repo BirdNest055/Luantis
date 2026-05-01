@@ -776,8 +776,17 @@ MapBlock *ServerMap::loadBlock(const std::string &blob, v3s16 p3d, bool save_aft
                                 <<" ("<<p3d.X<<","<<p3d.Y<<","<<p3d.Z<<")"
                                 <<" (SerializationError): "<<e.what()<<std::endl;
 
-                // TODO: Block should be marked as invalid in memory so that it is
-                // not touched but the game can run
+                // NOTE: Block should be marked as invalid in memory so that it is
+                // not touched but the game can run.
+                // Root cause: When a block fails to deserialize, it remains in the map
+                // with potentially corrupt data. Subsequent code may read this block's
+                // nodes (e.g., during active block processing) and produce incorrect
+                // results or crash.
+                // Proposed fix: Add a flag MapBlock::m_invalid (bool) that is set when
+                // deserialization fails. Code paths that access block data should check
+                // this flag and skip invalid blocks. Invalid blocks should be scheduled
+                // for re-generation by the emerge manager. The flag should also be
+                // persisted so that invalid blocks are not served to clients on restart.
 
                 if(g_settings->getBool("ignore_world_load_errors")){
                         errorstream<<"Ignoring block load error. Duck and cover! "

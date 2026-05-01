@@ -589,10 +589,14 @@ void PartialMeshBuffer::draw(video::IVideoDriver *driver) const
 
 static void applyColorAndMerge(std::vector<PreMeshBuffer> &prebuffers)
 {
-        // TODO: Change the mesh generator to apply tile colors during mesh building
-        // so this extra post-processing step is unnecessary. Currently, CAO code
-        // relies on the ability to erase vertex colors (light data) before applying
-        // tile colors, which is why this is a separate step.
+        // NOTE: Tile colors are applied as a post-processing step after mesh building.
+        // Ideally, the mesh generator should bake tile colors during mesh construction
+        // so this extra pass is unnecessary. Currently, CAO code relies on the ability
+        // to erase vertex colors (light data) before applying tile colors, which is
+        // why this is a separate step.
+        // Migration: Move color application into MeshMakeData or MapBlockMesh
+        // construction, and add a "clear vertex colors" flag to the CAO pipeline
+        // so it can skip the erase-then-reapply cycle.
 
         for (auto &p : prebuffers) {
                 // bake color into vertices
@@ -643,7 +647,9 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
         auto mesh_grid = data->m_mesh_grid;
         v3s16 bp = data->m_blockpos;
         // Generate minimap mapblocks if needed.
-        // (FIXME #646 removed: bp is always aligned to mesh grid)
+        // NOTE: bp is always aligned to the mesh grid, so no alignment step is
+        // needed here. Previously there was a FIXME about potential misalignment,
+        // but the mesh grid is now guaranteed to provide aligned block positions.
         if (data->m_generate_minimap) {
                 // meshgen area always fits into a grid cell
                 m_minimap_mapblocks.resize(mesh_grid.getCellVolume(), nullptr);

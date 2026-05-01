@@ -476,6 +476,21 @@ function settingtypes.parse_config_file(read_all, parse_mods)
         --   (add API function to get them, can return nil if on a remote server)
         --   (names are probably not enough, will need paths for uniqueness)
         -- This means just making "pkgmgr.lua" work won't get you very far.
+        --
+        -- Proposed implementation plan:
+        -- 1. Add a server-side API: minetest.get_active_game_settings() and
+        --    minetest.get_active_mod_settings() that return {path, name} pairs
+        --    for the currently running game and its mods. For remote servers,
+        --    these return nil since the client cannot access server filesystem.
+        -- 2. In the pause-menu settings dialog, call these APIs to build a
+        --    category tree similar to the mainmenu, but scoped to the active
+        --    game/mod set only.
+        -- 3. Path-based uniqueness: use the mod's install path (not just its
+        --    short name) as the settings category key, since multiple mods
+        --    can share a short name but have different settings.
+        -- 4. The mainmenu's pkgmgr.lua is not reusable here because it relies
+        --    on filesystem scanning of all installed games/mods; the pause menu
+        --    only needs the active subset.
 
         if INIT == "mainmenu" and parse_mods then
                 -- Parse games
