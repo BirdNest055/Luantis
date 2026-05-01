@@ -118,7 +118,7 @@ void ActiveObjectMgr::invalidateActiveObjectObserverCaches()
 
 void ActiveObjectMgr::updateObjectPos(u16 id, v3f pos)
 {
-        // NOTE (was HACK): Only update the spatial index if the object already exists in
+        // NOTE: Only update the spatial index if the object already exists in
         // m_active_objects. During object creation, updateObjectPos() can be called
         // before the object is fully inserted into m_active_objects (race between
         // construction and position initialization). Without this guard, we would
@@ -129,7 +129,7 @@ void ActiveObjectMgr::updateObjectPos(u16 id, v3f pos)
         // is not atomic. setPos() triggers updateObjectPos() via signal before the
         // object is guaranteed to be in m_active_objects.
         //
-        // To remove this hack: Make object insertion and initial position update
+        // To remove this workaround: Make object insertion and initial position update
         // atomic by either (a) passing the initial position to addObject() so that
         // the spatial index entry is created atomically, or (b) deferring
         // updateObjectPos() signals until after the object is fully registered.

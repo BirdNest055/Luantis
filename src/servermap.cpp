@@ -677,7 +677,7 @@ void ServerMap::endSave()
 
 bool ServerMap::saveBlock(MapBlock *block)
 {
-        // Serialize the block BEFORE acquiring the mutex (Fix FIXME #680)
+        // Serialize the block BEFORE acquiring the mutex (fix for Issue #680)
         v3s16 p3d = block->getPos();
         u8 version = SER_FMT_VER_HIGHEST_WRITE;
 

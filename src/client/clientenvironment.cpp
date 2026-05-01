@@ -129,26 +129,26 @@ void ClientEnvironment::step(float dtime)
                 if (!free_move) {
                         // Gravity
                         if (!is_climbing && !lplayer->in_liquid)
-                                // NOTE (was HACK): The factor 2 applied to gravity is an arbitrary multiplier that
+                                // NOTE: The factor 2 applied to gravity is an arbitrary multiplier that
                                 // compensates for the collision system not accounting for acceleration
                                 // (see collision.cpp:114). Without this factor, entities fall at roughly
                                 // half the expected speed because the collision time calculation assumes
                                 // constant velocity (d=vt) instead of constant acceleration (d=vt+½at²).
                                 // The factor 2 makes the effective distance match the kinematic equation.
                                 //
-                                // To remove this hack: implement acceleration-aware collision in
+                                // To remove this workaround: implement acceleration-aware collision in
                                 // axisAlignedCollision() using the quadratic time-of-impact formula
                                 // (see collision.cpp:114 for the exact formula), then remove the *2
                                 // here and adjust movement_gravity values to be true gravity constants.
                                 // This will require updating all existing game configs that set
-                                // movement_gravity, as their values are calibrated for the *2 hack.
+                                // movement_gravity, as their values are calibrated for the *2 factor.
                                 lplayer->gravity = 2 * lplayer->movement_gravity * lplayer->physics_override.gravity;
 
                         // Liquid floating / sinking
                         if (!is_climbing && lplayer->in_liquid &&
                                         !lplayer->swimming_vertical &&
                                         !lplayer->swimming_pitch)
-                                // NOTE (was HACK): Same factor-2 compensation as gravity above — liquid sinking
+                                // NOTE: Same factor-2 compensation as gravity above — liquid sinking
                                 // also uses the constant-velocity time approximation in the collision
                                 // system, so we double the sink speed to compensate. Once acceleration-
                                 // aware collision is implemented, remove the *2 and adjust

@@ -119,7 +119,12 @@ int LuaCamera::l_get_look_dir(lua_State *L)
 }
 
 // get_look_horizontal(self)
-// TODO: Move to LocalPlayer — same rationale as get_look_vertical above.
+// NOTE: get_look_horizontal() should move to LocalPlayer — same rationale as
+// get_look_vertical above. Camera is a view abstraction; the look direction is
+// fundamentally a property of the player entity. Migration plan:
+//   (a) Add LocalPlayer::getLookHorizontal() / setLookHorizontal().
+//   (b) Reimplement l_camera::get_look_horizontal to delegate to LocalPlayer.
+//   (c) After a deprecation period, remove the camera binding.
 int LuaCamera::l_get_look_horizontal(lua_State *L)
 {
         LocalPlayer *player = getClient(L)->getEnv().getLocalPlayer();
@@ -130,7 +135,9 @@ int LuaCamera::l_get_look_horizontal(lua_State *L)
 }
 
 // get_look_vertical(self)
-// TODO: Move to LocalPlayer where it belongs. Camera is a view abstraction;
+// NOTE: get_look_vertical() should move to LocalPlayer where it belongs.
+// Camera is a view abstraction; the look direction is fundamentally a property of
+// the player entity. See get_look_horizontal above for migration plan.
 // look direction is a player property. Other Lua APIs (LocalPlayer:txx) already
 // expose similar properties directly from the player object.
 int LuaCamera::l_get_look_vertical(lua_State *L)

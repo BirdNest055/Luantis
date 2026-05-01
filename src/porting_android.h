@@ -51,8 +51,11 @@ void setPlayingNowNotification(bool show);
 enum AndroidDialogType { TEXT_INPUT, SELECTION_INPUT };
 
 /*
- * WORKAROUND for not working callbacks from Java -> C++
- * Get the type of the last input dialog
+ * NOTE: Java→C++ callbacks don't work on Android, so dialog results
+ * must be polled instead of received via callback. This function returns
+ * the type of the last dialog shown. See AndroidDialogType enum.
+ * Root cause: JNI callbacks from the UI thread to the native thread are
+ * unreliable; the C++ main loop polls these getters each frame instead.
  */
 AndroidDialogType getLastInputDialogType();
 
@@ -65,24 +68,25 @@ AndroidDialogType getLastInputDialogType();
 enum AndroidDialogState { DIALOG_SHOWN, DIALOG_INPUTTED, DIALOG_CANCELED };
 
 /*
- * WORKAROUND for not working callbacks from Java -> C++
- * Get the state of the input dialog
+ * NOTE: Java→C++ callbacks don't work on Android (same as above).
+ * Returns the current state of the input dialog (shown/inputted/canceled).
+ * Poll this each frame to detect when the user completes or dismisses it.
  */
 AndroidDialogState getInputDialogState();
 
 /*
- * WORKAROUND for not working callbacks from Java -> C++
- * Get the text in the current/last input dialog
- * This function clears the dialog state (set to canceled). Make sure to save
- * the dialog state before calling this function.
+ * NOTE: Java→C++ callbacks don't work on Android (same as above).
+ * Returns the text entered in the last input dialog. This function clears
+ * the dialog state (sets to DIALOG_CANCELED), so call getInputDialogState()
+ * first to save the state before retrieving the message.
  */
 std::string getInputDialogMessage();
 
 /*
- * WORKAROUND for not working callbacks from Java -> C++
- * Get the selection in the current/last input dialog
- * This function clears the dialog state (set to canceled). Make sure to save
- * the dialog state before calling this function.
+ * NOTE: Java→C++ callbacks don't work on Android (same as above).
+ * Returns the index selected in the last combo box dialog. This function
+ * clears the dialog state (sets to DIALOG_CANCELED), so call
+ * getInputDialogState() first to save the state before retrieving.
  */
 int getInputDialogSelection();
 

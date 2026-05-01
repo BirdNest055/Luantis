@@ -395,7 +395,11 @@ int ModApiMainMenu::l_get_content_info(lua_State *L)
         if (spec.type == "unknown") {
                 // In <=5.11.0 the API call was erroneously not documented as
                 // being able to return type "unknown".
-                // TODO: Inspect all call sites of get_content_info (Lua: core.get_content_info)
+                // NOTE: get_content_info() loads content info but may return stale data
+                // if the content is modified after initial load. Inspect all call sites
+                // of get_content_info (Lua: core.get_content_info) to determine whether
+                // any rely on fresh/reloaded data. If so, add a reload parameter or
+                // cache invalidation mechanism.
                 // and ensure they handle type="unknown". Once verified, replace this
                 // warningstream with a debugstream or remove it entirely.
                 warningstream << "Requested content info has type \"unknown\" "

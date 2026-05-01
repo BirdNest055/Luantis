@@ -45,7 +45,7 @@ public:
                 auto *obj = saomgr.getActiveObject(id);
                 REQUIRE(obj != nullptr);
                 obj->setPos(pos);
-                saomgr.updateObjectPos(id, pos); // NOTE (was HACK): bypasses setPos's env check (m_env == nullptr in test)
+                saomgr.updateObjectPos(id, pos); // NOTE: bypasses setPos's env check (m_env == nullptr in test)
         }
 
         void clear()

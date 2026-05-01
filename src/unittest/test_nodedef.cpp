@@ -1,6 +1,6 @@
 // Luanti
 // SPDX-License-Identifier: LGPL-2.1-or-later
-// Test for nodedef.cpp FIXME #29: support arbitrary rotations
+// Test for nodedef.cpp Issue #29: support arbitrary rotations
 
 #include "test.h"
 #include <cstdint>

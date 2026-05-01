@@ -74,7 +74,7 @@ v2f check_v2f(lua_State *L, int index);
 v3f check_v3f(lua_State *L, int index);
 v3s16 check_v3s16(lua_State *L, int index);
 
-// TODO: Unify type-checking across all read_* functions. Currently, read_v2f
+// NOTE: Type-checking across all read_* functions should be unified. Currently, read_v2f
 // and read_v3f silently convert non-numeric fields to 0 (e.g., {x=true, y=false}
 // becomes {0,0} with no warning). Use CHECK_POS_TAB or CHECK_TYPE consistently.
 // The check_* functions already do this properly; the read_* functions should

@@ -362,7 +362,7 @@ const v3f GenericCAO::getPosition() const
         // Calculate real position in world based on MatrixNode
         if (m_matrixnode) {
         // Work around #16221: camera position offset not in sync with player CAO position.
-        // Restrict this workaround to local player only as suggested in original FIXME.
+        // Restrict this workaround to local player only (see Issue #16221).
         // NOTE: A proper fix would synchronize the player CAO position and camera
         // position through a shared update cycle rather than applying camera offset
         // as a post-hoc workaround. The root cause is that the scene graph
