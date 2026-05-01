@@ -27,6 +27,18 @@ private:
                 Piece(const Profiler::GraphValues &v) : values(v) {}
                 Profiler::GraphValues values;
         };
+        struct Meta
+        {
+                float min;
+                float max;
+                video::SColor color;
+                Meta(float initial = 0,
+                                video::SColor color = video::SColor(255, 255, 255, 255)) :
+                                min(initial),
+                                max(initial), color(color)
+                {
+                }
+        };
         std::deque<Piece> m_log;
 
 public:

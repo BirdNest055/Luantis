@@ -94,7 +94,7 @@ These TODO/FIXME/compiler-warning items were resolved during v9.54 development:
 
 | File | Line(s) | Issue | Fix | Status |
 |------|---------|-------|-----|--------|
-| `src/gui/profilergraph.h` | 27-38 | Unused `Meta` struct — dead code | Removed unused `Meta` struct; upgraded FIXME to descriptive TODO | Fixed |
+| `src/gui/profilergraph.h` | 21 | Unused `Meta` struct — dead code | Restored Meta struct (used in draw()), upgraded FIXME to descriptive TODO | Fixed |
 | `src/client/game_formspec.cpp` | 18-19 | Duplicate `#include "gui/guiPasswordChange.h"` | Removed duplicate include | Fixed |
 | `src/client/game_formspec.h` | 18,21,22 | "fromspec" typos (3 instances) | Changed "fromspec" to "formspec" | Fixed |
 | `src/client/game_formspec.h` | 18 | "intend" grammar error | Changed "intend" to "is intended" | Fixed |
