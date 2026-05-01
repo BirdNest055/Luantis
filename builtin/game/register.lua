@@ -278,6 +278,13 @@ function core.register_item(name, itemdef)
         end
         setmetatable(itemdef, {__index = defaults})
 
+        -- NOTE: Legacy field mappings (BEGIN/END Legacy stuff blocks):
+        -- These convert deprecated item definition fields into their modern equivalents.
+        -- Each block logs a deprecation warning so mod authors can migrate.
+        -- Removal plan: In a future major version (v6.0+), these blocks should be
+        -- converted from deprecation warnings to hard errors, then eventually removed.
+        -- Affected fields: `image` → `inventory_image`, `cookresult_itemstring` →
+        -- `core.register_craft`, `furnace_burntime` → `core.register_craft`.
         -- BEGIN Legacy stuff
         if itemdef.cookresult_itemstring ~= nil and itemdef.cookresult_itemstring ~= "" then
                 core.log("deprecated", "The `cookresult_itemstring` item definition " ..
