@@ -113,14 +113,15 @@
 | `clawtest-v9.50-centralized-gui` | GUITheme centralized system (93+ constants) | `clawtest-v9.44-voice-server-authority` |
 | `clawtest-v9.51-gui-theme-editor` | WYSIWYG GUITheme web editor (Svelte) | `clawtest-v9.50-centralized-gui` |
 | `clawtest-v9.53-guitheme-test-fix` | GUITheme test improvements + drift detection | `clawtest-v9.51-gui-theme-editor` |
-| `clawtest-v9.54-fix-todo-items` | TODO/FIXME resolution + compiler warning fixes | `clawtest-v9.53-guitheme-test-fix` |
+| `clawtest-v9.54-fix-todo-items` | TODO/FIXME resolution + compiler warning fixes (140+ items, 9 batches) | `clawtest-v9.53-guitheme-test-fix` |
+| `clawtest-v9.55-fix-todo-items-2` | TODO/FIXME/HACK round 2 (124 items, batches 10-15, zero markers in src/) | `clawtest-v9.54-fix-todo-items` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.54-fix-todo-items`
+- The current branch is `clawtest-v9.55-fix-todo-items-2`
 
 ### 3.2 Commit Conventions
 
@@ -315,11 +316,11 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Luantis
-- **Current branch:** `clawtest-v9.54-fix-todo-items`
-- **Previous branch:** `clawtest-v9.53-guitheme-test-fix`
+- **Current branch:** `clawtest-v9.55-fix-todo-items-2`
+- **Previous branch:** `clawtest-v9.54-fix-todo-items`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.54
+- **Current version:** v9.55
 
 ---
 

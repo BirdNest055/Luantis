@@ -2257,3 +2257,1023 @@
 ======== Testing module TestFileSys
 [PASS] testIsDirDelimiter - 0ms
 [PASS] testPathStartsWith - 0ms
+
+
+-------------
+  Separator
+-------------
+
+======== Testing module TestActiveObject
+[PASS] testAOAttributes - 0ms
+======== Module TestActiveObject passed (0 failures / 1 tests) - 0ms
+======== Testing module TestAddress
+[PASS] testBasic - 0ms
+[PASS] testIsLocalhost - 0ms
+[PASS] testResolve - 0ms
+[PASS] testSerializeString - 0ms
+======== Module TestAddress passed (0 failures / 4 tests) - 0ms
+======== Testing module TestAreaStore
+[PASS] testVectorStore - 0ms
+[PASS] testSerialization - 0ms
+======== Module TestAreaStore passed (0 failures / 2 tests) - 0ms
+======== Testing module TestAuthDatabase
+-------- Files database (same object)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 1ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- Files database (new objects)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 1ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (same object)
+[PASS] testRecallFail - 2ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (new objects)
+[PASS] testRecallFail - 1ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 1ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 1ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+======== Module TestAuthDatabase passed (0 failures / 40 tests) - 7ms
+======== Testing module TestBan
+[PASS] testCreate - 0ms
+[PASS] testAdd - 0ms
+[PASS] testRemove - 0ms
+[PASS] testModificationFlag - 0ms
+[PASS] testGetBanName - 0ms
+[PASS] testGetBanDescription - 0ms
+======== Module TestBan passed (0 failures / 6 tests) - 1ms
+======== Testing module TestClientActiveObjectMgr
+[PASS] testGetActiveSelectableObjects - 0ms
+======== Module TestClientActiveObjectMgr passed (0 failures / 1 tests) - 0ms
+======== Testing module TestCollision
+[PASS] testAxisAlignedCollision - 0ms
+[PASS] testCollisionMoveSimple - 3ms
+======== Module TestCollision passed (0 failures / 2 tests) - 4ms
+======== Testing module TestCompression
+[PASS] testRLECompression - 0ms
+[PASS] testZlibCompression - 0ms
+[PASS] testZlibLargeData - 2ms
+[PASS] testZstdLargeData - 20ms
+[PASS] testZlibLimit - 3ms
+======== Module TestCompression passed (0 failures / 5 tests) - 25ms
+======== Testing module TestConnection
+[PASS] testNetworkPacketSerialize - 0ms
+[PASS] testHelpers - 0ms
+[PASS] testConnectSendReceive - 1613ms
+======== Module TestConnection passed (0 failures / 3 tests) - 1613ms
+======== Testing module TestConnectionSecurity
+[PASS] testConnectionSecurityEnum - 0ms
+[PASS] testIsConnectionSecure - 0ms
+[PASS] testConnectionSecurityFromFlags_zeroFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_encryptedFlag - 0ms
+[PASS] testConnectionSecurityFromFlags_supportedButNotEncrypted - 0ms
+[PASS] testConnectionSecurityFromFlags_bothFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_garbageFlags - 0ms
+[PASS] testSecurityFlagsConstants - 0ms
+[PASS] testGameUISecurityOverlayDefault - 0ms
+[PASS] testGameUISecurityOverlayInsecure - 0ms
+[PASS] testGameUISecurityOverlayEncrypted - 0ms
+======== Module TestConnectionSecurity passed (0 failures / 11 tests) - 0ms
+======== Testing module TestConnectionSecurityInfo
+[PASS] testSecurityInfoDefaultValues - 0ms
+[PASS] testSecurityInfoInsecureConnection - 0ms
+[PASS] testSecurityInfoEncryptedConnection - 0ms
+[PASS] testSecurityInfoCustomValues - 0ms
+[PASS] testSecurityInfoGetStateString - 0ms
+[PASS] testSecurityInfoGetEncryptionString - 0ms
+[PASS] testSecurityInfoGetKeyExchangeString - 0ms
+[PASS] testSecurityInfoGetAuthenticationString - 0ms
+[PASS] testSecurityInfoGetCipherSuiteString - 0ms
+[PASS] testSecurityInfoGetCertStatusString - 0ms
+[PASS] testSecurityInfoIsSecure - 0ms
+[PASS] testSecurityInfoIsForwardSecret - 0ms
+[PASS] testSecurityInfoIsReplayProtected - 0ms
+[PASS] testSecurityInfoIsAuthenticated - 0ms
+[PASS] testExtendedSecurityFlagsConstants - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_zero - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_allSet - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_partial - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_forwardSecrecyOnly - 0ms
+[PASS] testSecurityInfoOverlayConsistency - 0ms
+[PASS] testSecurityInfoStateTransitions - 0ms
+[PASS] testSecurityInfoV8NewFieldDefaults - 0ms
+[PASS] testSecurityInfoV8SessionId - 0ms
+[PASS] testSecurityInfoV8ConnectedSince - 0ms
+[PASS] testSecurityInfoV8ServerFingerprint - 0ms
+[PASS] testSecurityInfoV8TlsVersion - 0ms
+[PASS] testSecurityInfoV8SecurityScore_insecure - 0ms
+[PASS] testSecurityInfoV8SecurityScore_partial - 0ms
+[PASS] testSecurityInfoV8SecurityScore_full - 0ms
+[PASS] testSecurityInfoV8GetTlsVersionString - 0ms
+[PASS] testSecurityInfoV8GetSecurityScoreString - 0ms
+[PASS] testSecurityInfoV8SecurityInfoFromFlags_withSessionData - 0ms
+[PASS] testSecurityInfoV8ResetClearsNewFields - 0ms
+======== Module TestConnectionSecurityInfo passed (0 failures / 33 tests) - 0ms
+======== Testing module TestMapblockMeshGenerator
+[PASS] testSimpleNode - 2ms
+[PASS] testSurroundedNode - 1ms
+[PASS] testInterliquidSame - 1ms
+[PASS] testInterliquidDifferent - 0ms
+======== Module TestMapblockMeshGenerator passed (0 failures / 4 tests) - 4ms
+======== Testing module TestCraft
+[PASS] testShapeless - 1ms
+======== Module TestCraft passed (0 failures / 1 tests) - 1ms
+======== Testing module TestCrypto
+[PASS] testAes256GcmBasicRoundtrip - 1ms
+[PASS] testAes256GcmEmptyPlaintext - 0ms
+[PASS] testAes256GcmLargePayload - 0ms
+[PASS] testAes256GcmWrongKeyFails - 0ms
+[PASS] testAes256GcmWrongNonceFails - 0ms
+[PASS] testAes256GcmTamperedTagFails - 0ms
+[PASS] testAes256GcmTamperedCiphertextFails - 0ms
+[PASS] testAes256GcmWrongAADFails - 0ms
+[PASS] testAes256GcmMissingAADEncryptDecrypt - 0ms
+[PASS] testAes256GcmInvalidKeySize - 0ms
+[PASS] testAes256GcmInvalidNonceSize - 0ms
+[PASS] testAes256GcmInvalidTagSize - 0ms
+[PASS] testAes256GcmCiphertextDiffersFromPlaintext - 0ms
+[PASS] testAes256GcmDifferentNoncesProduceDifferentCiphertext - 0ms
+[PASS] testAes256GcmAADAuthenticatedButNotEncrypted - 0ms
+[PASS] testHkdfDeterministic - 0ms
+[PASS] testHkdfDifferentInfoProducesDifferentOutput - 0ms
+[PASS] testHkdfDifferentIKMProducesDifferentOutput - 0ms
+[PASS] testHkdfWithSalt - 0ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:TRACE] Encryption trace file: /home/z/my-project/Luantis/bin/../encryption_trace.log
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=no | ikm_len=32 | out_present=yes | out_len=32
+[PASS] testHkdfNullIKMFails - 0ms
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=0 | out_present=yes | out_len=32
+[PASS] testHkdfZeroLengthIKMFails - 0ms
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=no | out_len=32
+[PASS] testHkdfNullOutputFails - 0ms
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=yes | out_len=0
+[PASS] testHkdfZeroLengthOutputFails - 0ms
+[PASS] testSecureRandomNonZero - 0ms
+[PASS] testSecureRandomDifferentCalls - 0ms
+[PASS] testSecureRandomNullBufferFails - 0ms
+[PASS] testSecureRandomZeroLengthFails - 0ms
+[PASS] testBuildNonceCounterZero - 0ms
+[PASS] testBuildNonceCounterMax - 0ms
+[PASS] testBuildNonceDifferentCounters - 0ms
+[PASS] testBuildNonceDifferentBases - 0ms
+[PASS] testBuildNonceBigEndianCounter - 0ms
+[PASS] testBinToHexEmpty - 0ms
+[PASS] testBinToHexSingleByte - 0ms
+[PASS] testBinToHexMultiByte - 0ms
+[PASS] testBinToHexAllZeros - 0ms
+[PASS] testBinToHexAllOnes - 0ms
+[PASS] testKeyToFingerprintFormat - 0ms
+[PASS] testKeyToFingerprintConsistency - 0ms
+[PASS] testKeyToFingerprintDifferentKeys - 0ms
+[PASS] testOpenSSLIsEnabled - 0ms
+[PASS] testFullKeyDerivationAndRoundtrip - 0ms
+======== Module TestCrypto passed (0 failures / 42 tests) - 2ms
+======== Testing module TestDataStructures
+-------- ModifySafeMap
+[PASS] testMap1 - 0ms
+[PASS] testMap2 - 0ms
+[PASS] testMap3 - 0ms
+[PASS] testMap4 - 0ms
+[PASS] testMap5 - 0ms
+======== Module TestDataStructures passed (0 failures / 5 tests) - 0ms
+======== Testing module TestECDHX25519
+[PASS] testGenerateKeyPairSuccess - 0ms
+[PASS] testGenerateKeyPairProducesNonZeroKeys - 0ms
+[PASS] testGenerateKeyPairDifferentEachCall - 0ms
+[PASS] testGenerateKeyPairPublicKeySize - 0ms
+[PASS] testGenerateKeyPairPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretSuccess - 1ms
+[PASS] testComputeSharedSecretSymmetry - 0ms
+[PASS] testComputeSharedSecretDifferentPairsSameSecret - 0ms
+[PASS] testComputeSharedSecretInvalidPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretInvalidPublicKeySize - 0ms
+[PASS] testComputeSharedSecretNullPrivateKey - 0ms
+[PASS] testComputeSharedSecretNullPublicKey - 0ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a99ce3bacffde840a222bfec5a248fdb | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretIntoKeysSuccess - 1ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=136dfb43f7dd9b2321d2cae95a1e8837 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretProducesDifferentKeys - 1ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=f860411f2fa5c7e5c978eaf92e70b83b | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretSetsECDHCompleted - 0ms
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=yes | len=16
+2026-05-01 20:27:41: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=no | len=32
+[PASS] testMixECDHSecretInvalidSizeFails - 0ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=2231bc2d191e352c36cafa5150ecf636 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=2231bc2d191e352c36cafa5150ecf636 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testFullECDHSRPKeyDerivationRoundtrip - 1ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=51f4da3483313d416d6f554b8d693fa6 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=51f4da3483313d416d6f554b8d693fa6 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHEncryptDecryptWithReDerivedKeys - 1ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=cba334f884ad3d5b643c9c8af87dafc0 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHKeysAreDifferentFromSRPOnlyKeys - 0ms
+======== Module TestECDHX25519 passed (0 failures / 19 tests) - 5ms
+======== Testing module TestEncryptedFlagDetection
+[PASS] testEncryptedFlagConstantValue - 0ms
+[PASS] testPlaintextFlagConstantValue - 0ms
+[PASS] testEncryptedFlagDoesNotConflictWithPacketTypes - 0ms
+[PASS] testEncryptedOverheadCalculation - 0ms
+[PASS] testMinimumEncryptedPacketSize - 0ms
+[PASS] testPacketWithExactOverheadIsEncrypted - 0ms
+[PASS] testPacketBelowOverheadIsPlaintext - 0ms
+[PASS] testEncryptedPacketDetectedByFlag - 0ms
+[PASS] testPlaintextPacketDetectedByNoFlag - 0ms
+[PASS] testControlPacketNotMistakenForEncrypted - 0ms
+[PASS] testOriginalPacketNotMistakenForEncrypted - 0ms
+[PASS] testSplitPacketNotMistakenForEncrypted - 0ms
+[PASS] testReliablePacketNotMistakenForEncrypted - 0ms
+[PASS] testEmptyCiphertextEncryptedPacketDetected - 0ms
+[PASS] testOneByteCiphertextEncryptedPacketDetected - 0ms
+[PASS] testTruncatedEncryptedPacketFallsBackToPlaintext - 0ms
+[PASS] testPlaintextAcceptedBeforeActivation - 1ms
+[PASS] testPlaintextAcceptedAfterActivation - 0ms
+[PASS] testPlaintextAcceptedLongAfterActivation - 0ms
+[PASS] testEncryptedDetectedBeforeActivation - 0ms
+[PASS] testEncryptedDetectedAfterActivation - 0ms
+[PASS] testNoGracePeriodForPlaintextPackets - 0ms
+[PASS] testNoTransitionCountersInState - 1ms
+[PASS] testActivateSimplySetsActiveFlag - 0ms
+[PASS] testEncryptBuildDetectDecryptRoundTrip - 0ms
+[PASS] testEncryptWithDifferentKeysProducesDifferentCiphertext - 0ms
+[PASS] testZeroByteAfterHeaderNotEncrypted - 0ms
+[PASS] testByte0x80InPacketBodyNotConfused - 0ms
+[PASS] testMultipleEncryptedPacketsDifferentCounters - 0ms
+======== Module TestEncryptedFlagDetection passed (0 failures / 29 tests) - 2ms
+======== Testing module TestEncryptedPacketFormat
+[PASS] testEncryptedPacketStructure - 1ms
+[PASS] testEncryptedFlagBytePosition - 0ms
+[PASS] testEncryptedFlagByteValue - 0ms
+[PASS] testNoncePosition - 0ms
+[PASS] testNonceSize - 0ms
+[PASS] testTagPosition - 0ms
+[PASS] testTagSize - 0ms
+[PASS] testCiphertextPosition - 1ms
+[PASS] testCiphertextSize - 0ms
+[PASS] testNoPlaintextProtocolMagic - 0ms
+[PASS] testNoPlaintextPacketType - 0ms
+[PASS] testNoPlaintextPeerId - 0ms
+[PASS] testNoPlaintextChannel - 0ms
+[PASS] testEncryptedPacketOverhead - 0ms
+[PASS] testEncryptedPacketTotalSize - 1ms
+[PASS] testEmptyPayloadEncryptedSize - 0ms
+[PASS] testEncryptedFlagNotValidPacketType - 0ms
+[PASS] testPlaintextPacketTypeNotEncryptedFlag - 0ms
+[PASS] testTamperEncryptedFlagFails - 0ms
+[PASS] testTamperNonceByteFails - 0ms
+[PASS] testTamperCiphertextByteFails - 0ms
+[PASS] testTamperTagByteFails - 1ms
+[PASS] testSimulatedFullPacketRoundtrip - 0ms
+[PASS] testSimulatedBaseHeaderPreserved - 0ms
+[PASS] testMultiplePacketsUniqueNonces - 0ms
+[PASS] testPlaintextPacketFormat - 0ms
+[PASS] testEncryptedPacketIsLarger - 1ms
+======== Module TestEncryptedPacketFormat passed (0 failures / 27 tests) - 5ms
+======== Testing module TestEncryptionActivationRace
+[PASS] testNotActiveAfterInit - 0ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=9ea109b5c321efa226b01c7d9812cd04 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNotActiveAfterECDHKeyMixing - 0ms
+[PASS] testNotActiveAfterSetPeerEncryptionState - 0ms
+[PASS] testDeferredActivationPreventsPrematureEncrypt - 1ms
+[PASS] testEncryptedFlagByteIdentifiesEncryptedPacket - 0ms
+[PASS] testPlaintextPacketTypeNotConfusedWithEncrypted - 0ms
+[PASS] testEncryptedDetectionIndependentOfActiveState - 0ms
+[PASS] testPacketSizeCheckForEncryptedDetection - 0ms
+[PASS] testZeroKeyRejectedForDecrypt - 0ms
+[PASS] testNonZeroKeyAcceptedForDecrypt - 0ms
+[PASS] testKeyInitializedGuardAfterInitButBeforeECDH - 0ms
+[PASS] testAutoActivationAfterSuccessfulDecrypt - 1ms
+[PASS] testNoAutoActivationOnFailedDecrypt - 0ms
+[PASS] testAutoActivationSetsActivatedAt - 0ms
+[PASS] testAutoActivationIdempotent - 0ms
+[PASS] testAutoActivationConcurrentSafety - 1ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=3235d9925da1920487dc45a6bb829fce | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testSetPeerEncryptionStateCopiesECDHCompleted - 0ms
+[PASS] testSetPeerEncryptionStateCopiesHKDFSalt - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPrivate - 1ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPublic - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHSharedSecret - 0ms
+[PASS] testSetPeerEncryptionStateCopiesKeyRotationCount - 0ms
+[PASS] testFullHandshakeServerActivatesFirst - 1ms
+[PASS] testFullHandshakeClientAutoActivatesOnFirstPacket - 0ms
+[PASS] testFullHandshakeBidirectionalAfterAutoActivation - 0ms
+[PASS] testRaceConditionServerSendsPlaintextDuringTransition - 0ms
+[PASS] testRaceConditionClientSendsAfterAutoActivation - 0ms
+2026-05-01 20:27:41: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=dd72c9c20740dc83d96a04f8e40b6530 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNoPrematureClientActivation - 1ms
+[PASS] testTransitionPeriodPlaintextTolerated - 0ms
+======== Module TestEncryptionActivationRace passed (0 failures / 29 tests) - 6ms
+======== Testing module TestEventManager
+[PASS] testRegister - 0ms
+[PASS] testDeregister - 0ms
+[PASS] testRealEvent - 0ms
+[PASS] testRealEventAfterDereg - 0ms
+======== Module TestEventManager passed (0 failures / 4 tests) - 0ms
+======== Testing module TestFileSys
+[PASS] testIsDirDelimiter - 0ms
+[PASS] testPathStartsWith - 0ms
+
+
+-------------
+  Separator
+-------------
+
+======== Testing module TestActiveObject
+[PASS] testAOAttributes - 0ms
+======== Module TestActiveObject passed (0 failures / 1 tests) - 0ms
+======== Testing module TestAddress
+[PASS] testBasic - 0ms
+[PASS] testIsLocalhost - 0ms
+[PASS] testResolve - 1ms
+[PASS] testSerializeString - 0ms
+======== Module TestAddress passed (0 failures / 4 tests) - 1ms
+======== Testing module TestAreaStore
+[PASS] testVectorStore - 0ms
+[PASS] testSerialization - 0ms
+======== Module TestAreaStore passed (0 failures / 2 tests) - 0ms
+======== Testing module TestAuthDatabase
+-------- Files database (same object)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 1ms
+[PASS] testRecallFail - 0ms
+-------- Files database (new objects)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (same object)
+[PASS] testRecallFail - 2ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 1ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (new objects)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 1ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 1ms
+======== Module TestAuthDatabase passed (0 failures / 40 tests) - 8ms
+======== Testing module TestBan
+[PASS] testCreate - 0ms
+[PASS] testAdd - 1ms
+[PASS] testRemove - 0ms
+[PASS] testModificationFlag - 0ms
+[PASS] testGetBanName - 0ms
+[PASS] testGetBanDescription - 0ms
+======== Module TestBan passed (0 failures / 6 tests) - 1ms
+======== Testing module TestClientActiveObjectMgr
+[PASS] testGetActiveSelectableObjects - 0ms
+======== Module TestClientActiveObjectMgr passed (0 failures / 1 tests) - 0ms
+======== Testing module TestCollision
+[PASS] testAxisAlignedCollision - 0ms
+[PASS] testCollisionMoveSimple - 3ms
+======== Module TestCollision passed (0 failures / 2 tests) - 3ms
+======== Testing module TestCompression
+[PASS] testRLECompression - 0ms
+[PASS] testZlibCompression - 0ms
+[PASS] testZlibLargeData - 2ms
+[PASS] testZstdLargeData - 21ms
+[PASS] testZlibLimit - 3ms
+======== Module TestCompression passed (0 failures / 5 tests) - 26ms
+======== Testing module TestConnection
+[PASS] testNetworkPacketSerialize - 0ms
+[PASS] testHelpers - 0ms
+[PASS] testConnectSendReceive - 1115ms
+======== Module TestConnection passed (0 failures / 3 tests) - 1115ms
+======== Testing module TestConnectionSecurity
+[PASS] testConnectionSecurityEnum - 0ms
+[PASS] testIsConnectionSecure - 0ms
+[PASS] testConnectionSecurityFromFlags_zeroFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_encryptedFlag - 0ms
+[PASS] testConnectionSecurityFromFlags_supportedButNotEncrypted - 0ms
+[PASS] testConnectionSecurityFromFlags_bothFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_garbageFlags - 0ms
+[PASS] testSecurityFlagsConstants - 0ms
+[PASS] testGameUISecurityOverlayDefault - 0ms
+[PASS] testGameUISecurityOverlayInsecure - 0ms
+[PASS] testGameUISecurityOverlayEncrypted - 0ms
+======== Module TestConnectionSecurity passed (0 failures / 11 tests) - 0ms
+======== Testing module TestConnectionSecurityInfo
+[PASS] testSecurityInfoDefaultValues - 0ms
+[PASS] testSecurityInfoInsecureConnection - 0ms
+[PASS] testSecurityInfoEncryptedConnection - 0ms
+[PASS] testSecurityInfoCustomValues - 0ms
+[PASS] testSecurityInfoGetStateString - 1ms
+[PASS] testSecurityInfoGetEncryptionString - 0ms
+[PASS] testSecurityInfoGetKeyExchangeString - 0ms
+[PASS] testSecurityInfoGetAuthenticationString - 0ms
+[PASS] testSecurityInfoGetCipherSuiteString - 0ms
+[PASS] testSecurityInfoGetCertStatusString - 0ms
+[PASS] testSecurityInfoIsSecure - 0ms
+[PASS] testSecurityInfoIsForwardSecret - 0ms
+[PASS] testSecurityInfoIsReplayProtected - 0ms
+[PASS] testSecurityInfoIsAuthenticated - 0ms
+[PASS] testExtendedSecurityFlagsConstants - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_zero - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_allSet - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_partial - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_forwardSecrecyOnly - 0ms
+[PASS] testSecurityInfoOverlayConsistency - 0ms
+[PASS] testSecurityInfoStateTransitions - 0ms
+[PASS] testSecurityInfoV8NewFieldDefaults - 0ms
+[PASS] testSecurityInfoV8SessionId - 0ms
+[PASS] testSecurityInfoV8ConnectedSince - 0ms
+[PASS] testSecurityInfoV8ServerFingerprint - 0ms
+[PASS] testSecurityInfoV8TlsVersion - 0ms
+[PASS] testSecurityInfoV8SecurityScore_insecure - 0ms
+[PASS] testSecurityInfoV8SecurityScore_partial - 0ms
+[PASS] testSecurityInfoV8SecurityScore_full - 0ms
+[PASS] testSecurityInfoV8GetTlsVersionString - 0ms
+[PASS] testSecurityInfoV8GetSecurityScoreString - 0ms
+[PASS] testSecurityInfoV8SecurityInfoFromFlags_withSessionData - 0ms
+[PASS] testSecurityInfoV8ResetClearsNewFields - 0ms
+======== Module TestConnectionSecurityInfo passed (0 failures / 33 tests) - 1ms
+======== Testing module TestMapblockMeshGenerator
+[PASS] testSimpleNode - 2ms
+[PASS] testSurroundedNode - 0ms
+[PASS] testInterliquidSame - 1ms
+[PASS] testInterliquidDifferent - 1ms
+======== Module TestMapblockMeshGenerator passed (0 failures / 4 tests) - 4ms
+======== Testing module TestCraft
+[PASS] testShapeless - 1ms
+======== Module TestCraft passed (0 failures / 1 tests) - 1ms
+======== Testing module TestCrypto
+[PASS] testAes256GcmBasicRoundtrip - 0ms
+[PASS] testAes256GcmEmptyPlaintext - 0ms
+[PASS] testAes256GcmLargePayload - 0ms
+[PASS] testAes256GcmWrongKeyFails - 0ms
+[PASS] testAes256GcmWrongNonceFails - 0ms
+[PASS] testAes256GcmTamperedTagFails - 0ms
+[PASS] testAes256GcmTamperedCiphertextFails - 0ms
+[PASS] testAes256GcmWrongAADFails - 0ms
+[PASS] testAes256GcmMissingAADEncryptDecrypt - 0ms
+[PASS] testAes256GcmInvalidKeySize - 0ms
+[PASS] testAes256GcmInvalidNonceSize - 0ms
+[PASS] testAes256GcmInvalidTagSize - 0ms
+[PASS] testAes256GcmCiphertextDiffersFromPlaintext - 0ms
+[PASS] testAes256GcmDifferentNoncesProduceDifferentCiphertext - 0ms
+[PASS] testAes256GcmAADAuthenticatedButNotEncrypted - 0ms
+[PASS] testHkdfDeterministic - 1ms
+[PASS] testHkdfDifferentInfoProducesDifferentOutput - 0ms
+[PASS] testHkdfDifferentIKMProducesDifferentOutput - 0ms
+[PASS] testHkdfWithSalt - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:TRACE] Encryption trace file: /home/z/my-project/Luantis/bin/../encryption_trace.log
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=no | ikm_len=32 | out_present=yes | out_len=32
+[PASS] testHkdfNullIKMFails - 0ms
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=0 | out_present=yes | out_len=32
+[PASS] testHkdfZeroLengthIKMFails - 0ms
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=no | out_len=32
+[PASS] testHkdfNullOutputFails - 0ms
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=yes | out_len=0
+[PASS] testHkdfZeroLengthOutputFails - 0ms
+[PASS] testSecureRandomNonZero - 0ms
+[PASS] testSecureRandomDifferentCalls - 0ms
+[PASS] testSecureRandomNullBufferFails - 0ms
+[PASS] testSecureRandomZeroLengthFails - 0ms
+[PASS] testBuildNonceCounterZero - 0ms
+[PASS] testBuildNonceCounterMax - 0ms
+[PASS] testBuildNonceDifferentCounters - 0ms
+[PASS] testBuildNonceDifferentBases - 0ms
+[PASS] testBuildNonceBigEndianCounter - 0ms
+[PASS] testBinToHexEmpty - 0ms
+[PASS] testBinToHexSingleByte - 0ms
+[PASS] testBinToHexMultiByte - 0ms
+[PASS] testBinToHexAllZeros - 0ms
+[PASS] testBinToHexAllOnes - 0ms
+[PASS] testKeyToFingerprintFormat - 0ms
+[PASS] testKeyToFingerprintConsistency - 0ms
+[PASS] testKeyToFingerprintDifferentKeys - 0ms
+[PASS] testOpenSSLIsEnabled - 0ms
+[PASS] testFullKeyDerivationAndRoundtrip - 0ms
+======== Module TestCrypto passed (0 failures / 42 tests) - 1ms
+======== Testing module TestDataStructures
+-------- ModifySafeMap
+[PASS] testMap1 - 0ms
+[PASS] testMap2 - 0ms
+[PASS] testMap3 - 0ms
+[PASS] testMap4 - 0ms
+[PASS] testMap5 - 0ms
+======== Module TestDataStructures passed (0 failures / 5 tests) - 0ms
+======== Testing module TestECDHX25519
+[PASS] testGenerateKeyPairSuccess - 1ms
+[PASS] testGenerateKeyPairProducesNonZeroKeys - 0ms
+[PASS] testGenerateKeyPairDifferentEachCall - 0ms
+[PASS] testGenerateKeyPairPublicKeySize - 0ms
+[PASS] testGenerateKeyPairPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretSuccess - 0ms
+[PASS] testComputeSharedSecretSymmetry - 0ms
+[PASS] testComputeSharedSecretDifferentPairsSameSecret - 1ms
+[PASS] testComputeSharedSecretInvalidPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretInvalidPublicKeySize - 0ms
+[PASS] testComputeSharedSecretNullPrivateKey - 0ms
+[PASS] testComputeSharedSecretNullPublicKey - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=687381467f95c88b15700f67ad1256db | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretIntoKeysSuccess - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=b5d0b5eafc1b98d0c8ac334871b73704 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretProducesDifferentKeys - 1ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=ef1a468b9aa8a978ac0c93ea4eabc5f4 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretSetsECDHCompleted - 1ms
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=yes | len=16
+2026-05-01 20:27:46: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=no | len=32
+[PASS] testMixECDHSecretInvalidSizeFails - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a1ce94fb18aca043ba9f806c73503a4b | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a1ce94fb18aca043ba9f806c73503a4b | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testFullECDHSRPKeyDerivationRoundtrip - 1ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=7dc14841a1955bc2510f005368f1b0a9 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=7dc14841a1955bc2510f005368f1b0a9 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHEncryptDecryptWithReDerivedKeys - 1ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=1e6ebf7e8c3c6a594a51cbd950fece0e | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHKeysAreDifferentFromSRPOnlyKeys - 1ms
+======== Module TestECDHX25519 passed (0 failures / 19 tests) - 7ms
+======== Testing module TestEncryptedFlagDetection
+[PASS] testEncryptedFlagConstantValue - 0ms
+[PASS] testPlaintextFlagConstantValue - 0ms
+[PASS] testEncryptedFlagDoesNotConflictWithPacketTypes - 0ms
+[PASS] testEncryptedOverheadCalculation - 0ms
+[PASS] testMinimumEncryptedPacketSize - 0ms
+[PASS] testPacketWithExactOverheadIsEncrypted - 0ms
+[PASS] testPacketBelowOverheadIsPlaintext - 0ms
+[PASS] testEncryptedPacketDetectedByFlag - 0ms
+[PASS] testPlaintextPacketDetectedByNoFlag - 0ms
+[PASS] testControlPacketNotMistakenForEncrypted - 0ms
+[PASS] testOriginalPacketNotMistakenForEncrypted - 0ms
+[PASS] testSplitPacketNotMistakenForEncrypted - 0ms
+[PASS] testReliablePacketNotMistakenForEncrypted - 0ms
+[PASS] testEmptyCiphertextEncryptedPacketDetected - 0ms
+[PASS] testOneByteCiphertextEncryptedPacketDetected - 0ms
+[PASS] testTruncatedEncryptedPacketFallsBackToPlaintext - 0ms
+[PASS] testPlaintextAcceptedBeforeActivation - 0ms
+[PASS] testPlaintextAcceptedAfterActivation - 0ms
+[PASS] testPlaintextAcceptedLongAfterActivation - 1ms
+[PASS] testEncryptedDetectedBeforeActivation - 0ms
+[PASS] testEncryptedDetectedAfterActivation - 0ms
+[PASS] testNoGracePeriodForPlaintextPackets - 0ms
+[PASS] testNoTransitionCountersInState - 1ms
+[PASS] testActivateSimplySetsActiveFlag - 0ms
+[PASS] testEncryptBuildDetectDecryptRoundTrip - 0ms
+[PASS] testEncryptWithDifferentKeysProducesDifferentCiphertext - 1ms
+[PASS] testZeroByteAfterHeaderNotEncrypted - 0ms
+[PASS] testByte0x80InPacketBodyNotConfused - 0ms
+[PASS] testMultipleEncryptedPacketsDifferentCounters - 0ms
+======== Module TestEncryptedFlagDetection passed (0 failures / 29 tests) - 3ms
+======== Testing module TestEncryptedPacketFormat
+[PASS] testEncryptedPacketStructure - 0ms
+[PASS] testEncryptedFlagBytePosition - 0ms
+[PASS] testEncryptedFlagByteValue - 1ms
+[PASS] testNoncePosition - 0ms
+[PASS] testNonceSize - 0ms
+[PASS] testTagPosition - 0ms
+[PASS] testTagSize - 0ms
+[PASS] testCiphertextPosition - 0ms
+[PASS] testCiphertextSize - 0ms
+[PASS] testNoPlaintextProtocolMagic - 1ms
+[PASS] testNoPlaintextPacketType - 0ms
+[PASS] testNoPlaintextPeerId - 0ms
+[PASS] testNoPlaintextChannel - 0ms
+[PASS] testEncryptedPacketOverhead - 0ms
+[PASS] testEncryptedPacketTotalSize - 0ms
+[PASS] testEmptyPayloadEncryptedSize - 0ms
+[PASS] testEncryptedFlagNotValidPacketType - 0ms
+[PASS] testPlaintextPacketTypeNotEncryptedFlag - 0ms
+[PASS] testTamperEncryptedFlagFails - 0ms
+[PASS] testTamperNonceByteFails - 1ms
+[PASS] testTamperCiphertextByteFails - 0ms
+[PASS] testTamperTagByteFails - 0ms
+[PASS] testSimulatedFullPacketRoundtrip - 1ms
+[PASS] testSimulatedBaseHeaderPreserved - 0ms
+[PASS] testMultiplePacketsUniqueNonces - 0ms
+[PASS] testPlaintextPacketFormat - 0ms
+[PASS] testEncryptedPacketIsLarger - 1ms
+======== Module TestEncryptedPacketFormat passed (0 failures / 27 tests) - 5ms
+======== Testing module TestEncryptionActivationRace
+[PASS] testNotActiveAfterInit - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=e0239f8ac8739be9b9080342fd2a123f | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNotActiveAfterECDHKeyMixing - 1ms
+[PASS] testNotActiveAfterSetPeerEncryptionState - 0ms
+[PASS] testDeferredActivationPreventsPrematureEncrypt - 0ms
+[PASS] testEncryptedFlagByteIdentifiesEncryptedPacket - 0ms
+[PASS] testPlaintextPacketTypeNotConfusedWithEncrypted - 0ms
+[PASS] testEncryptedDetectionIndependentOfActiveState - 0ms
+[PASS] testPacketSizeCheckForEncryptedDetection - 0ms
+[PASS] testZeroKeyRejectedForDecrypt - 0ms
+[PASS] testNonZeroKeyAcceptedForDecrypt - 1ms
+[PASS] testKeyInitializedGuardAfterInitButBeforeECDH - 0ms
+[PASS] testAutoActivationAfterSuccessfulDecrypt - 0ms
+[PASS] testNoAutoActivationOnFailedDecrypt - 1ms
+[PASS] testAutoActivationSetsActivatedAt - 0ms
+[PASS] testAutoActivationIdempotent - 0ms
+[PASS] testAutoActivationConcurrentSafety - 1ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=42b53dbedce6b4a68b7fab3b638072c2 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testSetPeerEncryptionStateCopiesECDHCompleted - 1ms
+[PASS] testSetPeerEncryptionStateCopiesHKDFSalt - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPrivate - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPublic - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHSharedSecret - 1ms
+[PASS] testSetPeerEncryptionStateCopiesKeyRotationCount - 0ms
+[PASS] testFullHandshakeServerActivatesFirst - 0ms
+[PASS] testFullHandshakeClientAutoActivatesOnFirstPacket - 1ms
+[PASS] testFullHandshakeBidirectionalAfterAutoActivation - 0ms
+[PASS] testRaceConditionServerSendsPlaintextDuringTransition - 0ms
+[PASS] testRaceConditionClientSendsAfterAutoActivation - 0ms
+2026-05-01 20:27:46: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a0d8a81d0702dfac336920b0f0099636 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNoPrematureClientActivation - 1ms
+[PASS] testTransitionPeriodPlaintextTolerated - 0ms
+======== Module TestEncryptionActivationRace passed (0 failures / 29 tests) - 8ms
+======== Testing module TestEventManager
+[PASS] testRegister - 0ms
+[PASS] testDeregister - 0ms
+[PASS] testRealEvent - 0ms
+[PASS] testRealEventAfterDereg - 0ms
+======== Module TestEventManager passed (0 failures / 4 tests) - 0ms
+======== Testing module TestFileSys
+[PASS] testIsDirDelimiter - 0ms
+[PASS] testPathStartsWith - 0ms
+
+
+-------------
+  Separator
+-------------
+
+======== Testing module TestActiveObject
+[PASS] testAOAttributes - 0ms
+======== Module TestActiveObject passed (0 failures / 1 tests) - 0ms
+======== Testing module TestAddress
+[PASS] testBasic - 0ms
+[PASS] testIsLocalhost - 0ms
+[PASS] testResolve - 1ms
+[PASS] testSerializeString - 0ms
+======== Module TestAddress passed (0 failures / 4 tests) - 1ms
+======== Testing module TestAreaStore
+[PASS] testVectorStore - 0ms
+[PASS] testSerialization - 0ms
+======== Module TestAreaStore passed (0 failures / 2 tests) - 0ms
+======== Testing module TestAuthDatabase
+-------- Files database (same object)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 1ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- Files database (new objects)
+[PASS] testRecallFail - 0ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 1ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (same object)
+[PASS] testRecallFail - 1ms
+[PASS] testCreate - 1ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 0ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 0ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+-------- SQLite3 database (new objects)
+[PASS] testRecallFail - 1ms
+[PASS] testCreate - 0ms
+[PASS] testRecall - 0ms
+[PASS] testChange - 1ms
+[PASS] testRecallChanged - 0ms
+[PASS] testChangePrivileges - 0ms
+[PASS] testRecallChangedPrivileges - 0ms
+[PASS] testListNames - 1ms
+[PASS] testDelete - 0ms
+[PASS] testRecallFail - 0ms
+======== Module TestAuthDatabase passed (0 failures / 40 tests) - 9ms
+======== Testing module TestBan
+[PASS] testCreate - 0ms
+[PASS] testAdd - 0ms
+[PASS] testRemove - 0ms
+[PASS] testModificationFlag - 0ms
+[PASS] testGetBanName - 1ms
+[PASS] testGetBanDescription - 0ms
+======== Module TestBan passed (0 failures / 6 tests) - 1ms
+======== Testing module TestClientActiveObjectMgr
+[PASS] testGetActiveSelectableObjects - 0ms
+======== Module TestClientActiveObjectMgr passed (0 failures / 1 tests) - 0ms
+======== Testing module TestCollision
+[PASS] testAxisAlignedCollision - 0ms
+[PASS] testCollisionMoveSimple - 3ms
+======== Module TestCollision passed (0 failures / 2 tests) - 3ms
+======== Testing module TestCompression
+[PASS] testRLECompression - 0ms
+[PASS] testZlibCompression - 0ms
+[PASS] testZlibLargeData - 1ms
+[PASS] testZstdLargeData - 22ms
+[PASS] testZlibLimit - 3ms
+======== Module TestCompression passed (0 failures / 5 tests) - 27ms
+======== Testing module TestConnection
+[PASS] testNetworkPacketSerialize - 0ms
+[PASS] testHelpers - 1ms
+[PASS] testConnectSendReceive - 1614ms
+======== Module TestConnection passed (0 failures / 3 tests) - 1615ms
+======== Testing module TestConnectionSecurity
+[PASS] testConnectionSecurityEnum - 0ms
+[PASS] testIsConnectionSecure - 0ms
+[PASS] testConnectionSecurityFromFlags_zeroFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_encryptedFlag - 0ms
+[PASS] testConnectionSecurityFromFlags_supportedButNotEncrypted - 0ms
+[PASS] testConnectionSecurityFromFlags_bothFlags - 0ms
+[PASS] testConnectionSecurityFromFlags_garbageFlags - 0ms
+[PASS] testSecurityFlagsConstants - 0ms
+[PASS] testGameUISecurityOverlayDefault - 0ms
+[PASS] testGameUISecurityOverlayInsecure - 0ms
+[PASS] testGameUISecurityOverlayEncrypted - 0ms
+======== Module TestConnectionSecurity passed (0 failures / 11 tests) - 0ms
+======== Testing module TestConnectionSecurityInfo
+[PASS] testSecurityInfoDefaultValues - 0ms
+[PASS] testSecurityInfoInsecureConnection - 0ms
+[PASS] testSecurityInfoEncryptedConnection - 0ms
+[PASS] testSecurityInfoCustomValues - 0ms
+[PASS] testSecurityInfoGetStateString - 0ms
+[PASS] testSecurityInfoGetEncryptionString - 0ms
+[PASS] testSecurityInfoGetKeyExchangeString - 0ms
+[PASS] testSecurityInfoGetAuthenticationString - 0ms
+[PASS] testSecurityInfoGetCipherSuiteString - 0ms
+[PASS] testSecurityInfoGetCertStatusString - 0ms
+[PASS] testSecurityInfoIsSecure - 0ms
+[PASS] testSecurityInfoIsForwardSecret - 0ms
+[PASS] testSecurityInfoIsReplayProtected - 0ms
+[PASS] testSecurityInfoIsAuthenticated - 0ms
+[PASS] testExtendedSecurityFlagsConstants - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_zero - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_allSet - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_partial - 0ms
+[PASS] testSecurityInfoFromExtendedFlags_forwardSecrecyOnly - 0ms
+[PASS] testSecurityInfoOverlayConsistency - 0ms
+[PASS] testSecurityInfoStateTransitions - 0ms
+[PASS] testSecurityInfoV8NewFieldDefaults - 0ms
+[PASS] testSecurityInfoV8SessionId - 0ms
+[PASS] testSecurityInfoV8ConnectedSince - 0ms
+[PASS] testSecurityInfoV8ServerFingerprint - 0ms
+[PASS] testSecurityInfoV8TlsVersion - 0ms
+[PASS] testSecurityInfoV8SecurityScore_insecure - 0ms
+[PASS] testSecurityInfoV8SecurityScore_partial - 0ms
+[PASS] testSecurityInfoV8SecurityScore_full - 0ms
+[PASS] testSecurityInfoV8GetTlsVersionString - 0ms
+[PASS] testSecurityInfoV8GetSecurityScoreString - 0ms
+[PASS] testSecurityInfoV8SecurityInfoFromFlags_withSessionData - 0ms
+[PASS] testSecurityInfoV8ResetClearsNewFields - 0ms
+======== Module TestConnectionSecurityInfo passed (0 failures / 33 tests) - 1ms
+======== Testing module TestMapblockMeshGenerator
+[PASS] testSimpleNode - 2ms
+[PASS] testSurroundedNode - 1ms
+[PASS] testInterliquidSame - 1ms
+[PASS] testInterliquidDifferent - 1ms
+======== Module TestMapblockMeshGenerator passed (0 failures / 4 tests) - 5ms
+======== Testing module TestCraft
+[PASS] testShapeless - 1ms
+======== Module TestCraft passed (0 failures / 1 tests) - 1ms
+======== Testing module TestCrypto
+[PASS] testAes256GcmBasicRoundtrip - 0ms
+[PASS] testAes256GcmEmptyPlaintext - 0ms
+[PASS] testAes256GcmLargePayload - 1ms
+[PASS] testAes256GcmWrongKeyFails - 0ms
+[PASS] testAes256GcmWrongNonceFails - 0ms
+[PASS] testAes256GcmTamperedTagFails - 0ms
+[PASS] testAes256GcmTamperedCiphertextFails - 0ms
+[PASS] testAes256GcmWrongAADFails - 0ms
+[PASS] testAes256GcmMissingAADEncryptDecrypt - 0ms
+[PASS] testAes256GcmInvalidKeySize - 0ms
+[PASS] testAes256GcmInvalidNonceSize - 0ms
+[PASS] testAes256GcmInvalidTagSize - 0ms
+[PASS] testAes256GcmCiphertextDiffersFromPlaintext - 0ms
+[PASS] testAes256GcmDifferentNoncesProduceDifferentCiphertext - 0ms
+[PASS] testAes256GcmAADAuthenticatedButNotEncrypted - 0ms
+[PASS] testHkdfDeterministic - 0ms
+[PASS] testHkdfDifferentInfoProducesDifferentOutput - 0ms
+[PASS] testHkdfDifferentIKMProducesDifferentOutput - 0ms
+[PASS] testHkdfWithSalt - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:TRACE] Encryption trace file: /home/z/my-project/Luantis/bin/../encryption_trace.log
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=no | ikm_len=32 | out_present=yes | out_len=32
+[PASS] testHkdfNullIKMFails - 1ms
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=0 | out_present=yes | out_len=32
+[PASS] testHkdfZeroLengthIKMFails - 0ms
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=no | out_len=32
+[PASS] testHkdfNullOutputFails - 0ms
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] hkdf_sha256: invalid input | ikm_present=yes | ikm_len=32 | out_present=yes | out_len=0
+[PASS] testHkdfZeroLengthOutputFails - 0ms
+[PASS] testSecureRandomNonZero - 0ms
+[PASS] testSecureRandomDifferentCalls - 0ms
+[PASS] testSecureRandomNullBufferFails - 0ms
+[PASS] testSecureRandomZeroLengthFails - 0ms
+[PASS] testBuildNonceCounterZero - 0ms
+[PASS] testBuildNonceCounterMax - 0ms
+[PASS] testBuildNonceDifferentCounters - 0ms
+[PASS] testBuildNonceDifferentBases - 0ms
+[PASS] testBuildNonceBigEndianCounter - 0ms
+[PASS] testBinToHexEmpty - 0ms
+[PASS] testBinToHexSingleByte - 0ms
+[PASS] testBinToHexMultiByte - 0ms
+[PASS] testBinToHexAllZeros - 0ms
+[PASS] testBinToHexAllOnes - 0ms
+[PASS] testKeyToFingerprintFormat - 0ms
+[PASS] testKeyToFingerprintConsistency - 0ms
+[PASS] testKeyToFingerprintDifferentKeys - 0ms
+[PASS] testOpenSSLIsEnabled - 0ms
+[PASS] testFullKeyDerivationAndRoundtrip - 1ms
+======== Module TestCrypto passed (0 failures / 42 tests) - 3ms
+======== Testing module TestDataStructures
+-------- ModifySafeMap
+[PASS] testMap1 - 0ms
+[PASS] testMap2 - 0ms
+[PASS] testMap3 - 0ms
+[PASS] testMap4 - 0ms
+[PASS] testMap5 - 0ms
+======== Module TestDataStructures passed (0 failures / 5 tests) - 0ms
+======== Testing module TestECDHX25519
+[PASS] testGenerateKeyPairSuccess - 0ms
+[PASS] testGenerateKeyPairProducesNonZeroKeys - 0ms
+[PASS] testGenerateKeyPairDifferentEachCall - 0ms
+[PASS] testGenerateKeyPairPublicKeySize - 1ms
+[PASS] testGenerateKeyPairPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretSuccess - 0ms
+[PASS] testComputeSharedSecretSymmetry - 0ms
+[PASS] testComputeSharedSecretDifferentPairsSameSecret - 1ms
+[PASS] testComputeSharedSecretInvalidPrivateKeySize - 0ms
+[PASS] testComputeSharedSecretInvalidPublicKeySize - 0ms
+[PASS] testComputeSharedSecretNullPrivateKey - 0ms
+[PASS] testComputeSharedSecretNullPublicKey - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=1620e65eeda9221b838ada12b3b7dd65 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretIntoKeysSuccess - 1ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=47136396035ce9526caed77256eb3d94 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretProducesDifferentKeys - 1ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=3a76478669b6a86a168363f05315fa63 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testMixECDHSecretSetsECDHCompleted - 0ms
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=yes | len=16
+2026-05-01 20:27:52: ERROR[Main]: [ENC:ERROR] mixECDHSecretIntoKeys: invalid ECDH secret | present=no | len=32
+[PASS] testMixECDHSecretInvalidSizeFails - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=77921b4d73f95aa523b95426a45be3b1 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=77921b4d73f95aa523b95426a45be3b1 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testFullECDHSRPKeyDerivationRoundtrip - 1ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a5fda17f0a5551bfcbe8cf03df3f752c | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=a5fda17f0a5551bfcbe8cf03df3f752c | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHEncryptDecryptWithReDerivedKeys - 1ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=4a090502be5a7842ed6b0781472f42ac | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testECDHKeysAreDifferentFromSRPOnlyKeys - 1ms
+======== Module TestECDHX25519 passed (0 failures / 19 tests) - 7ms
+======== Testing module TestEncryptedFlagDetection
+[PASS] testEncryptedFlagConstantValue - 0ms
+[PASS] testPlaintextFlagConstantValue - 0ms
+[PASS] testEncryptedFlagDoesNotConflictWithPacketTypes - 0ms
+[PASS] testEncryptedOverheadCalculation - 0ms
+[PASS] testMinimumEncryptedPacketSize - 0ms
+[PASS] testPacketWithExactOverheadIsEncrypted - 0ms
+[PASS] testPacketBelowOverheadIsPlaintext - 0ms
+[PASS] testEncryptedPacketDetectedByFlag - 0ms
+[PASS] testPlaintextPacketDetectedByNoFlag - 0ms
+[PASS] testControlPacketNotMistakenForEncrypted - 0ms
+[PASS] testOriginalPacketNotMistakenForEncrypted - 0ms
+[PASS] testSplitPacketNotMistakenForEncrypted - 0ms
+[PASS] testReliablePacketNotMistakenForEncrypted - 0ms
+[PASS] testEmptyCiphertextEncryptedPacketDetected - 0ms
+[PASS] testOneByteCiphertextEncryptedPacketDetected - 0ms
+[PASS] testTruncatedEncryptedPacketFallsBackToPlaintext - 0ms
+[PASS] testPlaintextAcceptedBeforeActivation - 1ms
+[PASS] testPlaintextAcceptedAfterActivation - 0ms
+[PASS] testPlaintextAcceptedLongAfterActivation - 0ms
+[PASS] testEncryptedDetectedBeforeActivation - 0ms
+[PASS] testEncryptedDetectedAfterActivation - 0ms
+[PASS] testNoGracePeriodForPlaintextPackets - 0ms
+[PASS] testNoTransitionCountersInState - 0ms
+[PASS] testActivateSimplySetsActiveFlag - 0ms
+[PASS] testEncryptBuildDetectDecryptRoundTrip - 0ms
+[PASS] testEncryptWithDifferentKeysProducesDifferentCiphertext - 0ms
+[PASS] testZeroByteAfterHeaderNotEncrypted - 0ms
+[PASS] testByte0x80InPacketBodyNotConfused - 0ms
+[PASS] testMultipleEncryptedPacketsDifferentCounters - 1ms
+======== Module TestEncryptedFlagDetection passed (0 failures / 29 tests) - 3ms
+======== Testing module TestEncryptedPacketFormat
+[PASS] testEncryptedPacketStructure - 0ms
+[PASS] testEncryptedFlagBytePosition - 0ms
+[PASS] testEncryptedFlagByteValue - 0ms
+[PASS] testNoncePosition - 0ms
+[PASS] testNonceSize - 1ms
+[PASS] testTagPosition - 0ms
+[PASS] testTagSize - 0ms
+[PASS] testCiphertextPosition - 0ms
+[PASS] testCiphertextSize - 0ms
+[PASS] testNoPlaintextProtocolMagic - 0ms
+[PASS] testNoPlaintextPacketType - 1ms
+[PASS] testNoPlaintextPeerId - 0ms
+[PASS] testNoPlaintextChannel - 0ms
+[PASS] testEncryptedPacketOverhead - 0ms
+[PASS] testEncryptedPacketTotalSize - 0ms
+[PASS] testEmptyPayloadEncryptedSize - 0ms
+[PASS] testEncryptedFlagNotValidPacketType - 0ms
+[PASS] testPlaintextPacketTypeNotEncryptedFlag - 0ms
+[PASS] testTamperEncryptedFlagFails - 0ms
+[PASS] testTamperNonceByteFails - 0ms
+[PASS] testTamperCiphertextByteFails - 0ms
+[PASS] testTamperTagByteFails - 0ms
+[PASS] testSimulatedFullPacketRoundtrip - 1ms
+[PASS] testSimulatedBaseHeaderPreserved - 0ms
+[PASS] testMultiplePacketsUniqueNonces - 0ms
+[PASS] testPlaintextPacketFormat - 0ms
+[PASS] testEncryptedPacketIsLarger - 0ms
+======== Module TestEncryptedPacketFormat passed (0 failures / 27 tests) - 4ms
+======== Testing module TestEncryptionActivationRace
+[PASS] testNotActiveAfterInit - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=22297f82cb0f701469fcaaa01e71569c | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNotActiveAfterECDHKeyMixing - 0ms
+[PASS] testNotActiveAfterSetPeerEncryptionState - 0ms
+[PASS] testDeferredActivationPreventsPrematureEncrypt - 1ms
+[PASS] testEncryptedFlagByteIdentifiesEncryptedPacket - 0ms
+[PASS] testPlaintextPacketTypeNotConfusedWithEncrypted - 0ms
+[PASS] testEncryptedDetectionIndependentOfActiveState - 0ms
+[PASS] testPacketSizeCheckForEncryptedDetection - 0ms
+[PASS] testZeroKeyRejectedForDecrypt - 0ms
+[PASS] testNonZeroKeyAcceptedForDecrypt - 0ms
+[PASS] testKeyInitializedGuardAfterInitButBeforeECDH - 1ms
+[PASS] testAutoActivationAfterSuccessfulDecrypt - 0ms
+[PASS] testNoAutoActivationOnFailedDecrypt - 0ms
+[PASS] testAutoActivationSetsActivatedAt - 0ms
+[PASS] testAutoActivationIdempotent - 0ms
+[PASS] testAutoActivationConcurrentSafety - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=bb6872d6ebab593a22e85a289255c3e1 | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testSetPeerEncryptionStateCopiesECDHCompleted - 1ms
+[PASS] testSetPeerEncryptionStateCopiesHKDFSalt - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPrivate - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHPublic - 0ms
+[PASS] testSetPeerEncryptionStateCopiesECDHSharedSecret - 0ms
+[PASS] testSetPeerEncryptionStateCopiesKeyRotationCount - 1ms
+[PASS] testFullHandshakeServerActivatesFirst - 0ms
+[PASS] testFullHandshakeClientAutoActivatesOnFirstPacket - 0ms
+[PASS] testFullHandshakeBidirectionalAfterAutoActivation - 0ms
+[PASS] testRaceConditionServerSendsPlaintextDuringTransition - 1ms
+[PASS] testRaceConditionClientSendsAfterAutoActivation - 0ms
+2026-05-01 20:27:52: ACTION[Main]: [ENC:SECURITY] ECDH X25519 forward secrecy established | session_id=85d84e05fa7dcf2bbd2629200a5f226a | pfs=yes | key_exchange=SRP+X25519 | salted_hkdf=yes
+[PASS] testNoPrematureClientActivation - 0ms
+[PASS] testTransitionPeriodPlaintextTolerated - 0ms
+======== Module TestEncryptionActivationRace passed (0 failures / 29 tests) - 7ms
+======== Testing module TestEventManager
+[PASS] testRegister - 0ms
+[PASS] testDeregister - 0ms
+[PASS] testRealEvent - 0ms
+[PASS] testRealEventAfterDereg - 0ms
+======== Module TestEventManager passed (0 failures / 4 tests) - 0ms
+======== Testing module TestFileSys
+[PASS] testIsDirDelimiter - 0ms
+[PASS] testPathStartsWith - 0ms

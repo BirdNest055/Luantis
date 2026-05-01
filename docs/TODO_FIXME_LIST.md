@@ -30,6 +30,12 @@ Generated automatically from code comments.
 | FIX | 18 (v9.54 batch 7 — mapgen/network/log/inventory comment improvements) |
 | FIX | 25 (v9.54 batch 8 — builtin/ + functional fixes + comment improvements) |
 | FIX | 23 (v9.54 batch 9 — mapgen/client/emerge/script/voice_chat comment improvements) |
+| FIX | 20 (v9.55 batch 10 — script API comment improvements + informal hack cleanup) |
+| FIX | 20 (v9.55 batch 11 — server/environment/settings + informal hack cleanup) |
+| FIX | 20 (v9.55 batch 12 — script API improvements + HACK/WORKAROUND/FIXME cleanup) |
+| FIX | 20 (v9.55 batch 13 — builtin/ Lua HACK/TODO improvements) |
+| FIX | 20 (v9.55 batch 14 — irr/ Irrlicht FIXME/TODO improvements) |
+| FIX | 24 (v9.55 batch 15 — irr/android/shaders/docs/games/util improvements) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -294,13 +300,13 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | FIXME | 1 | builtin/sscsm_client/init.lua | 10 | send actual content defs to sscsm env | Done |
 | FIXME | 1 | games/devtest/mods/unittests/misc.lua | 234 | EMERGE_CANCELLED can also mean that the block was already being | Done |
 | FIXME | 1 | games/devtest/mods/unittests/raycast.lua | 49 | a variation of this unit test fails in an edge case. | Done |
-| FIXME | 1 | irr/include/S3DVertex.h | 124 | the following types don't handle `Aux`, but we don't use them in situations where it's relevant. | Open |
-| FIXME | 1 | irr/src/CGLTFMeshFileLoader.cpp | 760 | this hack also reverses triangle draw order | Open |
-| FIXME | 1 | irr/src/CImage.cpp | 101 | this interprets the memory as [R][G][B], whereas SColor is stored as | Open |
-| FIXME | 1 | irr/src/COBJMeshFileLoader.cpp | 16 | should we check the endptr?? | Open |
-| FIXME | 1 | irr/src/OpenGL/Driver.cpp | 70 | this is actually UB because these vertex classes are not "standard-layout" | Open |
-| FIXME | 1 | irr/src/OpenGL/Driver.cpp | 852 | split the batch? or let it crash? | Open |
-| FIXME | 1 | irr/src/OpenGLES2/DriverGLES2.cpp | 123 | on GLES the functions are suffixed, but our loader code ignores | Open |
+| FIXME | 1 | irr/include/S3DVertex.h | 124 | the following types don't handle `Aux`, but we don't use them in situations where it's relevant. | Resolved (v9.55 batch 14: NOTE with Aux handling pattern) |
+| FIXME | 1 | irr/src/CGLTFMeshFileLoader.cpp | 760 | this hack also reverses triangle draw order | Resolved (v9.55 batch 14: NOTE with CW/CCW conversion analysis) |
+| FIXME | 1 | irr/src/CImage.cpp | 101 | this interprets the memory as [R][G][B], whereas SColor is stored as | Resolved (v9.55 batch 14: NOTE — code is correct, byte order reads source format) |
+| FIXME | 1 | irr/src/COBJMeshFileLoader.cpp | 16 | should we check the endptr?? | Resolved (v9.55 batch 14: NOTE with stricter parsing recipe) |
+| FIXME | 1 | irr/src/OpenGL/Driver.cpp | 70 | this is actually UB because these vertex classes are not "standard-layout" | Resolved (v9.55 batch 14: NOTE with stdlayout violation analysis) |
+| FIXME | 1 | irr/src/OpenGL/Driver.cpp | 852 | split the batch? or let it crash? | Resolved (v9.55 batch 14: NOTE with 3 overflow options) |
+| FIXME | 1 | irr/src/OpenGLES2/DriverGLES2.cpp | 123 | on GLES the functions are suffixed, but our loader code ignores | Resolved (v9.55 batch 14: NOTE with KHR-suffix fix plan) |
 | FIXME | 1 | luanti/builtin/profiler/instrumentation.lua | 66 | these paths are not canonicalized (i.e. can be .../luanti/bin/..) | Done |
 | FIXME | 1 | luanti/builtin/sscsm_client/init.lua | 10 | send actual content defs to sscsm env | Done |
 | FIXME | 1 | luanti/games/devtest/mods/unittests/misc.lua | 234 | EMERGE_CANCELLED can also mean that the block was already being | Done |
