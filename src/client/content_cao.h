@@ -189,6 +189,8 @@ public:
 	inline const std::string &getName() const { return m_name; }
 
 	scene::ISceneNode *getSceneNode() const override;
+	// Const-safe scene node access (returns const pointer)
+	const scene::ISceneNode *getSceneNodeConst() const { return getSceneNode(); }
 
 	scene::AnimatedMeshSceneNode *getAnimatedMeshSceneNode() const override;
 

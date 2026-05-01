@@ -158,6 +158,10 @@ public:
 
 	const std::string& getName() const { return m_name; }
 
+	// Const-safe inventory access
+	const Inventory& getInventory() const { return inventory; }
+	Inventory& getInventory() { return inventory; }
+
 	u32 getFreeHudID()
 	{
 		size_t size = hud.size();
@@ -196,7 +200,8 @@ public:
 	std::string formspec_prepend;
 
 	PlayerControl control;
-	const PlayerControl& getPlayerControl() { return control; }
+	const PlayerControl& getPlayerControl() const { return control; }
+	PlayerControl& getPlayerControl() { return control; }
 
 	PlayerPhysicsOverride physics_override;
 

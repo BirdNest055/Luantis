@@ -133,6 +133,7 @@ public:
 
 	void setPlayer(RemotePlayer *player) { m_player = player; }
 	RemotePlayer *getPlayer() { return m_player; }
+	const RemotePlayer *getPlayer() const { return m_player; }
 	session_t getPeerID() const;
 
 	// Cheat prevention
@@ -149,8 +150,8 @@ public:
 		m_nocheat_dig_pos = p;
 		m_nocheat_dig_time = 0;
 	}
-	v3s16 getNoCheatDigPos() { return m_nocheat_dig_pos; }
-	float getNoCheatDigTime() { return m_nocheat_dig_time; }
+	v3s16 getNoCheatDigPos() const { return m_nocheat_dig_pos; }
+	float getNoCheatDigTime() const { return m_nocheat_dig_time; }
 	void noCheatDigEnd() { m_nocheat_dig_pos = v3s16(32767, 32767, 32767); }
 	LagPool &getDigPool() { return m_dig_pool; }
 	void setMaxSpeedOverride(const v3f &vel);
@@ -165,7 +166,7 @@ public:
 	}
 
 	inline void setNewPlayer() { m_is_new_player = true; }
-	inline bool isNewPlayer()  { return m_is_new_player; }
+	inline bool isNewPlayer() const { return m_is_new_player; }
 
 	bool getCollisionBox(aabb3f *toset) const override;
 	bool getSelectionBox(aabb3f *toset) const override;

@@ -89,9 +89,10 @@ public:
 	void addObjectReference(ServerActiveObject *cobj);
 	void removeObjectReference(ServerActiveObject *cobj);
 
-	ScriptingType getType() { return m_type; }
+	ScriptingType getType() const { return m_type; }
 
 	IGameDef *getGameDef() { return m_gamedef; }
+	const IGameDef *getGameDef() const { return m_gamedef; }
 	Server *getServer();
 #if CHECK_CLIENT_BUILD()
 	Client *getClient();
@@ -100,7 +101,7 @@ public:
 
 	// IMPORTANT: These cannot be used for any security-related uses, they exist
 	// only to enrich error messages.
-	const std::string &getOrigin() { return m_last_run_mod; }
+	const std::string &getOrigin() const { return m_last_run_mod; }
 	void setOriginDirect(const char *origin);
 	void setOriginFromTableRaw(int index, const char *fxn);
 
@@ -145,6 +146,8 @@ protected:
 	*/
 	lua_State* getStack()
 		{ return m_luastack; }
+	const lua_State* getStack() const
+		{ return m_luastack; }
 
 	// Checks that stack size is sane
 	void realityCheck();
@@ -156,6 +159,7 @@ protected:
 	void setGameDef(IGameDef* gamedef) { m_gamedef = gamedef; }
 
 	Environment* getEnv() { return m_environment; }
+	const Environment* getEnv() const { return m_environment; }
 	void setEnv(Environment* env) { m_environment = env; }
 
 #if CHECK_CLIENT_BUILD()

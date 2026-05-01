@@ -240,6 +240,20 @@ Mapgen *EmergeManager::getCurrentMapgen()
 	return nullptr;
 }
 
+const Mapgen *EmergeManager::getCurrentMapgen() const
+{
+	if (!m_threads_active)
+		return nullptr;
+
+	for (u32 i = 0; i != m_threads.size(); i++) {
+		const EmergeThread *t = m_threads[i];
+		if (t->isRunning() && t->isCurrentThread())
+			return t->m_mapgen;
+	}
+
+	return nullptr;
+}
+
 
 void EmergeManager::startThreads()
 {

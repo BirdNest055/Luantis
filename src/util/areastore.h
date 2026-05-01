@@ -72,6 +72,9 @@ public:
 	/// or NULL if it doesn't exist.
 	const Area *getArea(u32 id) const;
 
+	/// Returns a const reference to the internal area map.
+	const AreaMap& getAreas() const { return areas_map; }
+
 	/// Serializes the store's areas to a binary ostream.
 	void serialize(std::ostream &is) const;
 

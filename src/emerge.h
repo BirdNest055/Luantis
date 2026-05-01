@@ -192,6 +192,7 @@ public:
 	bool isBlockInQueue(v3s16 pos);
 
 	Mapgen *getCurrentMapgen();
+	const Mapgen *getCurrentMapgen() const;
 
 	// Mapgen helpers methods
 	int getSpawnLevelAtPoint(v2s16 p);

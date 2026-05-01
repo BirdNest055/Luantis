@@ -178,7 +178,7 @@ public:
                 regenerateGui(m_screensize_old);
         }
 
-        const InventoryLocation &getFormspecLocation()
+        const InventoryLocation &getFormspecLocation() const
         {
                 return m_current_inventory_location;
         }
