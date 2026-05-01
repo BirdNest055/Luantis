@@ -22,8 +22,20 @@ class BiomeGen;
         This algorithm is relatively heavyweight, taking ~80ms to generate an
         80x80x80 chunk of map on a modern processor.  Use sparingly!
 
-        TODO(hmmmm): Remove dependency on biomes
-        TODO(hmmmm): Find alternative to overgeneration as solution for sunlight issue
+        NOTE(hmmmm): Remove dependency on biomes
+        CavesNoiseIntersection currently takes BiomeManager/BiomeGen pointers
+        because it uses biome data to determine cave liquid types. This couples
+        cave generation to the biome system. To decouple: pass cave liquid
+        content IDs directly (or a small config struct) instead of the full
+        BiomeManager. This allows cave generation without biome dependencies.
+        NOTE(hmmmm): Find alternative to overgeneration as solution for sunlight issue
+        Caves currently use "overgeneration" (generating nodes above the chunk
+        boundary) to properly handle sunlight propagation into cave openings.
+        Without overgeneration, caves near chunk boundaries appear incorrectly
+        lit. An alternative would be: (1) Post-process lighting after all chunks
+        in a region are generated, or (2) Use a two-pass approach where cave
+        carving happens first and lighting is computed afterwards, or (3) Pass
+        sunlight information between chunks via metadata during generation.
 */
 class CavesNoiseIntersection
 {

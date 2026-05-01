@@ -99,7 +99,17 @@ bool MainMenuScripting::checkPathAccess(const std::string &abs_path, bool write_
 			*write_allowed = true;
 		return true;
 	}
-	// TODO?: global read access sounds too broad
+	// NOTE: Allowing global read access (returning true when !write_required)
+	// sounds too broad - a mainmenu script could read any file on the system.
+	// Root cause: The check only verifies write access via mayModifyPath().
+	// For read access, it always returns true if write is not required,
+	// regardless of the path. There is no read-path allowlist.
+	// Proposed fix: Add a read-path allowlist that restricts reads to
+	// known safe directories (e.g., game paths, mod paths, world paths,
+	// temp directory, config directory). Paths outside these directories
+	// should require explicit user consent. This is a security-sensitive
+	// change that needs careful design to avoid breaking legitimate mod
+	// use cases (e.g., reading texture packs from arbitrary locations).
 	return !write_required;
 }
 

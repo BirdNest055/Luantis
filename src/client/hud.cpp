@@ -384,7 +384,20 @@ void Hud::drawLuaElements(const v3s16 &camera_offset)
 				// Android-specific: Adjust font size based on HUD offset
 				// The text size on Android is not proportional with the actual scaling,
 				// so we reduce font_size when the offset suggests a smaller display.
-				// TODO: Make this a proper scaling calculation instead of hardcoded adjustment.
+				// NOTE: The font size adjustment for Android uses a hardcoded
+				// threshold (offset.X < -20) and a hardcoded reduction (-3).
+				// This should be replaced with a proper scaling calculation.
+				// Root cause: On Android, the HUD scaling factor changes the
+				// position offset but doesn't proportionally affect font rendering.
+				// The offset-based heuristic guesses when the display is "small"
+				// and reduces font size accordingly, but it's fragile - different
+				// screen densities and HUD scale settings may need different values.
+				// Proposed fix: Use the actual HUD scale factor (from g_settings)
+				// and screen DPI to compute the correct font size:
+				//   float hud_scale = g_settings->getFloat("hud_scale");
+				//   float dpi_factor = porting::getDisplayDensity();
+				//   font_size = base_font_size * hud_scale * dpi_factor;
+				// This eliminates the need for the offset-based hack entirely.
 				if (font_size > 3 && e->offset.X < -20)
 					font_size -= 3;
 #endif

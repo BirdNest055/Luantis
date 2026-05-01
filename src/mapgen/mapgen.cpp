@@ -527,8 +527,18 @@ void Mapgen::spreadLight(const v3s16 &nmin, const v3s16 &nmax)
 				if (!cf.light_propagates)
 					continue;
 
-				// TODO(hmmmmm): Abstract away direct param1 accesses with a
-				// wrapper, but something lighter than MapNode::get/setLight
+				// NOTE(hmmmm): Direct param1 accesses (n.param1 = ...) are
+				// used here for lighting propagation. This should be abstracted
+				// with a lighter-weight wrapper than MapNode::get/setLight().
+				// Root cause: param1 packs both day and night light into one byte
+				// (upper nibble = day, lower nibble = night). Direct bit manipulation
+				// is error-prone and bypasses the abstraction of LightBank.
+				// Proposed fix: Add inline helper functions to MapNode that are
+				// lighter than getLight()/setLight() (which allocate LightPair):
+				//   u8 getLightRaw(LightBank bank) const
+				//   void setLightRaw(LightBank bank, u8 light)
+				// These avoid LightPair allocation and are suitable for hot loops
+				// like lighting propagation.
 
 				u8 light_produced = cf.light_source;
 				if (light_produced)

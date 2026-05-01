@@ -940,24 +940,40 @@ bool VoiceChatManager::checkVAD(const std::vector<opus_int16> &samples)
 
 void VoiceChatManager::initAudioCapture()
 {
-        // TODO: Initialize OpenAL capture device
+        // NOTE: OpenAL capture device initialization stub. Full implementation:
+        //   ALCdevice *device = alcCaptureOpenDevice(input_device_name,
+        //       VOICE_SAMPLE_RATE, AL_FORMAT_MONO16, VOICE_FRAME_SAMPLES * 4);
+        // The capture device should be stored as m_capture_device (ALCdevice*).
+        // Before calling alcCaptureOpenDevice, enumerate available devices via
+        // alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER) and let the user
+        // select via a setting (e.g., "voice_input_device").
         // ALCdevice *device = alcCaptureOpenDevice(input_device_name,
         //     VOICE_SAMPLE_RATE, AL_FORMAT_MONO16, VOICE_FRAME_SAMPLES * 4);
 }
 
 void VoiceChatManager::deinitAudioCapture()
 {
-        // TODO: Close OpenAL capture device
+        // NOTE: Close the OpenAL capture device. Implementation:
+        //   alcCaptureCloseDevice(m_capture_device);
+        //   m_capture_device = nullptr;
+        // Should also stop capture first via alcCaptureStopDevice if active.
 }
 
 void VoiceChatManager::initAudioPlayback()
 {
-        // TODO: Initialize OpenAL playback sources for each peer
+        // NOTE: For each connected peer, create an OpenAL source for playback.
+        // Implementation: m_peer_sources[peer_id] = alGenSources(1, &source).
+        // Each source needs a buffer pool (typically 3-4 buffers) for queuing.
+        // Buffer size = VOICE_FRAME_SAMPLES * sizeof(opus_int16).
 }
 
 void VoiceChatManager::deinitAudioPlayback()
 {
-        // TODO: Clean up OpenAL playback sources
+        // NOTE: Clean up OpenAL playback sources for all peers.
+        // Implementation: for each (peer_id, source) in m_peer_sources:
+        //   alDeleteSources(1, &source);
+        //   alDeleteBuffers(count, queued_buffers);
+        // Clear m_peer_sources after deletion.
 }
 
 void VoiceChatManager::processPlaybackQueue()
@@ -969,7 +985,18 @@ void VoiceChatManager::processPlaybackQueue()
                 if (pcm.empty())
                         continue;
 
-                // TODO: Queue PCM data to OpenAL source for this peer
+                // NOTE: Queue decoded PCM data to the peer's OpenAL source.
+                // Implementation:
+                //   ALuint buffer;
+                //   alGenBuffers(1, &buffer);
+                //   alBufferData(buffer, AL_FORMAT_MONO16, pcm.data(),
+                //       pcm.size() * sizeof(opus_int16), VOICE_SAMPLE_RATE);
+                //   ALuint source = m_peer_sources[frame.peer_id];
+                //   alSourceQueueBuffers(source, 1, &buffer);
+                //   ALint state;
+                //   alGetSourcei(source, AL_SOURCE_STATE, &state);
+                //   if (state != AL_PLAYING) alSourcePlay(source);
+                // Also: recycle processed buffers via alSourceUnqueueBuffers.
                 // In a full implementation, each peer gets an OpenAL source
                 // and we buffer the decoded PCM data for playback.
         }

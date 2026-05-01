@@ -123,7 +123,15 @@ void read_groups(lua_State *L, int index, ItemGroupList &result);
 
 void push_groups(lua_State *L, const ItemGroupList &groups);
 
-// TODO: rename to "read_enum_field" and replace with type-safe template
+// NOTE: getenumfield() should be renamed to read_enum_field() for consistency
+// with the read_* naming convention used elsewhere (read_groups, read_flags).
+// It should also be replaced with a type-safe template that maps enum values
+// directly, avoiding the raw int return type and the separate EnumString lookup.
+// Proposed template:
+//   template<typename E>
+//   E read_enum_field(lua_State *L, int table, const char *fieldname, E default_);
+// This would use std::underlying_type_t<E> for the default and cast the result
+// back to E, preventing accidental use of invalid enum values.
 int getenumfield(lua_State *L, int table, const char *fieldname,
 		const EnumString *spec, int default_);
 

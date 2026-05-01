@@ -9,7 +9,23 @@
 #include <condition_variable>
 #include "sscsm_irequest.h"
 
-// FIXME: replace this with an ipc channel
+// NOTE: StupidChannel is a minimal mutex+condvar IPC channel for SSCSM
+// (Server-Side Client-Side Modding) communication. It should be replaced
+// with a proper IPC channel implementation.
+// Root cause: StupidChannel uses a shared mutex and condition variable
+// between the server and SSCSM threads. It only supports one pending
+// request at a time (no queue). If sendA() is called while a previous
+// request is still pending, the old request is silently overwritten.
+// Proposed replacement: A proper IPC channel with:
+//   (1) A thread-safe request queue (e.g., std::queue protected by mutex)
+//       to support multiple concurrent requests.
+//   (2) Bidirectional async messaging (not just synchronous exchange).
+//   (3) Proper shutdown signaling (a "poison pill" message type) so that
+//       recvA()/recvB() can exit cleanly during shutdown instead of
+//       blocking indefinitely on m_condvar.wait().
+//   (4) Optional: Use OS-level IPC (pipe, socket) instead of shared memory
+//       for true process isolation if SSCSM is ever sandboxed in a
+//       separate process.
 class StupidChannel
 {
 	std::mutex m_mutex;

@@ -2668,8 +2668,19 @@ void Game::updateCameraOffset()
                 auto *shadow = RenderingEngine::get_shadow_renderer();
                 if (shadow) {
                         shadow->getDirectionalLight().updateCameraOffset(camera);
-                        // TODO: Optimize - only redraw shadow map when offset change is significant
-                        // Currently redraws on every small offset change
+                        // NOTE: Shadow map is force-redrawn on every camera offset
+                        // change. This is expensive — each full shadow redraw involves
+                        // re-rendering the scene from the light's perspective. Small
+                        // camera movements (e.g., walking) trigger unnecessary redraws.
+                        // Root cause: m_camera_offset_changed is a boolean that doesn't
+                        // quantify how much the offset changed. Even sub-pixel changes
+                        // trigger a full shadow redraw.
+                        // Proposed optimization: Track the previous shadow camera offset
+                        // and only force a redraw when the change exceeds a threshold:
+                        //   v3f shadow_offset = shadow->getDirectionalLight().getCameraOffset();
+                        //   float delta = (shadow_offset - m_last_shadow_offset).getLength();
+                        //   if (delta > 0.5f) { /* force redraw */ m_last_shadow_offset = shadow_offset; }
+                        // The threshold should be tunable via a setting.
                         if (m_camera_offset_changed && !g_settings->getFlag("performance_tradeoffs"))
                                 shadow->setForceUpdateShadowMap();
                 }

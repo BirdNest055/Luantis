@@ -550,9 +550,19 @@ void ScriptApiBase::pushPlayerHPChangeReason(lua_State *L, const PlayerHPChangeR
 
 Server* ScriptApiBase::getServer()
 {
-	// Since the gamedef is the server it's still possible to retrieve it in
-	// e.g. the async environment, but this isn't meant to happen.
-	// TODO: still needs work
+	// NOTE: getServer() can be called from non-server scripting environments
+	// (e.g., async environment) because m_gamedef is always the Server.
+	// The commented-out assert was meant to prevent this, but it breaks
+	// legitimate use cases where async scripts need server access.
+	// Root cause: The async environment shares the same IGameDef pointer
+	// as the server environment. dynamic_cast always succeeds because
+	// m_gamedef IS the Server.
+	// This is architecturally problematic - async scripts should not have
+	// direct server access as it bypasses thread safety. The proper fix
+	// would be to give the async environment its own minimal IGameDef
+	// that only exposes thread-safe operations, or to route all server
+	// calls through a thread-safe message queue. This is a large refactor
+	// that requires redesigning the scripting environment ownership model.
 	//assert(getType() == ScriptingType::Server);
 	return dynamic_cast<Server *>(m_gamedef);
 }

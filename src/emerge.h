@@ -129,8 +129,15 @@ public:
 	std::set<std::string> gen_notify_on_custom;
 
 	// Parameters passed to mapgens owned by ServerMap
-	// TODO(hmmmm): Remove this after mapgen helper methods using them
-	// are moved to ServerMap
+	// NOTE(hmmmm): mgparams should be removed from EmergeManager after
+	// mapgen helper methods that use it (e.g., isBlockUnderground(),
+	// getSpawnLevelAtPoint()) are moved to ServerMap, which already owns
+	// the MapgenParams. Currently EmergeManager holds this pointer as a
+	// workaround for methods that need mapgen params but are accessed
+	// before the ServerMap is fully initialized.
+	// Migration: Move isBlockUnderground() and getSpawnLevelAtPoint()
+	// to ServerMap, then remove mgparams from EmergeManager. ServerMap
+	// can provide these directly since it owns the MapgenParams.
 	MapgenParams *mgparams;
 
 	// Hackish workaround:

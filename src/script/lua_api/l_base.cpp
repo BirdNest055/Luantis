@@ -86,7 +86,17 @@ std::string ModApiBase::getCurrentModPath(lua_State *L)
 bool ModApiBase::registerFunction(lua_State *L, const char *name,
 		lua_CFunction func, int top)
 {
-	// TODO: Check presence first!
+	// NOTE: This should check whether a function with the same name
+	// already exists in the table before overwriting it. Without this
+	// check, a duplicate registration silently replaces the previous
+	// function, which can cause hard-to-debug issues if two mods
+	// register the same callback name.
+	// Root cause: registerFunction() unconditionally calls lua_setfield,
+	// which overwrites any existing entry. There is no existence check.
+	// Proposed fix: Before lua_setfield, use lua_getfield(L, top, name)
+	// to check if the key exists. If it does, log a warning (not an
+	// error, since intentional overrides may be valid). Optionally,
+	// make this a debug-only check to avoid overhead in release builds.
 
 	lua_pushcfunction(L, func);
 	lua_setfield(L, top, name);

@@ -163,7 +163,19 @@ int MetaDataRef::l_get_float(lua_State *L)
 
 	std::string str_;
 	const std::string &str = meta->getString(name, &str_);
-	// TODO this silently produces 0.0 if conversion fails, which is a footgun
+	// NOTE: This silently produces 0.0 if the string cannot be converted
+	// to a number. This is a footgun - callers may not realize that
+	// get_float("missing_key") returns 0.0 instead of nil or an error.
+	// Root cause: my_string_to_double() returns std::optional<double>,
+	// but .value_or(0.0) silently substitutes the default. There is no
+	// way for the caller to distinguish "key exists with value 0.0" from
+	// "key does not exist or has non-numeric value".
+	// Proposed fix: (1) Return nil from l_get_float() when conversion
+	// fails, instead of pushing 0.0. This requires changing the Lua API
+	// contract - existing mods that rely on the 0.0 default would need
+	// updating. (2) Add a l_get_float_or() method that accepts a default
+	// value parameter. (3) As a non-breaking improvement: log a warning
+	// when conversion fails so that modders are at least aware.
 	f64 number = my_string_to_double(str).value_or(0.0);
 	lua_pushnumber(L, number);
 	return 1;

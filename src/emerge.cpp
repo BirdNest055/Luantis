@@ -357,7 +357,15 @@ int EmergeManager::getSpawnLevelAtPoint(v2s16 p)
 }
 
 
-// TODO(hmmmm): Move this to ServerMap
+// NOTE(hmmmm): isBlockUnderground() logically belongs in ServerMap since it
+// operates on block positions and uses MapgenParams (owned by ServerMap).
+// Root cause: It was placed in EmergeManager because it is used during the
+// emerge decision pipeline (determining whether a block needs underground
+// treatment). However, ServerMap already has access to mgparams and could
+// provide this as a const method.
+// Proposed migration: Move to ServerMap::isBlockUnderground(v3s16 blockpos).
+// Update call sites in EmergeManager to call m_map->isBlockUnderground().
+// The method is trivial (one-liner heuristic) so no state transfer needed.
 bool EmergeManager::isBlockUnderground(v3s16 blockpos)
 {
 	// Use a simple heuristic

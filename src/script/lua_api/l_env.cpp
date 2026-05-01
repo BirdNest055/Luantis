@@ -447,7 +447,19 @@ int ModApiEnv::l_punch_node(lua_State *L)
         // Punch it with a nullptr puncher
         // (appears in Lua as a non-functional ObjectRef)
         // or the given ObjectRef
-        // TODO: custom PointedThing (requires a converter function)
+        // NOTE: A custom PointedThing could be passed here instead of the
+        // default-constructed PointedThing(). This would allow Lua scripts
+        // to specify what the player is pointing at (e.g., a specific face
+        // or node) when calling minetest.punch_node().
+        // Root cause: PointedThing is a complex type (union of node, object,
+        // nothing variants) with no existing Lua ↔ C++ converter. Currently
+        // only a default PointedThing (type=NONE) is used, which limits the
+        // information available to on_punch callbacks.
+        // Proposed fix: Add a push_pointed_thing() / read_pointed_thing()
+        // pair to c_content.cpp (similar to push_item_stack / read_item_stack).
+        // The Lua table format would be: {type="node", under={x,y,z},
+        // above={x,y,z}, intersection_point={x,y,z}}. Then accept an optional
+        // 4th argument in l_punch_node() and convert it to PointedThing.
         bool success = scriptIfaceNode->node_on_punch(pos, n, puncher, PointedThing());
         lua_pushboolean(L, success);
         return 1;
@@ -951,9 +963,19 @@ int ModApiEnvBase::findNodesInAreaUnderAir(lua_State *L, v3s16 minp, v3s16 maxp,
 
 int ModApiEnv::l_find_nodes_in_area_under_air(lua_State *L)
 {
-        /* TODO: A similar but generalized (and therefore slower) version of this
-         * function could be created -- e.g. find_nodes_in_area_under -- which
-         * would accept a node name or list of names that the "above node" should be.
+        /* NOTE: A generalized version of this function could be created:
+         * find_nodes_in_area_under(minp, maxp, above_node_names) which accepts
+         * a list of node names that the "above node" should be, instead of
+         * only checking for air (CONTENT_AIR).
+         * Root cause: The current implementation hardcodes the "under air"
+         * check: ndef->get(n_above).walkable == false. This is equivalent to
+         * "above node is non-walkable" which covers air but also liquids and
+         * other passable nodes.
+         * Proposed API: minetest.find_nodes_in_area_under(minp, maxp,
+         *   search_nodenames, above_nodenames) where above_nodenames defaults
+         * to {"air"} if omitted. Implementation would replace the walkable
+         * check with a lookup in a content_t set derived from above_nodenames.
+         * This would be slower due to the set lookup but more flexible.
          */
         GET_PLAIN_ENV_PTR;
 

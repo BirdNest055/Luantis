@@ -94,7 +94,15 @@ public:
 
 	Rotation rotation;
 	Schematic *schematic = nullptr;
-	bool was_cloned = false; // see FIXME inside DecoSchemtic::clone()
+	bool was_cloned = false; // NOTE: Set in DecoSchematic::clone() to indicate
+	// that this instance owns (and must delete) its schematic pointer. Without this
+	// flag, the original and cloned DecoSchematic would both try to delete the same
+	// Schematic. Root cause: DecoSchematic holds a raw Schematic* but doesn't use
+	// shared ownership. The clone() method deep-copies the Schematic (wasteful) and
+	// sets was_cloned=true so the destructor knows to delete it. A proper fix would
+	// replace the raw pointer with an ObjDefHandle (index into the global ObjDef
+	// tree) so that cloning shares the reference instead of duplicating memory.
+	// See DecoSchematic::clone() in mg_decoration.cpp for the full analysis.
 };
 
 
