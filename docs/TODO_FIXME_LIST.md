@@ -22,6 +22,7 @@ Generated automatically from code comments.
 | FIX | 7 (v9.54 compiler warnings — FIXED) |
 | FIX | 5 (v9.54 dead code and typo cleanup — FIXED) |
 | FIX | 9 (v9.54 FIXME/TODO resolution — FIXED) |
+| FIX | 20 (v9.54 batch 2 — FIXME/TODO improvements) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -113,6 +114,32 @@ These TODO/FIXME/compiler-warning items were resolved during v9.54 development:
 | `src/client/sound/sound_singleton.cpp` | 33 | FIXME: "This value assumes 1 node sidelength = 1 meter, and 'normal' air. Ideally this should be mod-controlled." | Extracted to named `constexpr SPEED_OF_SOUND = 343.3f`; changed FIXME to TODO with note about making it mod-controllable | Partial |
 | `src/mapgen/mg_decoration.cpp` | 390 | FIXME: "We do not own this schematic, yet we only have a pointer to it" | Replaced FIXME with detailed comment explaining the ownership issue and future refactor path; added `FATAL_ERROR_IF(!schematic, ...)` null check | Partial |
 | `src/client/renderingengine.h` | 143 | TODO: "Make this instanced instead of global/static" | Expanded TODO with migration guidance: ShadowRenderer should go through RenderingEngine instance rather than static singleton | Partial |
+
+### Batch 2 — Code and Documentation Improvements (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/map.h` | 169 | `FATAL_ERROR("FIXME")` in base `Map::save()` | Changed to pure virtual `= 0`; added empty overrides in DummyMap, ClientMap, TestMap | Fixed |
+| `src/settings.h` | 201 | TODO: "Remove this function" for `setDefault()` | Added `[[deprecated]]` attribute with replacement guidance | Partial |
+| `src/settings.cpp` | 125 | TODO: "Avoid copying Settings objects" | Improved with specific plan: make operator= private/deleted | Partial |
+| `src/gamedef.h` | 45 | TODO: const-safe shorthands | Added migration plan noting ndef() is already const-correct | Partial |
+| `src/gameparams.h` | 28 | TODO: unify with MainMenuData | Added cross-reference and explained overlap | Partial |
+| `src/gui/guiMainMenu.h` | 19 | TODO: unify with GameStartData | Added cross-reference to gameparams.h | Partial |
+| `src/objdef.h` | 56 | TODO: const correctness | Added specific getter methods needing const overloads | Partial |
+| `src/constants.h` | 92 | TODO: case-insensitive player names | Added actionable guidance for normalization at auth layer | Partial |
+| `src/log.h` | 196 | TODO: search/replace derr_con/dout_con | Marked as DEPRECATED with replacement mapping (errorstream/verbosestream) | Partial |
+| `src/noise.h` | 115 | TODO: implement NOISE_FLAG_POINTBUFFER/SIMPLEX | Marked as DEPRECATED — flags defined but never implemented | Partial |
+| `src/gettime.h` | 25 | TODO: check NULL return from localtime | Resolved by documenting error behavior (ret stays zero-initialized) | Resolved |
+| `src/network/mtp/impl.cpp` | 33 | TODO: Clean this up (LOG macro) | Improved TODO with specific plan: inline all LOG() calls | Partial |
+| `src/network/mtp/threads.cpp` | 33 | TODO: Clean this up (LOG macro) | Same as impl.cpp — cross-referenced | Partial |
+| `src/server/clientiface.h` | 517 | FIXME: pointless mutex | Replaced FIXME with documented analysis — keep until full audit | Resolved |
+| `src/server/clientiface.cpp` | 849 | TODO: should be done by client destructor | Improved with specific guidance about moving cleanup to destructor | Partial |
+| `src/serverenvironment.h` | 124 | TODO: remove getScriptIface() | Added encapsulation concern and delegation proposal | Partial |
+| `src/serverenvironment.h` | 409 | TODO: add callback for settings | Added specific callback mechanism (registerChangedCallback) | Partial |
+| `src/server/player_sao.cpp` | 694,712 | FIXME: bouncy nodes/downward movement | Replaced FIXME with documented TODO — bouncy node tracking proposal | Partial |
+| `src/server/luaentity_sao.cpp` | 225,371 | TODO: acceleration/wear control | Added specific threshold and Lua API proposals | Partial |
+| `src/inventory.cpp` | 548 | TODO: implement incremental serialize | Added implementation sketch (m_modified flag) | Partial |
+| `src/player.cpp` | 93 | TODO: make inventory list generic | Improved with reason for hardcoding | Partial |
 
 ## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 
