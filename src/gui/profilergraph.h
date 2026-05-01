@@ -5,7 +5,7 @@
 #pragma once
 
 #include <SColor.h>
-#include <deque>
+#include <vector>
 #include <utility>
 #include <IGUIFont.h>
 #include "profiler.h"
@@ -53,7 +53,9 @@ private:
                 {
                 }
         };
-        std::deque<Piece> m_log;
+        std::vector<Piece> m_log;
+        size_t m_log_start = 0; // circular buffer start index
+        size_t m_log_count = 0; // number of valid entries
 
 public:
         u32 m_log_max_size = 200;

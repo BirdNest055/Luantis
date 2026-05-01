@@ -646,6 +646,8 @@ MapBlockMesh::MapBlockMesh(Client *client, MeshMakeData *data):
 
         auto mesh_grid = data->m_mesh_grid;
         v3s16 bp = data->m_blockpos;
+        // Verify that bp is aligned to the mesh grid as documented
+        sanity_check(bp == mesh_grid.getMeshPos(bp));
         // Generate minimap mapblocks if needed.
         // NOTE: bp is always aligned to the mesh grid, so no alignment step is
         // needed here. The mesh grid is guaranteed to provide aligned block positions.

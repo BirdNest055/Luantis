@@ -132,6 +132,14 @@ using GamePathMap = std::unordered_map<std::string, GameFindPath>;
 
 static GamePathMap getAvailableGamePaths()
 {
+        // Cache the game paths result to avoid repeated filesystem scanning.
+        // The game paths don't change during a single run, so this is safe.
+        static GamePathMap cached_gamepaths;
+        static bool gamepaths_cached = false;
+
+        if (gamepaths_cached)
+                return cached_gamepaths;
+
         GamePathMap gamepaths;
         std::vector<GameFindPath> game_search_paths{
                 {porting::path_share + DIR_DELIM + "games", false},
@@ -161,6 +169,9 @@ static GamePathMap getAvailableGamePaths()
                         );
                 }
         }
+
+        cached_gamepaths = gamepaths;
+        gamepaths_cached = true;
         return gamepaths;
 }
 

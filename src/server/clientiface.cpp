@@ -850,6 +850,11 @@ void ClientInterface::DeleteClient(session_t peer_id)
         if (n == m_clients.end())
                 return;
 
+        // Detect double-removal: if the client's peer_id doesn't match,
+        // the map entry is corrupt. This should never happen.
+        FATAL_ERROR_IF(n->second->peer_id != peer_id,
+                "ClientInterface::DeleteClient(): peer_id mismatch, possible double-removal");
+
         /*
                 Mark objects to be not known by the client
         */

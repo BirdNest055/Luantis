@@ -12,10 +12,18 @@
 
 void ProfilerGraph::put(const Profiler::GraphValues &values)
 {
-        m_log.emplace_back(values);
-
-        while (m_log.size() > m_log_max_size)
-                m_log.erase(m_log.begin());
+        // Use vector as a circular buffer for better cache locality than deque
+        if (m_log_count < m_log_max_size) {
+                // Growing phase: fill the vector
+                if (m_log.size() < m_log_max_size)
+                        m_log.reserve(m_log_max_size);
+                m_log.emplace_back(values);
+                m_log_count++;
+        } else {
+                // Circular phase: overwrite the oldest entry
+                m_log[m_log_start] = Piece(values);
+                m_log_start = (m_log_start + 1) % m_log_max_size;
+        }
 }
 
 void ProfilerGraph::draw(s32 x_left, s32 y_bottom, video::IVideoDriver *driver,
@@ -25,7 +33,9 @@ void ProfilerGraph::draw(s32 x_left, s32 y_bottom, video::IVideoDriver *driver,
         // to be the same for each call to prevent flickering
         std::map<std::string, Meta> m_meta;
 
-        for (const Piece &piece : m_log) {
+        for (size_t i = 0; i < m_log_count; i++) {
+                size_t idx = (m_log_start + i) % m_log_count;
+                const Piece &piece = m_log[idx];
                 for (const auto &i : piece.values) {
                         const std::string &id = i.first;
                         const float &value = i.second;
@@ -114,7 +124,9 @@ void ProfilerGraph::draw(s32 x_left, s32 y_bottom, video::IVideoDriver *driver,
                 float lastscaledvalue = 0;
                 bool lastscaledvalue_exists = false;
 
-                for (const Piece &piece : m_log) {
+                for (size_t pi = 0; pi < m_log_count; pi++) {
+                        size_t pidx = (m_log_start + pi) % m_log_count;
+                        const Piece &piece = m_log[pidx];
                         float value = 0;
                         bool value_exists = false;
                         auto k = piece.values.find(id);

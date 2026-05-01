@@ -250,8 +250,14 @@ BufferedPacketPtr ReliablePacketBuffer::popSeqnum(u16 seqnum)
 void ReliablePacketBuffer::insert(BufferedPacketPtr &p_ptr, u16 next_expected)
 {
         MutexAutoLock listlock(m_list_mutex);
+        FATAL_ERROR_IF(!p_ptr, "ReliablePacketBuffer::insert(): null packet pointer");
         const BufferedPacket &p = *p_ptr;
 
+        if (p.size() < BASE_HEADER_SIZE) {
+                errorstream << "ReliablePacketBuffer::insert(): Packet size "
+                        << p.size() << " is below BASE_HEADER_SIZE" << std::endl;
+                return;
+        }
         if (p.size() < BASE_HEADER_SIZE + 3) {
                 errorstream << "ReliablePacketBuffer::insert(): Invalid data size for "
                         "reliable packet" << std::endl;

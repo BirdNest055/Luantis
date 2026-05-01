@@ -499,9 +499,11 @@ InventoryList::InventoryList(const std::string &name, u32 size, IItemDefManager 
 void InventoryList::clearItems()
 {
         m_items.clear();
+        m_items_modified.clear();
 
         for (u32 i=0; i < m_size; i++) {
                 m_items.emplace_back();
+                m_items_modified.emplace_back(true);
         }
 
         setModified();
@@ -516,6 +518,7 @@ void InventoryList::setSize(u32 newsize)
                 checkResizeLock();
 
         m_items.resize(newsize);
+        m_items_modified.resize(newsize, true);
         m_size = newsize;
         setModified();
 }
@@ -665,6 +668,8 @@ ItemStack InventoryList::changeItem(u32 i, const ItemStack &newitem)
         ItemStack olditem = m_items[i];
         if (olditem != newitem) {
                 m_items[i] = newitem;
+                if (i < m_items_modified.size())
+                        m_items_modified[i] = true;
                 setModified();
         }
         return olditem;
@@ -674,6 +679,8 @@ void InventoryList::deleteItem(u32 i)
 {
         assert(i < m_items.size()); // Pre-condition
         m_items[i].clear();
+        if (i < m_items_modified.size())
+                m_items_modified[i] = true;
         setModified();
 }
 

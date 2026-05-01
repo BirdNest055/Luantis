@@ -573,6 +573,10 @@ void ServerEnvironment::activateBlock(MapBlock *block)
                 return;
 
         /* Handle LoadingBlockModifiers */
+        // The block list processed by LBMs should be properly sorted by timestamp
+        // to ensure LBMs are applied in the correct order. Assert that the block's
+        // timestamp is reasonable (not in the future relative to game time).
+        sanity_check(stamp == BLOCK_TIMESTAMP_UNDEFINED || stamp <= m_game_time);
         m_lbm_mgr.applyLBMs(this, block, stamp, (float)dtime_s);
         if (block->isOrphan())
                 return;

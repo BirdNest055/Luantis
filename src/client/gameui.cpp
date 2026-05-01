@@ -430,6 +430,12 @@ void GameUI::updateProfiler()
         if (m_profiler_current_page == 0)
                 return;
 
+        // NOTE: Profiler values are snapshot-ed here and may be incomplete if
+        // the frame is still in progress (e.g., some subsystems haven't updated
+        // their counters yet). This is acceptable for a debug display, but
+        // consumers should not rely on profiler values being fully consistent
+        // within a single updateProfiler() call. To improve: cache the profiler
+        // values at the end of each frame and display the cached values here.
         std::ostringstream oss(std::ios_base::binary);
         oss << "Profiler page " << (int)m_profiler_current_page
                 << "/" << (int)m_profiler_max_page

@@ -36,6 +36,8 @@ static v3d check_v3d(lua_State *L, int index);
 // will fail at compile time, making the migration obvious.
 // Migration: grep for CHECK_NOT_NIL call sites and ensure each one has been
 // audited for backwards compatibility before enabling the hard error.
+[[deprecated("Use explicit nil checks with luaL_checktype() or throw LuaError() instead. "
+        "CHECK_NOT_NIL silently accepts nil values and will be removed in a future version.")]]
 #define CHECK_NOT_NIL(index, name) do { \
                 if (lua_isnoneornil(L, (index))) { \
                         auto msg = std::string("Invalid ") + (name) + \

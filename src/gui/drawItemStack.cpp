@@ -35,6 +35,11 @@ void drawItemStack(
                 const v3s16 &angle,
                 const v3s16 &rotation_speed)
 {
+        if (!driver) {
+                errorstream << "drawItemStack(): null driver parameter" << std::endl;
+                return;
+        }
+
         static MeshTimeInfo rotation_time_infos[IT_ROT_NONE];
 
         if (item.empty()) {

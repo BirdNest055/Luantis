@@ -31,7 +31,7 @@ bool SoundManagerSingleton::init()
 
         // Speed of sound in nodes per second.
         // Assumes 1 node sidelength = 1 meter and "normal" air at ~20°C.
-        // NOTE: Speed of sound is hardcoded at 343.3 m/s. This should be
+        // NOTE: Speed of sound is hardcoded as a named constexpr. This should be
         // mod-controllable so that mods can change it (e.g., for underwater
         // acoustics or sci-fi environments).
         // Proposed implementation: (1) Add a setting "sound_speed_of_sound"

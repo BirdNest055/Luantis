@@ -25,9 +25,16 @@ inline struct tm mt_localtime()
         // Both localtime_s and localtime_r return zero on success.
         // On failure, ret remains zero-initialized (epoch 1900-01-01).
 #ifdef _WIN32
-        localtime_s(&ret, &t);
+        if (localtime_s(&ret, &t) != 0) {
+                // localtime_s failed; ret is already zero-initialized
+                return ret;
+        }
 #else
-        localtime_r(&t, &ret);
+        struct tm *result = localtime_r(&t, &ret);
+        if (!result) {
+                // localtime_r failed; ret is already zero-initialized
+                return ret;
+        }
 #endif
         return ret;
 }

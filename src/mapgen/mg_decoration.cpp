@@ -51,6 +51,9 @@ DecorationManager *DecorationManager::clone() const
 {
         auto mgr = new DecorationManager();
         ObjDefManager::cloneTo(mgr);
+        // Verify all decoration objects were cloned successfully
+        FATAL_ERROR_IF(mgr->m_objects.size() != m_objects.size(),
+                "DecorationManager::clone(): object count mismatch after clone");
         return mgr;
 }
 

@@ -860,6 +860,17 @@ static bool read_config_file(const Settings &cmd_args)
                 if (g_settings_path.empty()) {
                         g_settings_path = filenames[0];
                         g_first_run = true;
+
+                        // Configuration migration hint: if luanti.conf doesn't exist but
+                        // minetest.conf does, inform the user that they can migrate.
+                        // The config file is still called minetest.conf (CONFIGFILE),
+                        // but a future version will rename it to luanti.conf.
+                        std::string luanti_conf = porting::path_user + DIR_DELIM + "luanti.conf";
+                        if (fs::IsFile(luanti_conf)) {
+                                infostream << "Note: Found luanti.conf at " << luanti_conf
+                                        << ". Future versions will use this instead of "
+                                        << CONFIGFILE << "." << std::endl;
+                        }
                 }
         }
         infostream << "Global configuration file: " << g_settings_path

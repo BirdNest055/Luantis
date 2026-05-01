@@ -224,18 +224,11 @@ void LuaEntitySAO::step(float dtime, bool send_recommended)
 
         if(!isAttached())
         {
-                // NOTE: Force-send when acceleration changes significantly.
-                // Currently only position/velocity/rotation changes trigger sends.
-                // Root cause: m_acceleration is never compared against m_last_sent_* values
-                // in this block. If acceleration changes but position/velocity/rotation
-                // don't exceed minchange, the client's predicted entity position diverges
-                // because it uses stale acceleration for extrapolation.
-                // Proposed fix: Track m_last_sent_acceleration (v3f) alongside the other
-                // m_last_sent_* fields. Add a check:
-                //   float acc_d = m_acceleration.getDistanceFrom(m_last_sent_acceleration);
-                //   if (acc_d > minchange) { send = true; }
-                // A threshold of 0.5*BS for magnitude and 90 degrees for direction change
-                // would balance responsiveness vs. bandwidth.
+                // Force-send when acceleration changes significantly.
+                // Track m_last_sent_acceleration alongside the other m_last_sent_*
+                // fields. If acceleration changes but position/velocity/rotation
+                // don't exceed minchange, the client's predicted entity position
+                // diverges because it uses stale acceleration for extrapolation.
                 float minchange = 0.2*BS;
                 if(m_last_sent_position_timer > 1.0){
                         minchange = 0.01*BS;
@@ -245,7 +238,8 @@ void LuaEntitySAO::step(float dtime, bool send_recommended)
                 float move_d = getBasePosition().getDistanceFrom(m_last_sent_position);
                 move_d += m_last_sent_move_precision;
                 float vel_d = m_velocity.getDistanceFrom(m_last_sent_velocity);
-                if (move_d > minchange || vel_d > minchange ||
+                float acc_d = m_acceleration.getDistanceFrom(m_last_sent_acceleration);
+                if (move_d > minchange || vel_d > minchange || acc_d > minchange ||
                                 std::fabs(m_rotation.X - m_last_sent_rotation.X) > 1.0f ||
                                 std::fabs(m_rotation.Y - m_last_sent_rotation.Y) > 1.0f ||
                                 std::fabs(m_rotation.Z - m_last_sent_rotation.Z) > 1.0f) {
@@ -556,7 +550,7 @@ void LuaEntitySAO::sendPosition(bool do_interpolate, bool is_movement_end)
         m_last_sent_position_timer = 0;
         m_last_sent_position = getBasePosition();
         m_last_sent_velocity = m_velocity;
-        //m_last_sent_acceleration = m_acceleration;
+        m_last_sent_acceleration = m_acceleration;
         m_last_sent_rotation = m_rotation;
 
         float update_interval = m_env->getSendRecommendedInterval();

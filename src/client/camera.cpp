@@ -37,6 +37,7 @@ static constexpr f32 CAMERA_OFFSET_STEP = 200;
 static const char *setting_names[] = {
         "view_bobbing_amount", "fov", "arm_inertia",
         "show_nametag_backgrounds",
+        "cinematic",
 };
 
 Camera::Camera(MapDrawControl &draw_control, Client *client, RenderingEngine *rendering_engine):
@@ -92,6 +93,8 @@ void Camera::readSettings()
         m_cache_fov                 = g_settings->getFloat("fov", 45.0f, 160.0f);
         m_arm_inertia               = g_settings->getBool("arm_inertia");
         m_show_nametag_backgrounds  = g_settings->getBool("show_nametag_backgrounds");
+        // Cached cinematic mode setting for smoother access in update loops
+        m_cache_cinematic           = g_settings->getBool("cinematic");
 }
 
 Camera::~Camera()

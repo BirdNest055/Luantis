@@ -1879,15 +1879,61 @@ int ObjectRef::l_hud_change(lua_State *L)
         void *value = nullptr;
         bool ok = read_hud_change(L, stat, elem, &value);
 
-        // NOTE: hudChange() currently sends a network update on every call, even
-        // if the value hasn't actually changed. This wastes bandwidth for mods that
-        // call hud_change() in an on_globalstep loop.
-        // Fix: Track previous HUD element values (e.g., in a std::unordered_map
-        // keyed by HUD id + stat) and only call getServer()->hudChange() when the
-        // new value differs from the cached one. The cache should be cleared when
-        // a HUD element is removed or the player disconnects.
-        if (ok)
-                getServer(L)->hudChange(player, id, stat, value);
+        // Change-detection guard: only send network update if the value actually changed.
+        // Compare the new stat value against the current element's value before sending.
+        // This avoids wasting bandwidth when mods call hud_change() in on_globalstep
+        // loops without checking if the value has changed.
+        if (ok) {
+                bool changed = true;
+                switch (stat) {
+                case HUD_STAT_POS:
+                        if (elem->pos == *(v2f *)value) changed = false;
+                        break;
+                case HUD_STAT_NAME:
+                        if (elem->name == *(std::string *)value) changed = false;
+                        break;
+                case HUD_STAT_SCALE:
+                        if (elem->scale == *(v2f *)value) changed = false;
+                        break;
+                case HUD_STAT_TEXT:
+                        if (elem->text == *(std::string *)value) changed = false;
+                        break;
+                case HUD_STAT_NUMBER:
+                        if (elem->number == *(u32 *)value) changed = false;
+                        break;
+                case HUD_STAT_ITEM:
+                        if (elem->item == *(u32 *)value) changed = false;
+                        break;
+                case HUD_STAT_DIR:
+                        if (elem->dir == *(u32 *)value) changed = false;
+                        break;
+                case HUD_STAT_ALIGN:
+                        if (elem->align == *(v2f *)value) changed = false;
+                        break;
+                case HUD_STAT_OFFSET:
+                        if (elem->offset == *(v2f *)value) changed = false;
+                        break;
+                case HUD_STAT_WORLD_POS:
+                        if (elem->world_pos == *(v3f *)value) changed = false;
+                        break;
+                case HUD_STAT_SIZE:
+                        if (elem->size == *(v2s32 *)value) changed = false;
+                        break;
+                case HUD_STAT_Z_INDEX:
+                        if (elem->z_index == *(s32 *)value) changed = false;
+                        break;
+                case HUD_STAT_TEXT2:
+                        if (elem->text2 == *(std::string *)value) changed = false;
+                        break;
+                case HUD_STAT_STYLE:
+                        if (elem->style == *(u32 *)value) changed = false;
+                        break;
+                default:
+                        break;
+                }
+                if (changed)
+                        getServer(L)->hudChange(player, id, stat, value);
+        }
 
         lua_pushboolean(L, ok);
         return 1;
