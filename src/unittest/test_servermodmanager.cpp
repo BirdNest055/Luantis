@@ -34,6 +34,16 @@ public:
         void testGetModNames();
         void testGetModMediaPathsWrongDir();
         void testGetModMediaPaths();
+
+        // Test stub for LUANTI_GAME_PATH environment variable handling.
+        // When set, it should be used as an additional game search path.
+        // Test cases needed:
+        //   1. LUANTI_GAME_PATH set to valid dir → games found there
+        //   2. LUANTI_GAME_PATH set to invalid dir → graceful fallback
+        //   3. LUANTI_GAME_PATH + world.mt gameid → correct resolution order
+        // Requires: setenv("LUANTI_GAME_PATH", test_game_dir, 1) before
+        // constructing ServerModManager, then unsetenv() after.
+        void testGamePathEnvVar();
 };
 
 static TestServerModManager g_test_instance;
@@ -71,14 +81,8 @@ void TestServerModManager::runTests(IGameDef *gamedef)
         TEST(testGetModNames);
         TEST(testGetModMediaPathsWrongDir);
         TEST(testGetModMediaPaths);
-        // NOTE: Should test LUANTI_GAME_PATH environment variable handling.
-        // When set, it should be used as an additional game search path.
-        // Test cases needed:
-        // 1. LUANTI_GAME_PATH set to valid dir → games found there
-        // 2. LUANTI_GAME_PATH set to invalid dir → graceful fallback
-        // 3. LUANTI_GAME_PATH + world.mt gameid → correct resolution order
-        // Requires: setenv("LUANTI_GAME_PATH", test_game_dir, 1) before
-        // constructing ServerModManager, then unsetenv() after.
+        // TODO: Enable once LUANTI_GAME_PATH handling is fully implemented
+        // TEST(testGamePathEnvVar);
 
         unsetenv("LUANTI_MOD_PATH");
 }
@@ -186,4 +190,30 @@ void TestServerModManager::testGetModMediaPaths()
         auto it = std::find(result.begin(), result.end(), sm.getModSpec("unittests")->path + DIR_DELIM + "textures");
         UASSERT(it != result.end());
         UASSERT(std::find(++it, result.end(), sm.getModSpec("basenodes")->path + DIR_DELIM + "textures") != result.end());
+}
+
+void TestServerModManager::testGamePathEnvVar()
+{
+        // Test stub for LUANTI_GAME_PATH environment variable handling.
+        // TODO: Implement the following test cases:
+        //
+        // Case 1: LUANTI_GAME_PATH set to a valid directory containing a game.
+        //   auto test_game_dir = getTestTempDirectory() + DIR_DELIM + "test_game";
+        //   Create a minimal game structure in test_game_dir with game.conf and init.lua
+        //   setenv("LUANTI_GAME_PATH", test_game_dir.c_str(), 1);
+        //   Verify: findSubgame() can locate the game via LUANTI_GAME_PATH
+        //   unsetenv("LUANTI_GAME_PATH");
+        //
+        // Case 2: LUANTI_GAME_PATH set to a nonexistent directory.
+        //   setenv("LUANTI_GAME_PATH", "/nonexistent/path", 1);
+        //   Verify: no crash, falls back to default game search paths
+        //   unsetenv("LUANTI_GAME_PATH");
+        //
+        // Case 3: LUANTI_GAME_PATH combined with world.mt gameid.
+        //   Set LUANTI_GAME_PATH to a directory with an alternate version of devtest
+        //   Verify: the correct game is resolved based on world.mt gameid + path priority
+        //   unsetenv("LUANTI_GAME_PATH");
+        //
+        // This stub is a placeholder; actual implementation blocked on
+        // LUANTI_GAME_PATH support in findSubgame() / ServerModManager.
 }

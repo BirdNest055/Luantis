@@ -18,11 +18,26 @@ public:
         /* NOTE: Re-introduce unittests after fully switching to SDL.
          * The old tests relied on Irrlicht-specific keycodes (KEY_KEY_W, etc.)
          * which are no longer valid under SDL input handling.
+         *
+         * Why they're disabled: The SDL migration changed the key representation
+         * from Irrlicht's EKEY_CODE enum (KEY_KEY_W, KEY_RSHIFT, etc.) to SDL's
+         * SDL_Keycode system (SDLK_w, SDLK_RSHIFT, etc.). The KeyPress class was
+         * updated to use SDL key names internally, but the test data still references
+         * Irrlicht identifiers. Running the tests with SDL would produce incorrect
+         * results because:
+         *   - KeyPress("R") no longer maps to "KEY_KEY_R" (now "KEY_R" or SDL name)
+         *   - SEvent::SKeyInput no longer has .Key/.Char fields (replaced by SDL_Event)
+         *   - KeyPress comparison semantics changed (SDL uses scancodes + keycodes)
+         *
          * To re-enable:
          * 1. Update testCreateFromString() to use SDL key names ("KEY_W", etc.)
+         *    instead of Irrlicht names ("KEY_KEY_W")
          * 2. Update testCreateFromSKeyInput() to use SDL_KeyboardEvent fields
+         *    (keysym.scancode, keysym.sym) instead of SEvent::SKeyInput
          * 3. Update testCompare() for the new KeyPress comparison semantics
+         *    (SDL scancode-based matching instead of Irrlicht keycode matching)
          * 4. Remove the #if 0 guards once all three tests pass
+         * 5. Consider adding a test for SDL_SCANCODE_TO_KEYCODE() equivalence
         void testCreateFromString();
         void testCreateFromSKeyInput();
         void testCompare();

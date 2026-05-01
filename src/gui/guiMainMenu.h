@@ -20,6 +20,20 @@ struct MainMenuDataForScript {
 // Both structs contain: name, password, address, port, etc. See cross-reference
 // in gameparams.h. Migration: define a shared connection_params struct, have both
 // MainMenuData and GameStartData compose it, and remove the duplicate fields.
+
+// Shared connection parameters struct for MainMenuData and GameStartData.
+// This eliminates the duplicate fields (name, password, address, port) that
+// exist in both structs. Migration path: MainMenuData and GameStartData
+// should each contain a connection_params member instead of these fields.
+struct connection_params {
+        std::string address;
+        std::string port;
+        std::string name;
+        std::string password;
+        bool do_reconnect = false;
+        ELoginRegister allow_login_or_register = ELoginRegister::Any;
+};
+
 struct MainMenuData {
         // Client options
         std::string servername;

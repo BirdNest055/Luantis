@@ -20,6 +20,77 @@
 --   Part 4: Wrapper protocol subdissectors
 --   Part 5: Wrapper protocol main dissector
 --   Part 6: Utility functions part 2
+--
+-- TODO: Many protocol commands are registered as stubs (command name + minimum
+-- length only) without field dissectors or parsing functions. The following
+-- commands need parsing support added:
+--
+-- Client commands (TOSERVER_*) needing field dissectors:
+--   0x17 MODCHANNEL_JOIN    — u16 length + string channel name
+--   0x18 MODCHANNEL_LEAVE   — u16 length + string channel name
+--   0x19 MODCHANNEL_MSG    — u16 length + string channel name + u16 length + string message
+--   0x3a REMOVED_SOUNDS    — u8 count + u16[] sound IDs
+--   0x3b NODEMETA_FIELDS   — v3s16 position + u16 length + string form name + u16 count + fields
+--   0x3c INVENTORY_FIELDS  — u16 length + string form name + u16 count + fields
+--   0x40 REQUEST_MEDIA     — u16 count + u16[] length + string[] filenames
+--   0x41 RECEIVED_MEDIA    — empty (acknowledgement only)
+--   0x50 FIRST_SRP         — u16 salt_len + string salt + u16 verifier_len + string verifier
+--   0x51 SRP_BYTES_A       — u16 len + bytes A
+--   0x52 SRP_BYTES_M       — u16 len + bytes M
+--   0x53 UPDATE_CLIENT_INFO — u8 major + u8 minor + u8 patch + u8 reserved +
+--                              u16 version_len + string version + u16 formspec_version +
+--                              u16 density + u8 fov + u8 range + u8 rendering_engine
+--
+-- Server commands (TOCLIENT_*) needing field dissectors:
+--   0x0A ACCESS_DENIED     — u8 version + u8 reason + u16 reason_len + wstring reason +
+--                              u8 num_reconnect + u16 custom_reason_len + string custom_reason
+--   0x2a CSM_RESTRICTION_FLAGS — u32 flags
+--   0x2b PLAYER_SPEED      — f32 speed
+--   0x2c MEDIA_PUSH        — u32 token + u16 filename_len + string filename + u8 explicit
+--   0x36 FOV               — f32 fov + u8 is_multiplier
+--   0x38 MEDIA             — u16 count + u16 filename_len + string filename +
+--                              u32 data_length + bytes data (repeated) + u16 cache_len + string cache
+--   0x3a NODEDEF           — u16 count + serialized node definitions
+--   0x3c ANNOUNCE_MEDIA    — u16 count + u16 filename_len + string filename +
+--                              u16 digest_len + bytes digest (repeated) + u32 remote_port +
+--                              u16 rasterizer_size + u16 texture_size
+--   0x3d ITEMDEF           — u16 count + serialized item definitions
+--   0x3f PLAY_SOUND        — s32 sound_id + u16 name_len + string name + f32 gain +
+--                              f32 pitch + u8 type + bool loop + v3f pos + u16 object_id +
+--                              f32 max_hear_distance + u8 fade + f32 ephemeral
+--   0x40 STOP_SOUND        — s32 sound_id
+--   0x41 PRIVILEGES         — u16 count + u16 name_len + string name + bool granted
+--   0x42 INVENTORY_FORMSPEC — u16 formspec_len + string formspec
+--   0x43 DETACHED_INVENTORY — u16 name_len + string name + u16 length + string data +
+--                              bool keep_on_player
+--   0x44 SHOW_FORMSPEC     — u16 formspec_len + string formspec + u16 formname_len + string formname
+--   0x45 MOVEMENT          — f32 speed + f32 jump + f32 gravity + f32 speed_crouch +
+--                              f32 speed_climb + f32 liquid_fluidity + f32 liquid_fluidity_smooth +
+--                              f32 liquid_sink + f32 acceleration_default + f32 acceleration_air +
+--                              f32 speed_fast + f32 acceleration_fast + f32 speed_walk
+--   0x46 SPAWN_PARTICLE    — serialized ParticleParameters
+--   0x47 ADD_PARTICLESPAWNER — serialized ParticleSpawnerParameters + u16 attached_id + u32 id
+--   0x48 CAMERA            — v3f pos + u8 mode
+--   0x49 HUDADD            — u32 server_id + u8 type + v2f pos + string name + v2f scale +
+--                              string text + u32 number + u32 item + u32 dir + v2f align +
+--                              v2f offset + v3f world_pos + v2f size + s16 z_index + u16 style
+--   0x4a HUDRM             — u32 id
+--   0x4c HUD_SET_FLAGS     — u32 flags + u32 mask
+--   0x4d HUD_SET_PARAM     — u32 id + u8 type + (varies by type)
+--   0x4e BREATH            — u16 breath
+--   0x4f SET_SKY           — u8 type + string texture + u16 bgcolor + u16 cloud_color +
+--                              u16 fog_distance + u16 fog_tint + u16 body_color + ...
+--   0x50 OVERRIDE_DAY_NIGHT_RATIO — bool do_override + f32 ratio
+--   0x51 CLOUD_PARAMS      — f32 density + u32 color_bright + u32 color_ambient +
+--                              u32 color_shadow + f32 height + f32 thickness +
+--                              f32 speed_x + f32 speed_y
+--   0x52 SET_SUN           — serialized SunParams
+--   0x53 SET_MOON          — serialized MoonParams
+--   0x54 SET_STARS         — serialized StarParams
+--   0x55 SRP_BYTES_S_B     — u16 len + bytes S + u16 len + bytes B
+--   0x56 FORMSPEC_PREPEND  — u16 formspec_len + string formspec
+--   0x57 MINIMAP_MODES     — u16 count + u16 mode + u16 type + string label + u16 size
+--   0x58 SET_LIGHTING      — f32 shadow_intensity + f32 saturation
 
 
 -----------------------
