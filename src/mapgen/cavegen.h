@@ -126,7 +126,9 @@ public:
         // and located using biome definitions. This pointer exists only as a fallback
         // for mapgens that don't provide biome liquid data. See cavegen.cpp line 14
         // for the full removal plan.
-        NoiseParams *np_caveliquids;
+        // Note: Cannot use [[deprecated]] on a raw pointer member as it would warn
+        // on any class instantiation. Treat as logically deprecated.
+        NoiseParams *np_caveliquids; // DEPRECATED("Use biome-defined cave liquids instead")
 
         u16 ystride;
 

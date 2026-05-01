@@ -62,6 +62,7 @@ private:
         /// DEPRECATED: This pointer is redundant with g_menumgr and can become
         /// stale when pause-menu submenus are open. Long-term, all access should
         /// go through g_menumgr.tryGetTopMenu() instead.
+        [[deprecated("Use g_menumgr.tryGetTopMenu() instead of m_formspec")]]
         GUIFormSpecMenu *m_formspec = nullptr;
 
         bool handleEmptyFormspec(const std::string &formspec, const std::string &formname);

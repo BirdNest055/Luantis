@@ -5182,9 +5182,18 @@ std::string GUIFormSpecMenu::getNameByID(s32 id)
 
 const GUIFormSpecMenu::FieldSpec *GUIFormSpecMenu::getSpecByID(s32 id)
 {
-        for (FieldSpec &spec : m_fields) {
-                if (spec.fid == id)
-                        return &spec;
+        // Try cache first for O(1) lookup
+        auto it = m_spec_id_cache.find(id);
+        if (it != m_spec_id_cache.end() && it->second < m_fields.size()
+                        && m_fields[it->second].fid == id)
+                return &m_fields[it->second];
+
+        // Cache miss: linear search and update cache
+        for (size_t i = 0; i < m_fields.size(); i++) {
+                if (m_fields[i].fid == id) {
+                        m_spec_id_cache[id] = i;
+                        return &m_fields[i];
+                }
         }
         return nullptr;
 }

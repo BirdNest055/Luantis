@@ -11,35 +11,41 @@ class Camera;
 class LuaCamera : public ModApiBase
 {
 private:
-	static const luaL_Reg methods[];
+        static const luaL_Reg methods[];
 
-	// garbage collector
-	static int gc_object(lua_State *L);
+        // garbage collector
+        static int gc_object(lua_State *L);
 
-	static int l_set_camera_mode(lua_State *L);
-	static int l_get_camera_mode(lua_State *L);
+        // DEPRECATED: This should move to LocalPlayer API.
+        // Camera is a view abstraction; look direction and mode are fundamentally
+        // properties of the player entity. Migration plan:
+        //   (a) Add LocalPlayer methods for get/set camera mode, look dir, etc.
+        //   (b) Reimplement l_camera methods to delegate to LocalPlayer.
+        //   (c) After a deprecation period, remove the camera bindings.
+        static int l_set_camera_mode(lua_State *L);
+        static int l_get_camera_mode(lua_State *L);
 
-	static int l_get_fov(lua_State *L);
+        static int l_get_fov(lua_State *L);
 
-	static int l_get_pos(lua_State *L);
-	static int l_get_offset(lua_State *L);
-	static int l_get_look_dir(lua_State *L);
-	static int l_get_look_vertical(lua_State *L);
-	static int l_get_look_horizontal(lua_State *L);
-	static int l_get_aspect_ratio(lua_State *L);
+        static int l_get_pos(lua_State *L);
+        static int l_get_offset(lua_State *L);
+        static int l_get_look_dir(lua_State *L);
+        static int l_get_look_vertical(lua_State *L);
+        static int l_get_look_horizontal(lua_State *L);
+        static int l_get_aspect_ratio(lua_State *L);
 
-	static Camera *getobject(LuaCamera *ref);
-	static Camera *getobject(lua_State *L, int narg);
+        static Camera *getobject(LuaCamera *ref);
+        static Camera *getobject(lua_State *L, int narg);
 
-	Camera *m_camera = nullptr;
+        Camera *m_camera = nullptr;
 
 public:
-	LuaCamera(Camera *m);
-	~LuaCamera() = default;
+        LuaCamera(Camera *m);
+        ~LuaCamera() = default;
 
-	static void create(lua_State *L, Camera *m);
+        static void create(lua_State *L, Camera *m);
 
-	static void Register(lua_State *L);
+        static void Register(lua_State *L);
 
-	static const char className[];
+        static const char className[];
 };

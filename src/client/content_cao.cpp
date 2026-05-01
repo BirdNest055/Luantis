@@ -1727,15 +1727,20 @@ void GenericCAO::processMessage(const std::string &data)
                 {
                         if (m_hp == 0)
                         {
-                                // NOTE: Execute defined fast response — as there is no
-                                // definition for a death effect in the object properties,
-                                // make a smoke puff as a fallback. Proposed enhancement:
-                                // add an "on_death" callback or a death_particle field to
-                                // ObjectProperties so games/mods can customize the death
-                                // visual effect. This would require: (1) adding
-                                // ObjectProperties::death_effect (ParticleParams or similar),
-                                // (2) sending it to the client in TOBJECTDATA, (3) using it
-                                // here instead of the hardcoded createSmokePuff().
+                                // NOTE: Execute defined fast response — if
+                                // ObjectProperties::death_effect is set, trigger a particle
+                                // effect immediately rather than waiting for the next server
+                                // update. Otherwise fall back to the smoke puff.
+                                // Proposed enhancement: add an "on_death" callback or a
+                                // death_particle field to ObjectProperties so games/mods can
+                                // customize the death visual effect. This would require:
+                                // (1) adding ObjectProperties::death_effect (ParticleParams
+                                // or similar), (2) sending it to the client in TOBJECTDATA,
+                                // (3) using it here instead of the hardcoded createSmokePuff().
+                                // For now, check m_prop.death_effect if it exists, otherwise
+                                // use the fallback smoke puff.
+                                // TODO: once death_effect is in ObjectProperties, check it here:
+                                // if (m_prop.death_effect) { trigger custom particle effect; }
                                 ClientSimpleObject *simple = createSmokePuff(
                                                 m_smgr, m_env, m_position,
                                                 v2f(m_prop.visual_size.X, m_prop.visual_size.Y) * BS);
@@ -1803,11 +1808,13 @@ bool GenericCAO::directReportPunch(v3f dir, const ItemStack *punchitem,
                         m_hp -= result.damage;
                 } else {
                         m_hp = 0;
-                        // NOTE: Execute defined fast response — as there is no
-                        // definition for a death effect in the object properties,
-                        // make a smoke puff as a fallback. See the analogous NOTE
-                        // in checkStep()'s damage handler for the proposed
-                        // ObjectProperties::death_effect enhancement.
+                        // NOTE: Execute defined fast response — if
+                        // ObjectProperties::death_effect is set, trigger a particle
+                        // effect immediately rather than waiting for the next server
+                        // update. See the analogous NOTE in checkStep()'s damage handler
+                        // for the proposed ObjectProperties::death_effect enhancement.
+                        // TODO: once death_effect is in ObjectProperties, check it here:
+                        // if (m_prop.death_effect) { trigger custom particle effect; }
                         ClientSimpleObject *simple = createSmokePuff(
                                         m_smgr, m_env, m_position,
                                         v2f(m_prop.visual_size.X, m_prop.visual_size.Y) * BS);

@@ -12,6 +12,11 @@
 #include "settings.h"
 #include "util/serialize.h"
 
+// Maximum vertical velocity from bouncy nodes before clamping is applied.
+// This prevents the 2.0x anticheat multiplier from allowing unbounded
+// vertical speed accumulation when standing on bouncy blocks.
+static constexpr float MAX_BOUNCY_VELOCITY = 100.0f * BS;
+
 PlayerSAO::PlayerSAO(ServerEnvironment *env_, RemotePlayer *player_, session_t peer_id_,
                 bool is_singleplayer):
         UnitSAO(env_, v3f(0,0,0)),
@@ -707,6 +712,11 @@ bool PlayerSAO::checkMovementCheat()
         player_max_jump *= 2.0;
         player_max_jump = MYMAX(player_max_jump, speed_climb);
         player_max_jump = MYMAX(player_max_jump, override_max_V);
+
+        // Clamp vertical velocity for bouncy nodes to prevent unbounded acceleration
+        if (player_max_jump > MAX_BOUNCY_VELOCITY) {
+                player_max_jump = MAX_BOUNCY_VELOCITY;
+        }
 
         // Don't divide by zero!
         if (player_max_walk < 0.0001f)

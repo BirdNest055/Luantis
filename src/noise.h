@@ -115,8 +115,13 @@ private:
 //// DEPRECATED: These flags are defined but never implemented by the noise
 //// system. NOISE_FLAG_POINTBUFFER and NOISE_FLAG_SIMPLEX have no effect.
 //// They are kept for ABI compatibility but should not be used in new code.
+//// Safe removal: once no mapgen params reference these flags (check
+//// flagdesc_noiseparams in noise.cpp and all MapgenParams::MapgenParams),
+//// delete this block and the corresponding entries in flagdesc_noiseparams[].
+#if 0 // DEPRECATED — disabled to prevent accidental use. Re-enable if ABI compat is needed.
 #define NOISE_FLAG_POINTBUFFER 0x08
 #define NOISE_FLAG_SIMPLEX     0x10
+#endif
 
 struct NoiseParams {
         float offset = 0.0f;

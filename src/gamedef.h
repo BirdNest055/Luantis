@@ -28,8 +28,11 @@ public:
         // These are thread-safe IF they are not edited while running threads.
         // Thus, first they are set up and then they are only read.
         virtual IItemDefManager* getItemDefManager()=0;
+        virtual const IItemDefManager* getItemDefManager() const=0;
         virtual const NodeDefManager* getNodeDefManager()=0;
+        virtual const NodeDefManager* getNodeDefManager() const=0;
         virtual ICraftDefManager* getCraftDefManager()=0;
+        virtual const ICraftDefManager* getCraftDefManager() const=0;
 
         // Used for keeping track of names/ids of unknown nodes
         virtual u16 allocateUnknownNodeId(const std::string &name)=0;
@@ -37,22 +40,20 @@ public:
         // Only usable on the server, and NOT thread-safe. It is usable from the
         // environment thread.
         virtual IRollbackManager* getRollbackManager() { return NULL; }
+        virtual const IRollbackManager* getRollbackManager() const { return NULL; }
 
         // Only usable on server.
         virtual ModIPCStore *getModIPCStore() { return nullptr; }
 
-        // Shorthands
-        // NOTE: These shorthands should be made const-safe so that a const IGameDef*
-        // is actually usable. This requires adding const overloads to the virtual
-        // getters above (getItemDefManager, getCraftDefManager, getRollbackManager)
-        // and then providing const versions here. ndef() is already const-correct
-        // since getNodeDefManager() returns const NodeDefManager*.
-        // Migration: add `virtual const IItemDefManager* getItemDefManager() const`
-        // (and similarly for others), then add const idef()/cdef()/rollback() here.
+        // Shorthands (const-safe: const overloads delegate to const virtual getters)
         IItemDefManager  *idef()     { return getItemDefManager(); }
+        const IItemDefManager  *idef() const { return getItemDefManager(); }
         const NodeDefManager  *ndef() { return getNodeDefManager(); }
+        const NodeDefManager  *ndef() const { return getNodeDefManager(); }
         ICraftDefManager *cdef()     { return getCraftDefManager(); }
+        const ICraftDefManager *cdef() const { return getCraftDefManager(); }
         IRollbackManager *rollback() { return getRollbackManager(); }
+        const IRollbackManager *rollback() const { return getRollbackManager(); }
 
         virtual const std::vector<ModSpec> &getMods() const = 0;
         virtual const ModSpec* getModSpec(const std::string &modname) const = 0;

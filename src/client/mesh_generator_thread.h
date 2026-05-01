@@ -110,6 +110,10 @@ private:
         bool m_cache_smooth_lighting;
         bool m_cache_enable_water_reflections;
 
+        // Settings callback stub — call this to register with g_settings->registerChangedCallback()
+        // to refresh cached settings when they change at runtime.
+        static void settingsChangedCallback(const std::string &name, void *data);
+
         void fillDataFromMapBlocks(QueuedMeshUpdate *q);
 };
 

@@ -73,10 +73,16 @@ void ParsedText::Element::setStyle(StyleList &style)
         // The printf below should also be replaced with warningstream.
         this->font = g_fontengine->getFont(spec);
 
-        if (!this->font)
-                printf("No font found ! Size=%d, mode=%d, bold=%s, italic=%s\n",
-                                font_size, font_mode, style["bold"].c_str(),
-                                style["italic"].c_str());
+        if (!this->font) {
+                // Null-font fallback: use the default font if the requested font
+                // is not available. This prevents crashes in text rendering.
+                warningstream << "No font found for spec (size=" << font_size
+                        << ", mode=" << font_mode
+                        << ", bold=" << style["bold"]
+                        << ", italic=" << style["italic"]
+                        << "). Falling back to default font." << std::endl;
+                this->font = g_fontengine->getFont();
+        }
 }
 
 void ParsedText::Paragraph::setStyle(StyleList &style)

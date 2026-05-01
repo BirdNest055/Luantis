@@ -1813,6 +1813,19 @@ void Game::toggleMinimap(bool shift_pressed)
         // is no longer needed as a separate flag, (3) all games that use the minimap
         // have migrated to the HUD API for minimap configuration.
 
+        // Deprecation warning for legacy minimap path
+        static bool show_legacy_minimap_deprecation = g_settings->getBool("show_legacy_minimap_deprecation");
+        if (show_legacy_minimap_deprecation) {
+                static bool warned_once = false;
+                if (!warned_once) {
+                        warningstream << "Game: Legacy minimap toggle is deprecated. "
+                                << "Use HUD API for minimap control instead. "
+                                << "(Set show_legacy_minimap_deprecation=false to suppress)"
+                                << std::endl;
+                        warned_once = true;
+                }
+        }
+
         // Not so satisying code to keep compatibility with old fixed mode system
         // -->
         u32 hud_flags = client->getEnv().getLocalPlayer()->hud_flags;

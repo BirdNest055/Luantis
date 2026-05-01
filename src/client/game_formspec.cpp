@@ -205,6 +205,9 @@ void GameFormSpec::init(Client *client, RenderingEngine *rendering_engine, Input
 
 void GameFormSpec::deleteFormspec()
 {
+        // TODO: Replace m_formspec with g_menumgr.tryGetTopMenu() lookups.
+        // m_formspec is deprecated but still needed for refcount management
+        // (drop()/quitMenu()) until the migration is complete.
         if (m_formspec) {
                 m_formspec->drop();
                 m_formspec = nullptr;
@@ -213,6 +216,7 @@ void GameFormSpec::deleteFormspec()
 
 void GameFormSpec::reset()
 {
+        // TODO: Replace m_formspec with g_menumgr.tryGetTopMenu() lookups.
         if (m_formspec)
                 m_formspec->quitMenu();
         deleteFormspec();
@@ -242,11 +246,13 @@ void GameFormSpec::showFormSpec(const std::string &formspec, const std::string &
                 new TextDestPlayerInventory(m_client, formname);
 
         // Replace the currently open formspec
+        // TODO: m_formspec is deprecated; eventually use a local variable
+        // and rely on g_menumgr for lifecycle management.
         GUIFormSpecMenu::create(m_formspec, m_client, m_rendering_engine->get_gui_env(),
                 &m_input->joystick, fs_src, txt_dst, m_client->getFormspecPrepend(),
                 m_client->getSoundManager());
         m_formspec->setName(formname);
-}
+
 
 void GameFormSpec::showCSMFormSpec(const std::string &formspec, const std::string &formname)
 {

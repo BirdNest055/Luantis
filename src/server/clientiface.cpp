@@ -877,6 +877,16 @@ void ClientInterface::DeleteClient(session_t peer_id)
         //      paths that erase from m_clients must delete the pointer.
         //   3. Consider switching to std::unique_ptr<RemoteClient> in the map
         //      to guarantee destructor invocation on erase().
+        //
+        // Safety: It is safe to move this cleanup NOW because:
+        //   - DeleteClient() is the only code path that removes clients from
+        //     m_clients (aside from the map's own destruction in ~ClientInterface).
+        //   - The destructor-based approach would handle ALL removal paths,
+        //     including edge cases like double-removal (already caught by the
+        //     FATAL_ERROR_IF above) and server shutdown (where the map is
+        //     cleared and all RemoteClient pointers are deleted).
+        //   - The only risk is if RemoteClient is ever held by a shared_ptr
+        //     and outlives the ServerEnvironment, but that's not the case today.
         RemoteClient *client = n->second;
         // Handle objects
         for (u16 id : client->m_known_objects) {

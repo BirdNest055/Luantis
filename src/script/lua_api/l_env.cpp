@@ -465,6 +465,23 @@ int ModApiEnv::l_punch_node(lua_State *L)
         return 1;
 }
 
+// PointedThing converter stub for custom raycast results.
+// This function can be used to convert a Lua table representation of a
+// PointedThing into the C++ struct, enabling custom raycast results.
+// TODO: Implement once push_pointed_thing() / read_pointed_thing() are
+// available in c_content.cpp.
+// Expected Lua table format:
+//   { type="node", under={x,y,z}, above={x,y,z}, intersection_point={x,y,z} }
+//   { type="object", ref=<ObjectRef> }
+//   { type="nothing" }
+/*
+static PointedThing read_pointed_thing_from_lua(lua_State *L, int index)
+{
+        // TODO: implement
+        return PointedThing();
+}
+*/
+
 int ModApiEnv::l_get_node_max_level(lua_State *L)
 {
         GET_PLAIN_ENV_PTR;

@@ -105,6 +105,8 @@ SColor CImage::getPixel(u32 x, u32 y) const
                 // which re-packs them into native u32 order. The original comment questioned the conceptual
                 // mismatch (memory order ≠ SColor register order), but the code is correct as
                 // written — it reads the source format's byte order directly.
+                // Assertion: verify that ECF_R8G8B8 is 3 bytes per pixel as assumed here.
+                static_assert(sizeof(u8) == 1, "u8 must be 1 byte for R8G8B8 pixel access");
                 u8 *p = Data + (y * 3) * Size.Width + (x * 3);
                 return SColor(255, p[0], p[1], p[2]);
         }

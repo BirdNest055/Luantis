@@ -944,6 +944,10 @@ void LocalPlayer::old_move(f32 dtime, Environment *env,
                         */
                         if (m_speed.Y < 0.0f)
                                 m_speed.Y = 0.0f;
+                        // DUMP trace for the Y-speed reset condition (see NOTE above).
+                        // This helps diagnose the "player sinking while sneaking" bug.
+                        TRACESTREAM(<< "LocalPlayer::old_move: Y-speed reset to 0 "
+                                << "(sneak over edge, old_move path)" << std::endl);
                 }
         }
 

@@ -38,6 +38,9 @@ void LuaCamera::create(lua_State *L, Camera *m)
 }
 
 // set_camera_mode(self, mode)
+// DEPRECATED: This should move to LocalPlayer API.
+// Camera is a view abstraction; the camera mode is fundamentally a property
+// of the player entity. See l_camera.h for the migration plan.
 int LuaCamera::l_set_camera_mode(lua_State *L)
 {
         Camera *camera = getobject(L, 1);

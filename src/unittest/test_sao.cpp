@@ -71,23 +71,27 @@ void TestSAO::runTests(IGameDef *gamedef)
         }
 
         // unfortunately we have to create a lot since a DummyMap doesn't cut it.
-        // NOTE: best to factor entity mgmt out of ServerEnvironment, also
-        //       EmergeManager should become mockable
         //
-        //       Root cause: This test requires a full ServerEnvironment because
-        //       SAO lifecycle (create, step, remove) is tightly coupled to it.
-        //       Entity management (add/remove/getActiveObject) should be in its
-        //       own class (e.g., EntityManager) with a virtual interface that
-        //       can be mocked for unit tests without needing ServerMap, EmergeManager,
-        //       or a running server.
+        // Why this test requires a full ServerEnvironment:
         //
-        //       Proposed fix:
-        //         1. Extract entity management methods from ServerEnvironment into
-        //            a new EntityManager class.
-        //         2. Make EmergeManager an interface (IEmergeManager) with a mock
-        //            implementation for tests.
-        //         3. Replace this test's Server/ServerMap/EmergeManager setup with
-        //            lightweight mocks.
+        // SAO lifecycle methods (addActiveObject, step, removeFarObjects,
+        // deactivateFarObjects) are tightly coupled to ServerEnvironment internals:
+        //   - ServerEnvironment::addActiveObject() writes to the block's static
+        //     object store (m_static_objects) and triggers Lua callbacks.
+        //   - ServerEnvironment::step() drives active block management, which
+        //     decides when to activate/deactivate objects based on player distance.
+        //   - The forceActivateBlock() method reads from the block's static data
+        //     and calls into the scripting engine to create active objects.
+        //
+        // A lighter-weight mock would require reimplementing most of this logic,
+        // which would be fragile and diverge from the real implementation.
+        // Hence, we create a real ServerMap (backed by a DummyMap via the world
+        // directory), an EmergeManager, and a ServerEnvironment.
+        //
+        // Future improvement: Extract entity management into its own class
+        // (EntityManager) with a virtual interface that can be mocked.
+        // Also make EmergeManager an interface (IEmergeManager) for mocking.
+        // See the NOTE below for the proposed refactoring plan.
         MetricsBackend mb;
         EmergeManager emerge(&server, &mb);
         auto map = std::make_unique<ServerMap>(server.getWorldPath(), gamedef, &emerge, &mb);

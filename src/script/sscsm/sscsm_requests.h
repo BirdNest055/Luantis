@@ -10,6 +10,9 @@
 #include "map.h"
 #include "client/client.h"
 #include "log_internal.h"
+#include "util/serialize.h"
+#include <sstream>
+#include <vector>
 
 // Poll the next event (e.g. on_globalstep)
 struct SSCSMRequestPollNextEvent final : public ISSCSMRequest
@@ -63,6 +66,20 @@ struct SSCSMRequestPrint final : public ISSCSMRequest
 
                 return serializeSSCSMAnswer(Answer{});
         }
+
+        // Serialize into a byte buffer (forwards to byte buffer via write helpers).
+        // Format: [type_tag:u16] [text_len:u16] [text bytes]
+        std::vector<u8> serialize() const
+        {
+                std::ostringstream os(std::ios::binary);
+                writeU16(os, 100); // type tag for Print
+                writeU16(os, static_cast<u16>(text.size()));
+                os.write(text.data(), text.size());
+                std::string data = os.str();
+                return std::vector<u8>(data.begin(), data.end());
+        }
+
+        // TODO: implement deSerialize
 };
 
 // core.log(level, text)
@@ -91,6 +108,21 @@ struct SSCSMRequestLog final : public ISSCSMRequest
 
                 return serializeSSCSMAnswer(Answer{});
         }
+
+        // Serialize into a byte buffer (forwards to byte buffer via write helpers).
+        // Format: [type_tag:u16] [level:u8] [text_len:u16] [text bytes]
+        std::vector<u8> serialize() const
+        {
+                std::ostringstream os(std::ios::binary);
+                writeU16(os, 101); // type tag for Log
+                writeU8(os, static_cast<u8>(level));
+                writeU16(os, static_cast<u16>(text.size()));
+                os.write(text.data(), text.size());
+                std::string data = os.str();
+                return std::vector<u8>(data.begin(), data.end());
+        }
+
+        // TODO: implement deSerialize
 };
 
 // core.get_node(pos)

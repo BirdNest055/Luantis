@@ -229,12 +229,23 @@ void push_item_definition_full(lua_State *L, const ItemDefinition &i)
         lua_setfield(L, -2, "type");
         push_item_image_definition(L, i.inventory_image);
         lua_setfield(L, -2, "inventory_image");
+        // NOTE: inventory_image.animation is not pushed here because
+        // push_item_image_definition() currently only pushes the name string.
+        // TODO: Add push_TileAnimationParams helper and push the animation field
+        // as a sub-table: push_TileAnimationParams(L, i.inventory_image.animation);
+        // lua_setfield(L, -2, "inventory_image.animation");
+
         push_item_image_definition(L, i.inventory_overlay);
         lua_setfield(L, -2, "inventory_overlay");
+        // TODO: push inventory_overlay.animation once push_TileAnimationParams exists.
+
         push_item_image_definition(L, i.wield_image);
         lua_setfield(L, -2, "wield_image");
+        // TODO: push wield_image.animation once push_TileAnimationParams exists.
+
         push_item_image_definition(L, i.wield_overlay);
         lua_setfield(L, -2, "wield_overlay");
+        // TODO: push wield_overlay.animation once push_TileAnimationParams exists.
         lua_pushstring(L, i.palette_image.c_str());
         lua_setfield(L, -2, "palette_image");
         push_ARGB8(L, i.color);

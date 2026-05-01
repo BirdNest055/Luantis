@@ -796,7 +796,12 @@ MapBlock *ServerMap::loadBlock(const std::string &blob, v3s16 p3d, bool save_aft
                 }
         }
 
-        assert(block);
+        // Block should be non-null after either the successful or the error-handling
+        // path. If it's null, something went seriously wrong (e.g., sector creation
+        // failed or createBlankBlockNoInsert returned null). This is a fatal condition
+        // because downstream code dereferences the block pointer unconditionally.
+        FATAL_ERROR_IF(!block, "ServerMap::loadBlock: block is null after load attempt "
+                "- block should be marked as invalid instead");
 
         if (created_new) {
                 ReflowScan scanner(this, m_emerge->ndef);

@@ -844,6 +844,14 @@ private:
         // [playername] = list of params, empty playername for broadcast
         std::unordered_map<std::string, std::vector<ParticleParameters>> m_particles_to_send;
 
+        // Particle spawner client tracking stub.
+        // Tracks which clients know about each particle spawner, enabling
+        // targeted cleanup when a spawner is deleted. Key = spawner ID,
+        // Value = set of client session IDs that received this spawner.
+        // TODO: Populate in SendAddParticleSpawner(), use in
+        // SendDeleteParticleSpawner() to only send deletes to relevant clients.
+        std::unordered_map<u32, std::unordered_set<session_t>> m_spawner_clients;
+
         // v9.39: Voice group tracking (server-side)
         std::unordered_map<u32, VoiceGroupState> m_voice_groups;
         u32 m_voice_group_next_id = 1;

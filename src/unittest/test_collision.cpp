@@ -156,6 +156,74 @@ void TestCollision::testAxisAlignedCollision()
                 // - Offset so only the target axis collides first (multi-axis test)
                 // See the X-/X+ block above (lines 71-149) for the pattern.
 
+                // Y- (moving downward toward static box below)
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by-2, bz, bx+1, by-1, bz+1);
+                        v3f v(0, 1, 0);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == 1);
+                        UASSERT(fabs(dtime - 1.000) < 0.001);
+                }
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by-2, bz, bx+1, by-1, bz+1);
+                        v3f v(0, -1, 0);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == -1);
+                }
+
+                // Y+ (moving upward toward static box above)
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by+2, bz, bx+1, by+3, bz+1);
+                        v3f v(0, -1, 0);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == 1);
+                        UASSERT(fabs(dtime - 1.000) < 0.001);
+                }
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by+2, bz, bx+1, by+3, bz+1);
+                        v3f v(0, 1, 0);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == -1);
+                }
+
+                // Z- (moving in -Z toward static box in -Z direction)
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by, bz-2, bx+1, by+1, bz-1);
+                        v3f v(0, 0, 1);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == 2);
+                        UASSERT(fabs(dtime - 1.000) < 0.001);
+                }
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by, bz-2, bx+1, by+1, bz-1);
+                        v3f v(0, 0, -1);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == -1);
+                }
+
+                // Z+ (moving in +Z toward static box in +Z direction)
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by, bz+2, bx+1, by+1, bz+3);
+                        v3f v(0, 0, -1);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == 2);
+                        UASSERT(fabs(dtime - 1.000) < 0.001);
+                }
+                {
+                        aabb3f s(bx, by, bz, bx+1, by+1, bz+1);
+                        aabb3f m(bx, by, bz+2, bx+1, by+1, bz+3);
+                        v3f v(0, 0, 1);
+                        f32 dtime = 1.0f;
+                        UASSERT(axisAlignedCollision(s, m, v, &dtime) == -1);
+                }
+
                 // misc
                 {
                         aabb3f s(bx, by, bz, bx+2, by+2, bz+2);

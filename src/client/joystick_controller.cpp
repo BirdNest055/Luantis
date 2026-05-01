@@ -332,6 +332,7 @@ bool JoystickController::handleEvent(const SEvent::SJoystickEvent &ev)
 
         for (size_t i = 0; i < JA_COUNT; i++) {
                 const JoystickAxisLayout &ax_la = m_layout.axes[i];
+                sanity_check(ax_la.axis_id < SEVENT::SJoystickEvent::NUMBER_OF_AXES);
                 m_axes_vals[i] = ax_la.invert * ev.Axis[ax_la.axis_id];
         }
 

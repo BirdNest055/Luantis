@@ -53,18 +53,6 @@ protected:
 // WARNING: Ownership of ObjDefs is transferred to the ObjDefManager it is
 // added/set to.  Note that ObjDefs managed by ObjDefManager are NOT refcounted,
 // so the same ObjDef instance must not be referenced multiple
-// NOTE: ObjDefManager lacks const-correct getter overloads. Currently:
-//   - getByName() is const but returns non-const ObjDef*
-//   - get() is const but returns non-const ObjDef*
-//   - getRaw() returns non-const ObjDef*
-// Adding const overloads would allow const ObjDefManager* to be used for
-// read-only lookups. Migration:
-//   1. Add: const ObjDef* getByName(const std::string &name) const;
-//          const ObjDef* get(ObjDefHandle handle) const;
-//          const ObjDef* getRaw(size_t idx) const;
-//   2. Existing non-const versions delegate to const versions via const_cast
-//   3. Update callers that only need read access to use const refs
-// Blocked on: no immediate bug, but prevents const-correct API design.
 class ObjDefManager {
 public:
         ObjDefManager(IGameDef *gamedef, ObjDefType type);
@@ -76,11 +64,19 @@ public:
         virtual const char *getObjectTitle() const { return "ObjDef"; }
 
         virtual void clear();
-        virtual ObjDef *getByName(const std::string &name) const;
 
-        //// Add new/get/set object definitions by handle
+        //// Const-safe getters (preferred for read-only access)
+        virtual const ObjDef *getByName(const std::string &name) const;
+        virtual const ObjDef *get(ObjDefHandle handle) const;
+        virtual const ObjDef *getRaw(u32 index) const;
+
+        //// Non-const overloads (return mutable pointers, only callable on non-const objects)
+        ObjDef *getByName(const std::string &name);
+        ObjDef *get(ObjDefHandle handle);
+        ObjDef *getRaw(u32 index);
+
+        //// Add new/set object definitions by handle
         virtual ObjDefHandle add(ObjDef *obj);
-        virtual ObjDef *get(ObjDefHandle handle) const;
         virtual ObjDef *set(ObjDefHandle handle, ObjDef *obj);
 
         //// Raw variants that work on indexes
@@ -88,7 +84,6 @@ public:
 
         // It is generally assumed that getRaw() will always return a valid object
         // This won't be true if people do odd things such as call setRaw() with NULL
-        virtual ObjDef *getRaw(u32 index) const;
         virtual ObjDef *setRaw(u32 index, ObjDef *obj);
 
         size_t getNumObjects() const { return m_objects.size(); }

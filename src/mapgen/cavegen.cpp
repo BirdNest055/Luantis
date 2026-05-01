@@ -538,6 +538,9 @@ void CavesRandomWalk::carveRoute(v3f vec, float f, bool randomize_xz)
                         // defined and located using biome definitions. This fallback exists only
                         // for mapgens without biome liquid data. See nparams_caveliquids at top of
                         // file for the full removal plan.
+                        warningstream << "CavesRandomWalk: Using deprecated np_caveliquids "
+                                "fallback (no biome liquid data). This will be removed in a "
+                                "future version." << std::endl;
                         float nval = NoiseFractal3D(np_caveliquids, startp.X,
                                 startp.Y, startp.Z, seed);
                         liquidnode = (nval < 0.40f && node_max.Y < water_level - 256) ?

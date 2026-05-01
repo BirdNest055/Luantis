@@ -13,15 +13,21 @@
 
 static inline f32 my_atof(const char *p)
 {
-        // NOTE: strtod's second argument (endptr) is not checked here. Checking endptr
-        // would allow detection of malformed OBJ values (e.g., "1.0xyz") vs. trailing
-        // whitespace ("1.0  "). However, OBJ files frequently have trailing whitespace
-        // or platform-specific line endings, and strict endptr validation would require
-        // also skipping whitespace — adding complexity for little practical gain since
-        // strtod already stops at the first non-numeric character. If stricter parsing
-        // is desired, replace with: char *end; double v = strtod(p, &end);
-        // then verify end != p && (*end == '\\0' || isspace(*end)).
-        return (f32)strtod(p, nullptr);
+        // Parse float with endptr validation to detect malformed OBJ values.
+        // strtod stops at the first non-numeric character. If endptr == p, no
+        // conversion was performed (entirely non-numeric input). If *endptr is
+        // neither '\0' nor whitespace, there's trailing garbage (e.g., "1.0xyz").
+        // We log a warning for garbage but still return the parsed value, since
+        // OBJ files frequently have platform-specific quirks and strict rejection
+        // would break many real-world files.
+        char *endptr = nullptr;
+        double v = strtod(p, &endptr);
+        if (endptr == p) {
+                os::Printer::log("my_atof: no numeric conversion performed for", p, ELL_WARNING);
+        } else if (*endptr != '\0' && !core::isspace(*endptr)) {
+                os::Printer::log("my_atof: trailing garbage after numeric value in", p, ELL_WARNING);
+        }
+        return (f32)v;
 }
 
 namespace scene
