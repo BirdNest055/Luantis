@@ -63,7 +63,9 @@ static v3d check_v3d(lua_State *L, int index);
  */
 static void read_v3_aux(lua_State *L, int index)
 {
-        // TODO: someone find out if it's faster to have the type check in Lua too
+        // NOTE: CUSTOM_RIDX_READ_VECTOR performs the type checking in Lua space.
+        // The CHECK_POS_TAB macro also does C++ type checking, so the Lua-side
+        // check is redundant but may be faster for large tables. Benchmark to decide.
         CHECK_POS_TAB(index);
         lua_pushvalue(L, index);
         lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_READ_VECTOR);

@@ -395,8 +395,9 @@ int ModApiMainMenu::l_get_content_info(lua_State *L)
         if (spec.type == "unknown") {
                 // In <=5.11.0 the API call was erroneously not documented as
                 // being able to return type "unknown".
-                // TODO inspect call sites and make sure this is handled, then we can
-                // likely remove the warning.
+                // TODO: Inspect all call sites of get_content_info (Lua: core.get_content_info)
+                // and ensure they handle type="unknown". Once verified, replace this
+                // warningstream with a debugstream or remove it entirely.
                 warningstream << "Requested content info has type \"unknown\" "
                                 << "(at " << path << ")" << std::endl;
         }

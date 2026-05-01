@@ -351,9 +351,11 @@ private:
 
         /*
          * TODO: Local caching of settings is not optimal and should at some stage
-         *       be updated to use a global settings object for getting thse values
-         *       (as opposed to the this local caching). This can be addressed in
-         *       a later release.
+         *       be updated to use a global settings object for getting these values
+         *       (as opposed to this local caching). The settings change callback
+         *       system (g_settings->registerChangedCallback) could be used to
+         *       invalidate caches when values change. See also Camera::readSettings()
+         *       in src/client/camera.cpp which has the same pattern.
          */
         bool m_cache_doubletap_jump;
         bool m_cache_toggle_sneak_key;

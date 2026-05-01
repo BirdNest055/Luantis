@@ -64,8 +64,10 @@ void ParsedText::Element::setStyle(StyleList &style)
         FontSpec spec(font_size, font_mode,
                 is_yes(style["bold"]), is_yes(style["italic"]));
 
-        // TODO: find a way to check font validity
-        // Build a new fontengine ?
+        // TODO: g_fontengine->getFont() can return nullptr when no font matches
+        // the spec. Add a hasFont(spec) method or make getFont() fall back to the
+        // default font instead of returning nullptr. The printf below should be
+        // replaced with warningstream or errorstream.
         this->font = g_fontengine->getFont(spec);
 
         if (!this->font)

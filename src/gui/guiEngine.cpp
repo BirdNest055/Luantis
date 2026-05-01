@@ -659,8 +659,8 @@ bool GUIEngine::downloadFile(const std::string &url, const std::string &target)
                 fs::DeleteSingleFileOrEmptyDirectory(target, true);
                 return false;
         }
-        // TODO: directly stream the response data into the file instead of first
-        // storing the complete response in memory
+        // TODO: Stream the response data directly into the file instead of buffering
+        // the entire response in memory. Use a streaming HTTP write callback.
         target_file << fetch_result.data;
 
         return true;

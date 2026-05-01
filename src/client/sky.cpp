@@ -706,8 +706,10 @@ void Sky::place_sky_body(
 }
 
 // Helper that downloads texture from GPU to CPU side (inefficient).
-// FIXME: This is wasteful - avoid GPU→CPU transfers when possible.
-// TODO: Use texture directly instead of converting to image.
+// NOTE: This is wasteful — avoid GPU→CPU transfers when possible.
+// TODO: Use texture directly instead of converting to image. The sky renderer
+// should be refactored to use IVideoDriver::draw2DImage with the texture handle,
+// eliminating the need for this roundtrip entirely.
 static void getTextureAsImage(video::IImage *&dst, const std::string &name, ITextureSource *tsrc)
 {
         if (dst) {
