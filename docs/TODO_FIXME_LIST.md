@@ -23,6 +23,7 @@ Generated automatically from code comments.
 | FIX | 5 (v9.54 dead code and typo cleanup — FIXED) |
 | FIX | 9 (v9.54 FIXME/TODO resolution — FIXED) |
 | FIX | 20 (v9.54 batch 2 — FIXME/TODO improvements) |
+| FIX | 20 (v9.54 batch 3 — TODO/FIXME/HACK comment improvements) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
