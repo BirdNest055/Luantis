@@ -2132,7 +2132,21 @@ void Client::handleCommand_FormspecPrepend(NetworkPacket *pkt)
 
 void Client::handleCommand_CSMRestrictionFlags(NetworkPacket *pkt)
 {
-        *pkt >> m_csm_restriction_flags >> m_csm_restriction_noderange;
+        try {
+                *pkt >> m_csm_restriction_flags >> m_csm_restriction_noderange;
+        } catch (PacketError &e) {
+                errorstream << "Client: Failed to read CSM restriction flags: "
+                        << e.what() << std::endl;
+                return;
+        }
+
+        // Log specific restriction flags that affect functionality
+        if (m_csm_restriction_flags & CSM_RF_LOAD_CLIENT_MODS) {
+                infostream << "Client: Server disabled client-provided mod loading" << std::endl;
+        }
+        if (m_csm_restriction_flags & CSM_RF_CHAT_MESSAGES) {
+                infostream << "Client: Server restricted CSM chat messages" << std::endl;
+        }
 
         // Restrictions were received -> load mods if it's enabled
         // Note: this should be moved after mods receptions from server instead

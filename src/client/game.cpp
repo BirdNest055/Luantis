@@ -3707,6 +3707,24 @@ void Game::updateShadows()
         }
 
         v3f sun_pos = light * offset_constant;
+
+        // Delta-threshold optimization: Only update the shadow map when the
+        // light direction has changed by more than a threshold. This avoids
+        // expensive shadow map redraws on frames where the light direction
+        // hasn't meaningfully changed (e.g., during nighttime when the moon
+        // direction is stable, or when time_of_day isn't advancing).
+        // The threshold (0.001) corresponds to roughly 0.06 degrees of
+        // angular change, which is imperceptible visually but avoids
+        // per-frame shadow redraws when the light is stationary.
+        static v3f last_light_dir = v3f(0, 0, 0);
+        float dir_delta = (sun_pos - last_light_dir).getLengthSQ();
+        const float SHADOW_DIR_THRESHOLD_SQ = 0.001f * 0.001f;
+        if (dir_delta < SHADOW_DIR_THRESHOLD_SQ) {
+                // Light direction hasn't changed enough — skip shadow redraw
+                return;
+        }
+        last_light_dir = sun_pos;
+
         shadow->getDirectionalLight().setDirection(sun_pos);
         shadow->setTimeOfDay(in_timeofday);
 

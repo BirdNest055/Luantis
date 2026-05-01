@@ -415,13 +415,31 @@ void DungeonGen::makeCorridor(v3s16 doorplace, v3s16 doordir,
                                         MapNode(CONTENT_AIR), VMANIP_FLAG_DUNGEON_INSIDE);
 
                                 // NOTE: Stairs code does not work 100%. Known issues:
-                                //   1. Bottom step (i==0 for make_stairs==1, i==length-1 for
-                                //      make_stairs==-1) is excluded to avoid stairs at the
-                                //      corridor entrance, but this can leave a visual gap
-                                //   2. Diagonal steps (where dir.X and dir.Z are both odd) are
-                                //      excluded, causing missing stairs at corners
-                                //   3. The stair_width loop doesn't handle non-rectangular
-                                //      corridor cross-sections
+                                //
+                                //   Issue 1 — Bottom step excluded (line ~431-433):
+                                //     The condition `i != 0` (for make_stairs==1) and
+                                //     `i != length - 1` (for make_stairs==-1) skips the bottom
+                                //     step to avoid stairs at the corridor entrance, but this
+                                //     leaves a visual gap where the first/last step should be.
+                                //     Fix: Always place the bottom step, but with a different
+                                //     facedir to indicate it's at a junction point.
+                                //
+                                //   Issue 2 — Diagonal steps excluded (line ~431):
+                                //     The condition `((dir.X ^ dir.Z) & 1)` excludes stairs
+                                //     when the corridor direction is diagonal, causing missing
+                                //     stairs at corners. This was intended to avoid malformed
+                                //     stairs but is overly conservative.
+                                //     Fix: Handle diagonal directions by computing the correct
+                                //     facedir from the diagonal vector instead of skipping.
+                                //
+                                //   Issue 3 — Non-rectangular corridor cross-sections (line ~438):
+                                //     The stair_width loop iterates `dp.holesize.X` or
+                                //     `dp.holesize.Z` times, which assumes a rectangular hole.
+                                //     With dp.diagonal_dirs=true and holesize > {1,2,1}, the
+                                //     cross-section is not rectangular, causing misaligned stairs.
+                                //     Fix: Compute stair placement positions based on actual
+                                //     corridor geometry rather than the holesize dimensions.
+                                //
                                 // A proper fix would require rewriting the stair placement as a
                                 // separate pass that traces the corridor path and places stair
                                 // nodes with full geometric awareness.
@@ -441,18 +459,22 @@ void DungeonGen::makeCorridor(v3s16 doorplace, v3s16 doordir,
 
                                         for (u16 st = 0; st < stair_width; st++) {
                                                 if (make_stairs == -1) {
-                                                        u32 vi = vm->m_area.index(ps.X - dir.X, ps.Y - 1, ps.Z - dir.Z);
-                                                        if (vm->m_area.contains(ps + v3s16(-dir.X, -1, -dir.Z)) &&
-                                                                        vm->m_data[vi].getContent() == dp.c_wall) {
-                                                                vm->m_flags[vi] |= VMANIP_FLAG_DUNGEON_UNTOUCHABLE;
-                                                                vm->m_data[vi] = MapNode(dp.c_stair, 0, facedir);
+                                                        v3s16 stair_pos(ps.X - dir.X, ps.Y - 1, ps.Z - dir.Z);
+                                                        if (vm->m_area.contains(stair_pos)) {
+                                                                u32 vi = vm->m_area.index(stair_pos);
+                                                                if (vm->m_data[vi].getContent() == dp.c_wall) {
+                                                                        vm->m_flags[vi] |= VMANIP_FLAG_DUNGEON_UNTOUCHABLE;
+                                                                        vm->m_data[vi] = MapNode(dp.c_stair, 0, facedir);
+                                                                }
                                                         }
                                                 } else if (make_stairs == 1) {
-                                                        u32 vi = vm->m_area.index(ps.X, ps.Y - 1, ps.Z);
-                                                        if (vm->m_area.contains(ps + v3s16(0, -1, 0)) &&
-                                                                        vm->m_data[vi].getContent() == dp.c_wall) {
-                                                                vm->m_flags[vi] |= VMANIP_FLAG_DUNGEON_UNTOUCHABLE;
-                                                                vm->m_data[vi] = MapNode(dp.c_stair, 0, facedir);
+                                                        v3s16 stair_pos(ps.X, ps.Y - 1, ps.Z);
+                                                        if (vm->m_area.contains(stair_pos)) {
+                                                                u32 vi = vm->m_area.index(stair_pos);
+                                                                if (vm->m_data[vi].getContent() == dp.c_wall) {
+                                                                        vm->m_flags[vi] |= VMANIP_FLAG_DUNGEON_UNTOUCHABLE;
+                                                                        vm->m_data[vi] = MapNode(dp.c_stair, 0, facedir);
+                                                                }
                                                         }
                                                 }
                                                 ps += swv;

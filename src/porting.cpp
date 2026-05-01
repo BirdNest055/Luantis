@@ -653,6 +653,14 @@ bool setSystemPaths()
         // Bail if migration impossible
         if (path_cache == local_cache_path || !fs::PathExists(local_cache_path)
                         || fs::PathExists(path_cache)) {
+                // If the new cache path doesn't exist but the old one also doesn't exist,
+                // create the new path directory to ensure it's available for use.
+                if (!fs::PathExists(path_cache)) {
+                        if (!fs::CreateAllDirs(path_cache)) {
+                                errorstream << "Failed to create cache directory: "
+                                        << path_cache << std::endl;
+                        }
+                }
                 return;
         }
         if (!fs::Rename(local_cache_path, path_cache)) {

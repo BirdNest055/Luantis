@@ -1464,6 +1464,16 @@ void Server::Send(NetworkPacket *pkt)
 
 void Server::Send(session_t peer_id, NetworkPacket *pkt)
 {
+        // Sanity check: verify the RemotePlayer exists for this peer_id
+        RemotePlayer *player = m_env->getPlayer(peer_id);
+        if (!player) {
+                // This can happen during connection setup or teardown — just log it
+                // rather than failing silently or crashing.
+                infostream << "Server::Send(): No RemotePlayer for peer_id="
+                        << peer_id << ", dropping packet (cmd="
+                        << pkt->getCommand() << ")" << std::endl;
+                return;
+        }
         m_clients.send(peer_id, pkt);
 }
 

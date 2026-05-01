@@ -1428,7 +1428,7 @@ void pushnode(lua_State *L, const MapNode &n)
 }
 
 /******************************************************************************/
-int getenumfield(lua_State *L, int table,
+int read_enum_field(lua_State *L, int table,
                 const char *fieldname, const EnumString *spec, int default_)
 {
         int result = default_;

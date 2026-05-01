@@ -67,15 +67,11 @@ struct ClientEventHudChange
 
 struct ClientEvent
 {
-        // NOTE: The default constructor zero-initializes the union via `type(CE_NONE)`.
-        // It would be preferable to remove this ctor and require explicit type
-        // initialization (e.g. ClientEvent(CE_SOME_EVENT)) to avoid accidental use
-        // of an uninitialized union. However, several call sites construct ClientEvent
-        // then set fields individually. To remove this ctor: (1) audit all
-        // ClientEvent() default constructions and convert them to pass the type,
-        // (2) ensure the union is always fully initialized before use,
-        // (3) delete the default ctor.
-        ClientEvent() : type(CE_NONE) {}
+        // NOTE: The default constructor was removed to avoid accidental use of
+        // an uninitialized union. All ClientEvent instances must be constructed
+        // with an explicit ClientEventType to ensure the union is properly
+        // initialized. Use ClientEvent(CE_YOUR_TYPE) instead of ClientEvent().
+        ClientEvent() = delete;
 
         ClientEvent(ClientEventType type) : type(type) {}
 

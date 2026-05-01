@@ -723,7 +723,7 @@ void ModApiServer::Initialize(lua_State *L, int top)
 	API_FCT(register_mapgen_script);
 }
 
-void ModApiServer::InitializeAsync(lua_State *L, int top)
+void ModApiServer::InitializeRO(lua_State *L, int top)
 {
 	API_FCT(get_worldpath);
 	API_FCT(is_singleplayer);

@@ -1504,6 +1504,16 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
                                 continue;
                         }
 
+                        // Validate channel number is within bounds for received packets
+                        if (e.data.getSize() > BASE_HEADER_SIZE) {
+                                u8 channel = readU8(&(*e.data)[6]);
+                                if (channel >= CHANNEL_COUNT) {
+                                        errorstream << "Receive: Dropping packet with invalid channel="
+                                                << (int)channel << " from peer_id=" << e.peer_id << std::endl;
+                                        continue;
+                                }
+                        }
+
                         pkt->putRawPacket(*e.data, e.data.getSize(), e.peer_id);
                         return true;
                 case CONNEVENT_PEER_ADDED: {
@@ -1531,6 +1541,10 @@ void Connection::Send(session_t peer_id, u8 channelnum,
 {
         assert(channelnum < CHANNEL_COUNT); // Pre-condition
 
+        // Validate that the channel pointer exists for this peer
+        FATAL_ERROR_IF(peer_id == PEER_ID_INEXISTENT,
+                "Connection::Send(): attempted to send to PEER_ID_INEXISTENT");
+
         // approximate check similar to UDPPeer::processReliableSendCommand()
         // to get nicer errors / backtraces if this happens.
         if (reliable && pkt->getSize() > MAX_RELIABLE_WINDOW_SIZE*512) {
@@ -1538,6 +1552,15 @@ void Connection::Send(session_t peer_id, u8 channelnum,
                 oss << "Packet too big for window, peer_id=" << peer_id
                         << " command=" << pkt->getCommand() << " size=" << pkt->getSize();
                 FATAL_ERROR(oss.str().c_str());
+        }
+
+        // Bounds check for packet size to prevent oversized packets from
+        // causing issues in the reliable packet handler
+        if (pkt->getSize() > MAX_RELIABLE_WINDOW_SIZE * 512 * 2) {
+                errorstream << "Connection::Send(): Dropping oversized packet, peer_id="
+                        << peer_id << " command=" << pkt->getCommand()
+                        << " size=" << pkt->getSize() << std::endl;
+                return;
         }
 
         putCommand(ConnectionCommand::send(peer_id, channelnum, pkt, reliable));

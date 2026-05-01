@@ -320,6 +320,8 @@ video::SColor read_ARGB8(lua_State *L, int index)
 
         video::SColor color;
         lua_getfield(L, index, "a");
+        if (!lua_isnumber(L, -1) && !lua_isnil(L, -1))
+                throw LuaError("ARGB color: field 'a' must be a number");
         color.setAlpha(lua_isnumber(L, -1) ? clamp_col(lua_tonumber(L, -1)) : 0xFF);
         lua_pop(L, 1);
         lua_getfield(L, index, "r");

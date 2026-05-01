@@ -490,7 +490,7 @@ public:
         /* Set environment. Do not call this function if environment is already set */
         void setEnv(ServerEnvironment *env)
         {
-                assert(m_env == NULL); // pre-condition
+                FATAL_ERROR_IF(m_env != NULL, "Environment already set");
                 m_env = env;
         }
 

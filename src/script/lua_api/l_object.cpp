@@ -1988,6 +1988,12 @@ int ObjectRef::l_hud_set_flags(lua_State *L)
         if (player == nullptr)
                 return 0;
 
+        // Validate that argument 2 is a table
+        if (!lua_istable(L, 2)) {
+                luaL_error(L, "hud_set_flags: expected table as second argument");
+                return 0;
+        }
+
         u32 flags = 0;
         u32 mask  = 0;
         bool flag;
@@ -1995,9 +2001,21 @@ int ObjectRef::l_hud_set_flags(lua_State *L)
         const EnumString *esp = es_HudBuiltinElement;
         for (int i = 0; esp[i].str; i++) {
                 if (getboolfield(L, 2, esp[i].str, flag)) {
-                        flags |= esp[i].num * flag;
-                        mask  |= esp[i].num;
+                        // Validate that the flag value is a known HUD flag
+                        u32 flag_val = esp[i].num;
+                        if (flag_val == 0) {
+                                // Zero-value flag entries are not valid
+                                warningstream << "hud_set_flags: ignoring unknown flag '"
+                                        << esp[i].str << "'" << std::endl;
+                                continue;
+                        }
+                        flags |= flag_val * flag;
+                        mask  |= flag_val;
                 }
+        }
+        if (mask == 0) {
+                warningstream << "hud_set_flags: no valid flags specified" << std::endl;
+                return 0;
         }
         if (!getServer(L)->hudSetFlags(player, flags, mask))
                 return 0;

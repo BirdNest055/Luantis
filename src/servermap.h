@@ -39,6 +39,14 @@ struct MapDatabaseAccessor {
         /// Load a block, taking dbase_ro into account.
         /// @note call locked
         void loadBlock(v3s16 blockpos, std::string &ret);
+
+        // TODO: Add thread-safe wrappers for the remaining MapDatabase operations:
+        //   bool saveBlock(v3s16 blockpos, const std::string &data);
+        //   bool deleteBlock(v3s16 blockpos);
+        //   void listAllLoadableBlocks(std::vector<v3s16> &dst);
+        // Each wrapper should acquire mutex internally and handle dbase_ro
+        // fallback for read operations. This eliminates the need for callers
+        // to manually lock before every database call.
 };
 
 /*

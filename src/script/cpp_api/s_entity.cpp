@@ -205,30 +205,26 @@ void ScriptApiEntity::luaentity_GetProperties(u16 id,
         // are read first (via read_object_properties on the full table) and
         // then overwritten by initial_properties. This means legacy properties
         // briefly override defaults before initial_properties takes effect.
+        //
         // Root cause: The entity registration table has two property sources:
         // (1) top-level keys (deprecated, e.g., "hp_max = 20") and (2) the
-        // "initial_properties" subtable (preferred). Both are read in sequence
-        // with initial_properties winning, but the deprecated read still has
-        // side effects (logDeprecationForExistingProperties, possible
-        // validation issues).
-        // Proposed fix: Only call read_object_properties(L, -1, ...) for the
+        // "initial_properties" subtable (preferred).
+        //
+        // Fix applied: Only call read_object_properties(L, -1, ...) for the
         // top-level table if initial_properties is NOT present. If
-        // initial_properties exists, skip the deprecated read entirely:
-        //   lua_getfield(L, -1, "initial_properties");
-        //   if (lua_istable(L, -1)) {
-        //       read_object_properties(L, -1, self, prop, idef, false);
-        //   } else {
-        //       lua_pop(L, 1);
-        //       logDeprecationForExistingProperties(L, -1, entity_name);
-        //       read_object_properties(L, -1, self, prop, idef, true);
-        //   }
-        logDeprecationForExistingProperties(L, -1, entity_name);
-        read_object_properties(L, -1, self, prop, idef, true);
-
-        // Read initial_properties
+        // initial_properties exists, skip the deprecated read entirely to
+        // avoid side effects (logDeprecationForExistingProperties, possible
+        // validation issues).
         lua_getfield(L, -1, "initial_properties");
-        read_object_properties(L, -1, self, prop, idef);
-        lua_pop(L, 1);
+        if (lua_istable(L, -1)) {
+                // initial_properties is present — use it, skip legacy read
+                read_object_properties(L, -1, self, prop, idef, false);
+        } else {
+                // No initial_properties — fall back to legacy top-level read
+                lua_pop(L, 1); // pop nil initial_properties
+                logDeprecationForExistingProperties(L, -1, entity_name);
+                read_object_properties(L, -1, self, prop, idef, true);
+        }
 }
 
 void ScriptApiEntity::luaentity_Step(u16 id, float dtime,

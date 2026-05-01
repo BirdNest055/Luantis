@@ -814,6 +814,8 @@ RemoteClient* ClientInterface::getClientNoEx(session_t peer_id, ClientState stat
 
 RemoteClient* ClientInterface::lockedGetClientNoEx(session_t peer_id, ClientState state_min)
 {
+        FATAL_ERROR_IF(peer_id == PEER_ID_INEXISTENT,
+                "lockedGetClientNoEx(): PEER_ID_INEXISTENT is not a valid peer_id");
         RemoteClientMap::const_iterator n = m_clients.find(peer_id);
         // The client may not exist; clients are immediately removed if their
         // access is denied, and this event occurs later then.

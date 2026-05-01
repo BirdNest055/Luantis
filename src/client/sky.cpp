@@ -724,7 +724,11 @@ static void getTextureAsImage(video::IImage *&dst, const std::string &name, ITex
         if (tsrc->isKnownSourceImage(name)) {
                 infostream << "Sky: loading image " << name << std::endl;
                 auto *texture = tsrc->getTexture(name);
-                assert(texture);
+                if (!texture) {
+                        warningstream << "Sky: Failed to get texture '" << name
+                                << "', driver returned null" << std::endl;
+                        return;
+                }
                 auto *driver = RenderingEngine::get_video_driver();
                 dst = driver->createImageFromData(
                         texture->getColorFormat(), texture->getSize(),

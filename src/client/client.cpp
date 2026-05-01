@@ -1244,6 +1244,11 @@ void Client::ReceiveAll()
 inline void Client::handleCommand(NetworkPacket* pkt)
 {
         const ToClientCommandHandler& opHandle = toClientCommandTable[pkt->getCommand()];
+        if (!opHandle.handler) {
+                warningstream << "Client::handleCommand(): Received unhandled packet type "
+                        << pkt->getCommand() << std::endl;
+                return;
+        }
         (this->*opHandle.handler)(pkt);
 }
 

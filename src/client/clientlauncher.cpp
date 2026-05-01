@@ -233,6 +233,11 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
                                 chat_backend,
                                 &reconnect_requested
                         );
+
+                        // If the_game returned with an error message, log it clearly
+                        if (!error_message.empty()) {
+                                errorstream << "Game exited with error: " << error_message << std::endl;
+                        }
 #ifdef NDEBUG
                 } catch (std::exception &e) {
                         error_message = "Some exception: ";

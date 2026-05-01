@@ -1044,15 +1044,22 @@ void ServerEnvironment::step(float dtime)
                 // NOTE: ABMHandler is re-constructed from scratch every interval.
                 // This rebuilds the content-to-ABM mapping each time, which involves
                 // iterating all registered ABMs and building lookup structures.
+                //
+                // Rationale for reconstruction: The overhead of rebuilding is minimal
+                // compared to the actual ABM execution work (which iterates over all
+                // active blocks and applies ABMs to matching nodes). Caching the
+                // ABMHandler between intervals would add complexity (invalidation
+                // on script reload, tracking which ABMs changed) for negligible
+                // performance gain. The simpler approach of reconstructing is
+                // preferred until profiling shows this is a bottleneck.
+                //
                 // Root cause: ABMHandler is a stack-local object with no caching
                 // between intervals. It rebuilds its internal contents map on every
                 // construction, even though the set of ABMs rarely changes.
-                // Proposed fix: Cache the ABMHandler (or just the content-to-ABM
-                // lookup map) as a member of ServerEnvironment, rebuilding only
-                // when the ABM list changes (i.e., on script reload). Alternatively,
-                // keep ABMHandler as-is but profile to confirm this is actually a
-                // bottleneck before optimizing — the overhead may be negligible
-                // compared to the actual ABM execution work.
+                // Proposed optimization (if profiling shows it's needed): Cache the
+                // ABMHandler (or just the content-to-ABM lookup map) as a member of
+                // ServerEnvironment, rebuilding only when the ABM list changes
+                // (i.e., on script reload).
                 ABMHandler abmhandler(m_abms, m_cache_abm_interval, this, true);
 
                 int blocks_scanned = 0;

@@ -367,6 +367,12 @@ void* AsyncWorkerThread::run()
 
         lua_State *L = getStack();
 
+        // Check if the Lua state is valid before proceeding
+        if (!L) {
+                errorstream << "AsyncWorkerThread: Lua state is null, cannot run" << std::endl;
+                return nullptr;
+        }
+
         int error_handler = PUSH_ERROR_HANDLER(L);
 
         auto report_error = [this] (const ModError &e) {

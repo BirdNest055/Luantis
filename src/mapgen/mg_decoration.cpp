@@ -440,8 +440,14 @@ size_t DecoSchematic::generate(MMVManip *vm, PcgRandom *pr, v3s16 p, bool ceilin
         if (p.Y < vm->m_area.MinEdge.Y)
                 return 0;
 
+        // Bounds check: verify the entire schematic fits within the voxelmanip volume
+        // in all three dimensions after centering adjustments
         Rotation rot = (rotation == ROTATE_RAND) ?
                 (Rotation)pr->range(ROTATE_0, ROTATE_270) : rotation;
+
+        v3s16 effective_size = schematic->size;
+        if (rot == ROTATE_90 || rot == ROTATE_270)
+                std::swap(effective_size.X, effective_size.Z);
 
         if (flags & DECO_PLACE_CENTER_X) {
                 if (rot == ROTATE_0 || rot == ROTATE_180)
@@ -454,6 +460,14 @@ size_t DecoSchematic::generate(MMVManip *vm, PcgRandom *pr, v3s16 p, bool ceilin
                         p.Z -= (schematic->size.Z - 1) / 2;
                 else
                         p.X -= (schematic->size.Z - 1) / 2;
+        }
+
+        // Verify the schematic fits within the voxelmanip volume
+        v3s16 max_pos = p + effective_size - v3s16(1, 1, 1);
+        if (p.X < vm->m_area.MinEdge.X || max_pos.X > vm->m_area.MaxEdge.X ||
+            p.Z < vm->m_area.MinEdge.Z || max_pos.Z > vm->m_area.MaxEdge.Z) {
+                // Schematic extends beyond mapchunk bounds, skip placement
+                return 0;
         }
 
         bool force_placement = (flags & DECO_FORCE_PLACEMENT);

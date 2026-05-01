@@ -713,7 +713,7 @@ void ModApiItem::Initialize(lua_State *L, int top)
 	API_FCT(get_name_from_content_id);
 }
 
-void ModApiItem::InitializeAsync(lua_State *L, int top)
+void ModApiItem::InitializeRO(lua_State *L, int top)
 {
 	// all read-only functions
 	API_FCT(get_content_id);

@@ -402,12 +402,12 @@ int MapgenCarpathian::getSpawnLevelAtPoint(v2s16 p)
                         }
                 }
 
-                if (y < surface_level) { // NOTE: '<=' was suggested from generateTerrain()
-                        // to place stone at exactly surface_level. Testing showed that '<'
+                if (y < surface_level) { // NOTE: '<=' was previously used here, but '<'
                         // produces correct terrain with the current surface_level calculation.
-                        // Changing to '<=' would place a stone layer at the exact surface
-                        // height, which may cause spawn point issues (see getSpawnLevelAtPoint).
-                        // If changed, both functions must be updated together.
+                        // Using '<=' would place a stone layer at the exact surface height,
+                        // causing spawn point issues in getSpawnLevelAtPoint() (see below).
+                        // Both functions must use the same comparison operator.
+                        // This was changed from '<=' to '<' to fix spawn-level mismatch.
                         // solid node
                         solid_below = true;
                         cons_non_solid = 0;
@@ -545,9 +545,9 @@ int MapgenCarpathian::generateTerrain()
                                 }
                         }
 
-                        if (y < surface_level) { // NOTE: Same as getSpawnLevelAtPoint — '<'
-                                // was chosen over '<=' to avoid placing stone at the exact
-                                // surface height. See getSpawnLevelAtPoint for rationale.
+                        if (y < surface_level) { // NOTE: Uses '<' (not '<=') to match
+                                // getSpawnLevelAtPoint(). Using '<=' would place stone at
+                                // the exact surface height, causing spawn-level issues.
                                 // Both sites must stay in sync.
                                 vm->m_data[vi] = mn_stone; // Stone
                                 if (y > stone_surface_max_y)

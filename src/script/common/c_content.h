@@ -75,7 +75,7 @@ void read_simplesoundspec(lua_State *L, int index, SoundSpec &spec);
 NodeBox read_nodebox(lua_State *L, int index);
 
 void read_server_sound_params(lua_State *L, int index,
-		ServerPlayingSound &params);
+                ServerPlayingSound &params);
 
 void push_dig_params(lua_State *L, const DigParams &params);
 void push_hit_params(lua_State *L, const HitParams &params);
@@ -98,22 +98,22 @@ WearBarParams read_wear_bar_params(lua_State *L, int table);
 void push_wear_bar_params(lua_State *L, const WearBarParams &prop);
 
 void read_item_definition(lua_State *L, int index,
-		const ItemDefinition &default_def, ItemDefinition &def);
+                const ItemDefinition &default_def, ItemDefinition &def);
 void push_item_definition(lua_State *L, const ItemDefinition &i);
 void push_item_definition_full(lua_State *L, const ItemDefinition &i);
 
 /// @param fallback set to true if reading from bare entity table (not initial_properties)
 void read_object_properties(lua_State *L, int index,
-		ServerActiveObject *sao, ObjectProperties *prop,
-		IItemDefManager *idef, bool fallback = false);
+                ServerActiveObject *sao, ObjectProperties *prop,
+                IItemDefManager *idef, bool fallback = false);
 
 void push_object_properties(lua_State *L, const ObjectProperties *prop);
 
 void push_inventory_list(lua_State *L, const InventoryList &invlist);
 void push_inventory_lists(lua_State *L, const Inventory &inv);
 void read_inventory_list(lua_State *L, int tableindex,
-		Inventory *inv, const char *name,
-		IGameDef *gdef, int forcesize=-1);
+                Inventory *inv, const char *name,
+                IGameDef *gdef, int forcesize=-1);
 
 MapNode readnode(lua_State *L, int index);
 void pushnode(lua_State *L, const MapNode &n);
@@ -123,29 +123,36 @@ void read_groups(lua_State *L, int index, ItemGroupList &result);
 
 void push_groups(lua_State *L, const ItemGroupList &groups);
 
-// NOTE: getenumfield() should be renamed to read_enum_field() for consistency
-// with the read_* naming convention used elsewhere (read_groups, read_flags).
-// It should also be replaced with a type-safe template that maps enum values
-// directly, avoiding the raw int return type and the separate EnumString lookup.
-// Proposed template:
+// Renamed from getenumfield to read_enum_field for consistency with the
+// read_* naming convention (read_groups, read_flags, etc.).
+// Also consider replacing with a type-safe template that maps enum values
+// directly, avoiding the raw int return type and the separate EnumString lookup:
 //   template<typename E>
 //   E read_enum_field(lua_State *L, int table, const char *fieldname, E default_);
 // This would use std::underlying_type_t<E> for the default and cast the result
 // back to E, preventing accidental use of invalid enum values.
-int getenumfield(lua_State *L, int table, const char *fieldname,
-		const EnumString *spec, int default_);
+int read_enum_field(lua_State *L, int table, const char *fieldname,
+                const EnumString *spec, int default_);
+
+// Deprecated alias for read_enum_field — use read_enum_field instead.
+[[deprecated("Use read_enum_field() instead")]]
+inline int getenumfield(lua_State *L, int table, const char *fieldname,
+                const EnumString *spec, int default_)
+{
+        return read_enum_field(L, table, fieldname, spec, default_);
+}
 
 bool getflagsfield(lua_State *L, int table, const char *fieldname,
-		const FlagDesc *flagdesc, u32 *flags, u32 *flagmask);
+                const FlagDesc *flagdesc, u32 *flags, u32 *flagmask);
 
 bool read_flags(lua_State *L, int index, const FlagDesc *flagdesc,
-		u32 *flags, u32 *flagmask);
+                u32 *flags, u32 *flagmask);
 
 void push_flags_string(lua_State *L, const FlagDesc *flagdesc,
-		u32 flags, u32 flagmask);
+                u32 flags, u32 flagmask);
 
 u32 read_flags_table(lua_State *L, int table,
-		const FlagDesc *flagdesc, u32 *flagmask);
+                const FlagDesc *flagdesc, u32 *flagmask);
 
 void push_items(lua_State *L, const std::vector<ItemStack> &items);
 
@@ -157,7 +164,7 @@ bool read_noiseparams(lua_State *L, int index, NoiseParams *np);
 void push_noiseparams(lua_State *L, NoiseParams *np);
 
 bool read_tree_def(lua_State *L, int idx,
-		const NodeDefManager *ndef, treegen::TreeDef &tree_def);
+                const NodeDefManager *ndef, treegen::TreeDef &tree_def);
 
 void luaentity_get(lua_State *L,u16 id);
 
@@ -170,7 +177,7 @@ void read_json_value(lua_State *L, Json::Value &root, int index, u16 max_depth);
  * \param hitpoint If true, the exact pointing location is also pushed
  */
 void push_pointed_thing(lua_State *L, const PointedThing &pointed, bool csm =
-	false, bool hitpoint = false);
+        false, bool hitpoint = false);
 
 void push_objectRef(lua_State *L, const u16 id);
 

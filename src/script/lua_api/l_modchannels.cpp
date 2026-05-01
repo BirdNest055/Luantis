@@ -10,25 +10,25 @@
 
 int ModApiChannels::l_mod_channel_join(lua_State *L)
 {
-	if (!lua_isstring(L, 1))
-		return 0;
+        if (!lua_isstring(L, 1))
+                return 0;
 
-	std::string channel = luaL_checkstring(L, 1);
-	if (channel.empty())
-		return 0;
+        std::string channel = luaL_checkstring(L, 1);
+        if (channel.empty())
+                return 0;
 
-	getGameDef(L)->joinModChannel(channel);
-	assert(getGameDef(L)->getModChannel(channel) != nullptr);
-	ModChannelRef::create(L, channel);
+        getGameDef(L)->joinModChannel(channel);
+        assert(getGameDef(L)->getModChannel(channel) != nullptr);
+        ModChannelRef::create(L, channel);
 
-	int object = lua_gettop(L);
-	lua_pushvalue(L, object);
-	return 1;
+        int object = lua_gettop(L);
+        lua_pushvalue(L, object);
+        return 1;
 }
 
 void ModApiChannels::Initialize(lua_State *L, int top)
 {
-	API_FCT(mod_channel_join);
+        API_FCT(mod_channel_join);
 }
 
 /*
@@ -36,78 +36,90 @@ void ModApiChannels::Initialize(lua_State *L, int top)
  */
 
 ModChannelRef::ModChannelRef(const std::string &modchannel) :
-		m_modchannel_name(modchannel)
+                m_modchannel_name(modchannel)
 {
 }
 
 int ModChannelRef::l_leave(lua_State *L)
 {
-	ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
-	getGameDef(L)->leaveModChannel(ref->m_modchannel_name);
-	return 0;
+        ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
+        getGameDef(L)->leaveModChannel(ref->m_modchannel_name);
+        return 0;
 }
 
 int ModChannelRef::l_send_all(lua_State *L)
 {
-	ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
-	ModChannel *channel = getobject(L, ref);
-	if (!channel || !channel->canWrite())
-		return 0;
+        ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
+        ModChannel *channel = getobject(L, ref);
+        if (!channel || !channel->canWrite())
+                return 0;
 
-	// NOTE: The message string is sent raw without serialization or encoding.
-	// For binary-safe messaging (e.g., messages containing null bytes or
-	// Unicode), the message should be serialized (e.g., base64 or msgpack)
-	// before sending and deserialized on the receiving end. Currently,
-	// messages containing special characters may be truncated or corrupted.
-	std::string message = luaL_checkstring(L, 2);
+        // NOTE: The message string is sent raw without serialization or encoding.
+        // For binary-safe messaging (e.g., messages containing null bytes or
+        // Unicode), the message should be serialized (e.g., base64 or msgpack)
+        // before sending and deserialized on the receiving end. Currently,
+        // messages containing special characters may be truncated or corrupted.
+        //
+        // Proposed binary-safe serialization format:
+        //   Field 1: u8 version = 1 (for future extensibility)
+        //   Field 2: u8 encoding = 0 (raw) | 1 (base64) | 2 (msgpack)
+        //   Field 3: u16 length (of the serialized payload in bytes)
+        //   Field 4: u8[] payload (the serialized message data)
+        // The receiver checks the version and encoding fields, then deserializes
+        // accordingly. Raw mode (encoding=0) preserves backward compatibility.
+        // This would be implemented in ModChannel::sendMessage() and
+        // ModChannel::processMessage() with a helper like:
+        //   std::string serializeModChannelMessage(const std::string &msg);
+        //   bool deserializeModChannelMessage(const std::string &data, std::string &msg);
+        std::string message = luaL_checkstring(L, 2);
 
-	getGameDef(L)->sendModChannelMessage(channel->getName(), message);
-	return 0;
+        getGameDef(L)->sendModChannelMessage(channel->getName(), message);
+        return 0;
 }
 
 int ModChannelRef::l_is_writeable(lua_State *L)
 {
-	ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
-	ModChannel *channel = getobject(L, ref);
-	if (!channel)
-		return 0;
+        ModChannelRef *ref = checkObject<ModChannelRef>(L, 1);
+        ModChannel *channel = getobject(L, ref);
+        if (!channel)
+                return 0;
 
-	lua_pushboolean(L, channel->canWrite());
-	return 1;
+        lua_pushboolean(L, channel->canWrite());
+        return 1;
 }
 void ModChannelRef::Register(lua_State *L)
 {
-	static const luaL_Reg metamethods[] = {
-		{"__gc", gc_object},
-		{0, 0}
-	};
-	registerClass<ModChannelRef>(L, methods, metamethods);
+        static const luaL_Reg metamethods[] = {
+                {"__gc", gc_object},
+                {0, 0}
+        };
+        registerClass<ModChannelRef>(L, methods, metamethods);
 }
 
 void ModChannelRef::create(lua_State *L, const std::string &channel)
 {
-	ModChannelRef *o = new ModChannelRef(channel);
-	*(void **)(lua_newuserdata(L, sizeof(void *))) = o;
-	luaL_getmetatable(L, className);
-	lua_setmetatable(L, -2);
+        ModChannelRef *o = new ModChannelRef(channel);
+        *(void **)(lua_newuserdata(L, sizeof(void *))) = o;
+        luaL_getmetatable(L, className);
+        lua_setmetatable(L, -2);
 }
 
 int ModChannelRef::gc_object(lua_State *L)
 {
-	ModChannelRef *o = *(ModChannelRef **)(lua_touserdata(L, 1));
-	delete o;
-	return 0;
+        ModChannelRef *o = *(ModChannelRef **)(lua_touserdata(L, 1));
+        delete o;
+        return 0;
 }
 
 ModChannel *ModChannelRef::getobject(lua_State *L, ModChannelRef *ref)
 {
-	return getGameDef(L)->getModChannel(ref->m_modchannel_name);
+        return getGameDef(L)->getModChannel(ref->m_modchannel_name);
 }
 
 const char ModChannelRef::className[] = "ModChannelRef";
 const luaL_Reg ModChannelRef::methods[] = {
-	luamethod(ModChannelRef, leave),
-	luamethod(ModChannelRef, is_writeable),
-	luamethod(ModChannelRef, send_all),
-	{0, 0},
+        luamethod(ModChannelRef, leave),
+        luamethod(ModChannelRef, is_writeable),
+        luamethod(ModChannelRef, send_all),
+        {0, 0},
 };

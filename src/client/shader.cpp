@@ -876,9 +876,14 @@ void ShaderSource::generateShader(ShaderInfo &shaderinfo)
                 dumpShaderProgram(warningstream, "fragment", fragment_shader);
                 if (geometry_shader_ptr)
                         dumpShaderProgram(warningstream, "geometry", geometry_shader);
-                throw ShaderException(
-                        fmtgettext("Failed to compile the \"%s\" shader.", log_name.c_str()) +
-                        strgettext("\nCheck debug.txt for details."));
+
+                // Fall back to the base material instead of crashing with an exception
+                // This allows the game to continue with degraded rendering rather than
+                // terminating entirely.
+                warningstream << "generateShader(): Falling back to base material for "
+                        << log_name << std::endl;
+                shaderinfo.material = shaderinfo.base_material;
+                return;
         }
 
         // Apply the newly created material type

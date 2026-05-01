@@ -9,6 +9,11 @@
 const static ToClientCommandHandler null_command_handler =
         {"TOCLIENT_NULL", TOCLIENT_STATE_ALL, &Client::handleCommand_Null};
 
+// Null handler with a null function pointer, used for detecting
+// unregistered packet types before calling the handler.
+const static ToClientCommandHandler unreg_command_handler =
+        {nullptr, TOCLIENT_STATE_ALL, nullptr};
+
 const ToClientCommandHandler toClientCommandTable[TOCLIENT_NUM_MSG_TYPES] =
 {
         null_command_handler, // 0x00 (never use this)

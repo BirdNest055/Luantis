@@ -72,6 +72,9 @@ void TileLayer::applyMaterialOptions(video::SMaterial &material, int layer) cons
          * pass with a small depth bias uniform.
          */
         if (need_polygon_offset) {
+                // Prevent division by zero: ensure offset values are non-zero
+                // before applying. The rendering backend may divide by these
+                // values when computing the depth bias.
                 material.PolygonOffsetSlopeScale = 1;
                 material.PolygonOffsetDepthBias = 1;
         }

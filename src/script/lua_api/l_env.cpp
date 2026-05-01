@@ -818,6 +818,7 @@ int ModApiEnv::l_find_node_near(lua_State *L)
 
         v3s16 pos = read_v3s16(L, 1);
         int radius = luaL_checkinteger(L, 2);
+        luaL_argcheck(L, radius >= 0, 2, "radius must be non-negative");
         std::vector<content_t> filter;
         collectNodeIds(L, 3, ndef, filter);
 

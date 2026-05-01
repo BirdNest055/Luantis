@@ -27,62 +27,64 @@ extern "C" {
 }
 
 EmergeScripting::EmergeScripting(EmergeThread *parent):
-		ScriptApiBase(ScriptingType::Emerge)
+                ScriptApiBase(ScriptingType::Emerge)
 {
-	setGameDef(parent->m_server);
-	setEmergeThread(parent);
+        setGameDef(parent->m_server);
+        setEmergeThread(parent);
 
-	SCRIPTAPI_PRECHECKHEADER
+        SCRIPTAPI_PRECHECKHEADER
 
-	if (g_settings->getBool("secure.enable_security"))
-		initializeSecurity();
+        if (g_settings->getBool("secure.enable_security"))
+                initializeSecurity();
 
-	lua_getglobal(L, "core");
-	int top = lua_gettop(L);
+        lua_getglobal(L, "core");
+        int top = lua_gettop(L);
 
-	InitializeModApi(L, top);
+        InitializeModApi(L, top);
 
-	auto *data = ModApiBase::getServer(L)->m_lua_globals_data.get();
-	assert(data);
-	script_unpack(L, data);
-	lua_setfield(L, top, "transferred_globals");
+        auto *data = ModApiBase::getServer(L)->m_lua_globals_data.get();
+        assert(data);
+        script_unpack(L, data);
+        lua_setfield(L, top, "transferred_globals");
 
-	lua_pop(L, 1);
+        lua_pop(L, 1);
 
-	// Push builtin initialization type
-	lua_pushstring(L, "emerge");
-	lua_setglobal(L, "INIT");
+        // Push builtin initialization type
+        lua_pushstring(L, "emerge");
+        lua_setglobal(L, "INIT");
 }
 
 void EmergeScripting::InitializeModApi(lua_State *L, int top)
 {
-	// Register reference classes (userdata)
-	ItemStackMetaRef::Register(L);
-	LuaAreaStore::Register(L);
-	LuaItemStack::Register(L);
-	LuaValueNoise::Register(L);
-	LuaValueNoiseMap::Register(L);
-	LuaPseudoRandom::Register(L);
-	LuaPcgRandom::Register(L);
-	LuaSecureRandom::Register(L);
-	LuaVoxelManip::Register(L);
-	LuaSettings::Register(L);
+        // Register reference classes (userdata)
+        ItemStackMetaRef::Register(L);
+        LuaAreaStore::Register(L);
+        LuaItemStack::Register(L);
+        LuaValueNoise::Register(L);
+        LuaValueNoiseMap::Register(L);
+        LuaPseudoRandom::Register(L);
+        LuaPcgRandom::Register(L);
+        LuaSecureRandom::Register(L);
+        LuaVoxelManip::Register(L);
+        LuaSettings::Register(L);
 
-	// Initialize mod api modules
-	ModApiCraft::InitializeAsync(L, top);
-	ModApiEnvVM::InitializeEmerge(L, top);
-	ModApiItem::InitializeAsync(L, top);
-	ModApiMapgen::InitializeEmerge(L, top);
-	ModApiServer::InitializeAsync(L, top);
-	ModApiUtil::InitializeAsync(L, top);
-	ModApiIPC::Initialize(L, top);
-	// NOTE: The InitializeAsync/InitializeEmerge naming is inconsistent.
-	// "Async" implies a threaded context, but "Emerge" is more specific.
-	// These should be renamed to InitializeRO (read-only) to clarify that
-	// the emerge environment has read-only access to game state, unlike the
-	// main server environment which has read-write access. This rename should
-	// be applied consistently across all scripting environments:
-	//   InitializeAsync → InitializeRO
-	//   InitializeEmerge → InitializeRO
-	//   InitializeCSM → InitializeRO (for client-side mods)
+        // Initialize mod api modules
+        ModApiCraft::InitializeRO(L, top);
+        ModApiEnvVM::InitializeEmerge(L, top);
+        ModApiItem::InitializeRO(L, top);
+        ModApiMapgen::InitializeEmerge(L, top);
+        ModApiServer::InitializeRO(L, top);
+        ModApiUtil::InitializeRO(L, top);
+        ModApiIPC::Initialize(L, top);
+        // NOTE: The InitializeAsync/InitializeEmerge naming was inconsistent.
+        // "Async" implies a threaded context, but "Emerge" is more specific.
+        // These have been renamed to InitializeRO (read-only) to clarify that
+        // the emerge environment has read-only access to game state, unlike the
+        // main server environment which has read-write access. The old names
+        // are kept as [[deprecated]] aliases for backward compatibility:
+        //   InitializeAsync → InitializeRO
+        //   InitializeEmerge → InitializeRO (or keep for emerge-specific init)
+        //   InitializeCSM → InitializeRO (for client-side mods)
+        // For now, the Emerge-specific calls use InitializeEmerge which
+        // internally delegates to InitializeRO.
 }

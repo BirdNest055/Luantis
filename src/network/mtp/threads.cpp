@@ -957,6 +957,13 @@ void ConnectionSendThread::sendAsPacket(session_t peer_id, u8 channelnum,
         const SharedBuffer<u8> &data, bool ack)
 {
         OutgoingPacket packet(peer_id, channelnum, data, false, ack);
+        if (channelnum >= CHANNEL_COUNT) {
+                errorstream << m_connection->getDesc()
+                        << " sendAsPacket(): Invalid channel=" << (int)channelnum
+                        << " for peer_id=" << peer_id
+                        << ", dropping packet (size=" << data.getSize() << ")" << std::endl;
+                return;
+        }
         m_outgoing_queue.push(packet);
 }
 
