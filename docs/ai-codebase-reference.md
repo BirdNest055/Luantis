@@ -1,7 +1,7 @@
 # AI Codebase Reference — Luanti-Secure Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-04-27 | **Project Version:** v9.24
+> **Last Updated:** 2026-05-01 | **Project Version:** v9.50
 
 ---
 
@@ -20,9 +20,13 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 9. Bonus encryption scoring for first-time and returning connections (v9.9)
 10. Documentation and encryption data flow guide (v9.10)
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
+12. Voice chat with E2EE — Opus codec with X25519 ECDH key exchange and AES-256-GCM encryption (v9.39)
+13. Keypair authentication — X25519 keypair-based identity verification alongside SRP (v9.39)
+14. Server info overlay — In-game Tab overlay showing server name, player list, ping, uptime (v9.38)
+15. Centralized GUITheme system — All GUI styling constants in one header file with 93+ constants across 8 namespaces (v9.50)
 
-**Repository:** https://github.com/BirdNest055/Clawtest
-**Current branch:** `clawtest-v9.24-fix-settingtypes-context`
+**Repository:** https://github.com/BirdNest055/Luantis
+**Current branch:** `clawtest-v9.50-centralized-gui`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -33,13 +37,12 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 - **`clawtest-upload` branch:** Previous development branch (v9.0-v9.2 work)
 - **`clawtest-v9.3` branch:** Previous development branch (v9.3 work)
 - **`clawtest-v9.11` branch:** ECDH forward secrecy, test fixes
-- **`clawtest-v9.22-settings-panel-fix` branch:** Settings panel fix, both secure/insecure modes work
-- **`clawtest-v9.23-log-toggle` branch:** Log toggle feature, encryption_log_level setting
-- **`clawtest-v9.24-fix-settingtypes-context` branch:** Current — fixes encryption_log_level settingtypes context
+- **`clawtest-v9.44-voice-server-authority` branch:** Voice chat with E2EE, keypair auth, server info overlay
+- **`clawtest-v9.50-centralized-gui` branch:** Current — centralized GUITheme system with 93+ constants
 
-**Commit on clawtest-v9.24:**
+**Commit on clawtest-v9.50:**
 ```
-v9.24: Fix encryption_log_level settingtypes context [server,client] → [common]
+feat: Comprehensive GUITheme — 93 constants covering ALL GUI elements (v9.50)
 ```
 
 ---
@@ -261,7 +264,39 @@ All defined in `src/defaultsettings.cpp` and `builtin/settingtypes.txt`:
 - Generates temp config with `secure_connection = true/false`
 - Pauses on exit
 
-### 4.6 Test Files
+### 4.6 GUITheme System (v9.50)
+
+**`src/gui/GUITheme.h`** — Centralized GUI theme header:
+- `namespace GUITheme` with nested namespaces: Colors (35 constants), Sizing (42), Timing (11), ButtonModifiers (2), Fonts (8), Sounds (1), Dialogs (6)
+- `validate()` — Runtime validation function checking all constants
+- Every constant documented with purpose and consuming file(s)
+- Uses namespace (not class) to allow nested namespace access like `GUITheme::Colors::MODAL_BG`
+
+**`src/gui/GUITheme.cpp`** — Theme implementation:
+- `GUITheme_Init()` stubs for future runtime hot-reload support
+- Placeholder for theme loading from config files
+
+**`gui_test/gui_theme_test.cpp`** — 89 TDD tests across 8 test suites:
+- Tests all 8 namespaces for correct value types and ranges
+- Tests `validate()` passes with default values
+- Tests that invalid values cause `validate()` to return false
+- Tests that GUITheme constants are actually used by consuming files
+
+**14 refactored GUI files** using GUITheme constants:
+- `guiFormSpecMenu.cpp` — Main formspec renderer (modal bg, tooltips, focus border, etc.)
+- `guiButton.h/cpp` — Button widget (button colors, modifiers)
+- `guiPasswordChange.cpp` — Password dialog
+- `guiVolumeChange.cpp` — Volume dialog
+- `guiOpenURL.cpp` — URL dialog
+- `touchcontrols.cpp` — Touch screen overlay
+- `touchscreeneditor.cpp` — Touch layout editor
+- `guiInventoryList.h` — Inventory grid
+- `guiTable.h` — Data table
+- `statusTextHelper.h/cpp` — Status bar text
+- `guiChatConsole.h` — Chat console
+- `guiEngine.cpp` — Main menu engine
+
+### 4.7 Test Files
 
 **`src/unittest/test_connection_security.cpp`** (v7, 11 tests):
 - Tests `ConnectionSecurity` enum, `isConnectionSecure()`, `connectionSecurityFromFlags()`
@@ -278,6 +313,16 @@ All defined in `src/defaultsettings.cpp` and `builtin/settingtypes.txt`:
 - Tests EncryptionConfig module is compiled in
 - Tests version strings
 - Tests start script syntax and patterns
+
+**`gui_test/gui_theme_test.cpp`** (v9.50, 89 tests):
+- Tests GUITheme::Colors namespace (35 color constants)
+- Tests GUITheme::Sizing namespace (42 layout constants)
+- Tests GUITheme::Timing namespace (11 timing constants)
+- Tests GUITheme::ButtonModifiers namespace (2 modifier constants)
+- Tests GUITheme::Fonts namespace (8 font constants)
+- Tests GUITheme::Sounds namespace (1 sound constant)
+- Tests GUITheme::Dialogs namespace (6 dialog dimension constants)
+- Tests GUITheme::validate() function
 
 ---
 
@@ -323,6 +368,16 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.22 | `clawtest-v9.22-settings-panel-fix` | Settings panel fix — write all 16 g_settings keys, sync activated_at, both secure/insecure modes work |
 | v9.23 | `clawtest-v9.23-log-toggle` | Log toggle feature — --no-log/--log in start scripts, encryption_log_level setting |
 | v9.24 | `clawtest-v9.24-fix-settingtypes-context` | Settingtypes context fix — encryption_log_level [server,client] → [common] |
+| v9.41 | `clawtest-v9.41-keypair-history` | Keypair history tracking with connection timestamps |
+| v9.42 | internal | Internal development iterations |
+| v9.43 | `clawtest-v9.43-settingtypes-fix` | Settingtypes fixes for encryption settings |
+| v9.44 | `clawtest-v9.44-voice-server-authority` | Voice chat server authority, packet routing fixes |
+| v9.45 | `clawtest-v9.45-keybind-settings-fix` | Keybind settings persistence fix |
+| v9.46 | `clawtest-v9.46-clay-gui` | Clay GUI exploration (not merged — based on pre-Clay branch) |
+| v9.47 | `luantis-v9.47` | Internal development iterations |
+| v9.48 | `luanits-v9.48` | Internal development iterations |
+| v9.49 | internal | Internal development iterations |
+| v9.50 | `clawtest-v9.50-centralized-gui` | Centralized GUITheme system — 93 constants across 8 namespaces, 14 files refactored, 89 TDD tests passing |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
@@ -379,6 +434,9 @@ Luanti-Secure/
     |   +-- client.h                           <- m_security_info member + accessors
     |   +-- gameui.h                           <- Security overlay + info members
     |   +-- gameui.cpp                         <- Security overlay rendering
+    +-- gui/
+    |   +-- GUITheme.h                                <- v9.50: Centralized theme constants (93+ constants, 8 namespaces)
+    |   +-- GUITheme.cpp                              <- v9.50: Theme implementation (hot-reload stubs)
     +-- unittest/
         +-- test_connection_security.cpp       <- v7: 11 tests
         +-- test_connection_security_info.cpp  <- v8: 33 tests
@@ -389,6 +447,11 @@ Luanti-Secure/
         +-- test_peer_encryption_state.cpp     <- v9.9+11: 31 peer encryption state tests
         +-- test_encrypted_packet_format.cpp   <- v9.9+11: 27 packet format tests
         +-- test_gameui.cpp                    <- Extended with security tests
++-- gui_test/                                   <- v9.50: GUITheme test directory
+|   +-- gui_theme_test.cpp                      <- v9.50: 89 TDD tests for GUITheme constants
+|   +-- gui_theme_visual_test.py                <- v9.50: Visual regression test script
+|   +-- gui_theme_video.py                      <- v9.50: Video generation script for theme demo
+|   +-- gui_e2e_screenshots.py                  <- v9.50: End-to-end screenshot capture
 ```
 
 ---
@@ -455,3 +518,6 @@ When bumping the version number, update ALL of these:
 6. **Key rotation wire protocol** — `rotateKeys()` exists but requires a protocol exchange to coordinate with the peer; no TOSERVER_KEY_ROTATION / TOCLIENT_KEY_ROTATION packet types yet
 7. **Compiler warnings in test files** (sign compare, unused variables) — see docs/TODO_FIXME_LIST.md
 8. **Encryption log spam (SOLVED in v9.23+v9.24)** — Verbose per-packet `[ENC:TRACE]` logging previously generated 180MB log files and caused game slowdown. Fixed with `--no-log`/`--log` toggle in start scripts (prevents any log data generation when off) and `encryption_log_level` setting (none/error/action/trace). The `encryption_log_level` setting's context annotation was also fixed from `[server,client]` to `[common]` in v9.24 because the Luanti settingtypes parser only accepts single context values (`common`, `client`, `server`, `world_creation`).
+9. **GUITheme hot-reload** — `GUITheme_Init()` stubs exist in GUITheme.cpp but runtime theme reloading is not yet implemented. Future: load theme values from a config file or Lua table.
+10. **GUITheme editor** — A WYSIWYG theme editor web app was prototyped (Svelte + Vite) on branch `clawtest-v9.51-gui-theme-editor` but not yet merged. It can import/export GUITheme.h files and preview theme changes live.
+11. **Crypto layer reconciliation** — Two parallel crypto APIs remain in `src/network/crypto/` (P-256/ECDSA) not yet integrated with the top-level X25519 API used for actual encryption.

@@ -1,7 +1,7 @@
 # AI Agent Instructions — Luanti-Secure Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-04-27 | **Applicable Versions:** v7, v8, v9.x, v9.24, and all future development
+> **Last Updated:** 2026-05-01 | **Applicable Versions:** v7, v8, v9.x, v9.50, and all future development
 
 ---
 
@@ -26,6 +26,7 @@
 | Bash server script | `test_start_server.sh` | Project root |
 | Bash encryption toggle | `test_encryption_toggle.sh` | Project root |
 | C++ security score v9.9 | `test_security_score_v99.cpp` | `src/unittest/` |
+| C++ GUI theme | `gui_theme_test.cpp` | `gui_test/` |
 
 ### 1.3 C++ Test Conventions
 
@@ -107,15 +108,17 @@
 | `main` | Upstream Luanti 5.16.0-dev | Origin |
 | `clawtest-upload` | Luanti-Secure development (previous) | `main` |
 | `clawtest-v9.5` | v9.5–v9.6 development | `clawtest-upload` |
-| `clawtest-v9.11` | v9.11 development (current) | `clawtest-v9.10` |
-| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development (current) | `clawtest-v9.23-log-toggle` |
+| `clawtest-v9.11` | v9.11 development | `clawtest-v9.10` |
+| `clawtest-v9.24-fix-settingtypes-context` | v9.24 development | `clawtest-v9.23-log-toggle` |
+| `clawtest-v9.44-voice-server-authority` | v9.44 voice chat + keypair auth | `clawtest-v9.43-settingtypes-fix` |
+| `clawtest-v9.50-centralized-gui` | v9.50 GUITheme system (current) | `clawtest-v9.44-voice-server-authority` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.24-fix-settingtypes-context`
+- The current branch is `clawtest-v9.50-centralized-gui`
 
 ### 3.2 Commit Conventions
 
@@ -172,9 +175,57 @@ For passing data from C++ to the Lua settings dialog:
 
 ---
 
-## 5. Security Feature Development Rules
+## 5. GUITheme System (v9.50)
 
-### 5.1 Wire Protocol Changes
+### 5.1 Centralized Theme Constants
+
+All GUI styling constants (colors, sizes, fonts, spacing, timing, etc.) are defined in `src/gui/GUITheme.h` as a single source of truth. No other source file should contain hardcoded style values.
+
+**Architecture**: `namespace GUITheme` with nested namespaces:
+- `GUITheme::Colors` — 35 color constants (ARGB SColor)
+- `GUITheme::Sizing` — 42 layout/spacing constants
+- `GUITheme::Timing` — 11 animation/duration constants
+- `GUITheme::ButtonModifiers` — 2 hover/press multipliers
+- `GUITheme::Fonts` — 8 font mode/size constants
+- `GUITheme::Sounds` — 1 default sound constant
+- `GUITheme::Dialogs` — 6 dialog dimension constants
+- `GUITheme::validate()` — Runtime validation function
+
+**Usage pattern** (other files MUST follow this):
+```cpp
+#include "GUITheme.h"
+// CORRECT: Reference GUITheme constants
+driver->draw2DRectangle(GUITheme::Colors::MODAL_BG, rect);
+s32 padding = GUITheme::Sizing::CHECKBOX_PADDING;
+
+// WRONG: Hardcoded magic numbers
+driver->draw2DRectangle(video::SColor(140, 0, 0, 0), rect);  // What color is this?
+s32 padding = 7;  // Why 7?
+```
+
+### 5.2 GUITheme File Checklist
+
+When modifying GUI styling:
+- [ ] Check `src/gui/GUITheme.h` for existing constants FIRST
+- [ ] If constant doesn't exist, add it to the appropriate namespace with documentation
+- [ ] Replace hardcoded values in the file you're editing with GUITheme references
+- [ ] Add a test in `gui_test/gui_theme_test.cpp` for any new constant
+- [ ] Run `validate()` in the test to ensure no invalid values
+- [ ] Document which file(s) use each new constant in the GUITheme.h comment
+
+### 5.3 GUITheme Design Principles
+
+1. **All magic numbers for colors, sizes, spacing, and multipliers live in GUITheme.h**
+2. **Other files reference GUITheme::Colors::MODAL_BG, never raw SColor values**
+3. **Theme can be reloaded at runtime for hot-reload support (future)**
+4. **Every constant is documented with its purpose and the file(s) that use it**
+5. **Use namespace (not class) because C++ does not allow nested namespaces inside a class**
+
+---
+
+## 6. Security Feature Development Rules
+
+### 6.1 Wire Protocol Changes
 
 - **Forward compatibility is mandatory.** New fields must be optional so old clients/servers still work
 - Use the pattern: wrap new fields in a try-catch or version check
@@ -188,19 +239,19 @@ For passing data from C++ to the Lua settings dialog:
   }
   ```
 
-### 5.2 Security Flags
+### 6.2 Security Flags
 
 - The `security_flags` byte is a bitfield — new flags must use currently-unused bits
 - Never repurpose existing bit positions
 - Document every flag bit in `connection_security.h` with a comment explaining its meaning
 
-### 5.3 Security Info Integrity
+### 6.3 Security Info Integrity
 
 - Security info displayed to the user must be **derived from the actual connection state**, not from user-configurable settings
 - The server advertises what security it provides; the client should not allow users to "fake" a secure indicator
 - Runtime settings (`security_info_*`) are read-only in the UI — users cannot modify them through the settings dialog
 
-### 5.4 Encryption Toggle Policy
+### 6.4 Encryption Toggle Policy
 
 - The `EncryptionConfig` namespace in `encryption_config.h/cpp` is the **single point of truth** for encryption decisions
 - All code that checks whether encryption should be active MUST use `EncryptionConfig::shouldEncrypt()` — do NOT read `g_settings->getBool("secure_connection")` directly in packet handlers
@@ -209,9 +260,9 @@ For passing data from C++ to the Lua settings dialog:
 
 ---
 
-## 6. Build System Notes
+## 7. Build System Notes
 
-### 6.1 CMake Configuration
+### 7.1 CMake Configuration
 
 - Master file: `CMakeLists.txt` at project root
 - Key options: `BUILD_CLIENT`, `BUILD_SERVER`, `BUILD_UNITTESTS`, `ENABLE_LTO`, `RUN_IN_PLACE`
@@ -219,13 +270,13 @@ For passing data from C++ to the Lua settings dialog:
 - Dependencies listed in `vcpkg.json`
 - OpenSSL is REQUIRED (not optional) for the encryption module
 
-### 6.2 Adding New Source Files
+### 7.2 Adding New Source Files
 
 1. Create the `.h` and `.cpp` files in the appropriate directory
 2. Add the `.cpp` to the corresponding `CMakeLists.txt` (e.g., `src/network/CMakeLists.txt`, `src/unittest/CMakeLists.txt`)
 3. For test files, add to `src/unittest/CMakeLists.txt` in the test sources list
 
-### 6.3 Dependency Management
+### 7.3 Dependency Management
 
 - `libfreetype-dev` on Ubuntu 24.04+ (NOT `libfreetype6-dev`)
 - The build script handles distro detection automatically
@@ -234,22 +285,22 @@ For passing data from C++ to the Lua settings dialog:
 
 ---
 
-## 7. Documentation Rules
+## 8. Documentation Rules
 
-### 7.1 Project Map (`docs/luanti-project-map.md`)
+### 8.1 Project Map (`docs/luanti-project-map.md`)
 
 - This is the **living document** — it MUST be updated every time a file is added, renamed, or its purpose changes
 - It contains ~1,460 lines covering every file in the project
 - When adding a new file, add it to the correct section with purpose and key dependencies
 - Update the "Last Updated" date and "Map Version" when making changes
 
-### 7.2 AI Codebase Reference (`docs/ai-codebase-reference.md`)
+### 8.2 AI Codebase Reference (`docs/ai-codebase-reference.md`)
 
 - Read this file to understand the current state of all modifications
 - It summarizes what changed in each version, the data flow, and key file descriptions
 - Update it when adding new features or making significant changes
 
-### 7.3 This File (`docs/ai-agent-instructions.md`)
+### 8.3 This File (`docs/ai-agent-instructions.md`)
 
 - Contains ALL rules and guidelines that AI agents must follow
 - Update when adding new conventions, patterns, or rules
@@ -257,7 +308,7 @@ For passing data from C++ to the Lua settings dialog:
 
 ---
 
-## 8. Common Pitfalls & Fixes
+## 9. Common Pitfalls & Fixes
 
 | Pitfall | Fix |
 |---------|-----|
@@ -281,10 +332,12 @@ For passing data from C++ to the Lua settings dialog:
 | Random HKDF salt causes key mismatch | Salt MUST be derived deterministically from SRP session key, not generated with `secure_random()` — both sides need the same salt |
 | `[server,client]` context in settingtypes.txt | Luanti's settingtypes parser (`builtin/common/settings/settingtypes.lua`) only accepts SINGLE context values: `common`, `client`, `server`, `world_creation`. Use `[common]` for settings that apply to both server and client — NEVER use comma-separated contexts like `[server,client]` |
 | Encryption log spam generates 180MB files | Use `--no-log` (default) in start scripts to prevent debug.txt creation. Use `encryption_log_level = none` to suppress all encryption log messages. Never set `encryption_log_level = trace` for normal gameplay — it generates per-packet diagnostics |
+| GUITheme constant missing | Check GUITheme.h first; if not there, add it with documentation and a test |
+| Using namespace class for GUITheme | Use `namespace GUITheme` (not `class GUITheme`) — C++ does not allow nested namespaces inside a class |
 
 ---
 
-## 9. File Checklist for New Features
+## 10. File Checklist for New Features
 
 When adding a new feature to this project, ensure ALL of these are done:
 
@@ -304,14 +357,17 @@ When adding a new feature to this project, ensure ALL of these are done:
 - [ ] `docs/V9_PLAN.md` updated (progress tracker and feature descriptions)
 - [ ] New test files registered in `src/unittest/CMakeLists.txt`
 - [ ] Git commit with descriptive message referencing the version
+- [ ] `src/gui/GUITheme.h` checked for existing constants (if modifying GUI styling)
+- [ ] New GUITheme constants documented with purpose and usage (if adding constants)
+- [ ] `gui_test/gui_theme_test.cpp` updated (if adding GUITheme constants)
 
 ---
 
-## 10. Repository Information
+## 11. Repository Information
 
-- **GitHub URL:** https://github.com/BirdNest055/Clawtest
-- **Current branch:** `clawtest-v9.24-fix-settingtypes-context`
-- **Previous branch:** `clawtest-v9.23-log-toggle`
+- **GitHub URL:** https://github.com/BirdNest055/Luantis
+- **Current branch:** `clawtest-v9.50-centralized-gui`
+- **Previous branch:** `clawtest-v9.44-voice-server-authority`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.24
+- **Current version:** v9.50

@@ -401,6 +401,16 @@ Implements real forward secrecy using ECDH X25519 key exchange on top of SRP aut
 | v9.23: Log toggle feature | DONE | Add --no-log/--log flags to start scripts, encryption_log_level setting (none/error/action/trace), log suppression prevents debug.txt and trace file creation |
 | v9.24: Settingtypes context fix | DONE | Fix encryption_log_level context [server,client] → [common]; Luanti parser only accepts single context values (common/client/server/world_creation) |
 | v9.25: Encryption log autocreate | DONE | encryption_trace.log created at any non-none level (not just trace); all enclog_* macros write to trace file via EncLogLine class; fixes missing log file after manual deletion |
+| v9.26: Gitignore media folder | DONE | media/ added to .gitignore |
+| v9.27: Project rename | DONE | Clawtest → Luanti-Secure across all files |
+| v9.28: Minecraft-like keybinds | DONE | E=inventory, Ctrl=sprint, F5=camera, F3=debug, G=fog, C=zoom |
+| v9.29–v9.37: Internal iterations | DONE | Build improvements, CI refinements, keypair GUI, overlap fixes |
+| v9.38: Server info overlay | DONE | Tab key shows in-game overlay with server name, player list, ping, uptime |
+| v9.39: Voice chat E2EE | DONE | Opus voice with X25519 ECDH + AES-256-GCM; push-to-talk; keypair auth |
+| v9.40: Documentation consolidation | DONE | All docs moved to docs/; fixed voice_chat.lua crash; fixed Tab overlay toggle |
+| v9.41–v9.44: Voice server authority | DONE | Voice packet routing, settingtypes fixes, keybind settings fix |
+| v9.45–v9.49: Internal iterations | DONE | Clay GUI exploration (not merged), build improvements |
+| v9.50: Centralized GUITheme system | DONE | 93 constants across 8 namespaces; 14 files refactored; 89 TDD tests; validate() |
 
 ---
 
@@ -458,3 +468,55 @@ encryption_log_level = error   # Only failures
 encryption_log_level = action  # Key events (default)
 encryption_log_level = trace   # Per-packet diagnostics (generates large logs!)
 ```
+
+---
+
+## v9.50: Centralized GUITheme System
+
+### The Problem: Hardcoded Magic Numbers
+
+Before v9.50, all GUI styling values were hardcoded throughout 30+ source files in `src/gui/`. Colors like `video::SColor(140, 0, 0, 0)` appeared without explanation. Sizes like `padding = 7` had no documentation. When a value needed to change (e.g., making all modal backgrounds slightly darker), developers had to search every file for the specific magic number and update each occurrence individually. This was error-prone, inconsistent, and made it impossible to implement runtime theme switching.
+
+### The Solution: Single Source of Truth
+
+`src/gui/GUITheme.h` defines all GUI styling constants in one place using a namespace hierarchy:
+
+- **`GUITheme::Colors`** — 35 color constants for modal backgrounds, tooltips, buttons, tables, chat, inventory, status text, profiler, and more
+- **`GUITheme::Sizing`** — 42 layout/spacing constants for button heights, slot spacing, padding, dialog sizes, tooltip dimensions, scrollbar widths, etc.
+- **`GUITheme::Timing`** — 11 animation/duration constants for cursor blink speed, chat console speed, status text duration, double-click thresholds, etc.
+- **`GUITheme::ButtonModifiers`** — 2 hover/press color interpolation multipliers
+- **`GUITheme::Fonts`** — 8 font mode and size constants
+- **`GUITheme::Sounds`** — 1 default sound constant
+- **`GUITheme::Dialogs`** — 6 standard dialog dimension constants
+- **`GUITheme::validate()`** — Runtime validation ensuring all constants are in valid ranges
+
+### Why Namespace Instead of Class
+
+C++ does not allow nested namespaces inside a class. Using `namespace GUITheme` with nested `namespace Colors`, `namespace Sizing`, etc. allows clean hierarchical access like `GUITheme::Colors::MODAL_BG` while keeping all constants together. A class-based approach would require separate files or overly verbose access patterns.
+
+### Test Coverage
+
+89 TDD tests in `gui_test/gui_theme_test.cpp` validate:
+- All 8 namespaces have correct value types and ranges
+- `validate()` returns true with default values
+- `validate()` returns false when any value is out of range
+- Constants are referenced by their consuming files (no dead constants)
+
+### Files Refactored
+
+14 GUI files were updated to replace hardcoded values with GUITheme constants:
+- `guiFormSpecMenu.cpp` — modal backgrounds, tooltip colors, focus border
+- `guiButton.h/cpp` — button colors, hover/press modifiers
+- `guiPasswordChange.cpp`, `guiVolumeChange.cpp`, `guiOpenURL.cpp` — dialog dimensions
+- `guiChatConsole.h/cpp` — chat console colors and timing
+- `guiInventoryList.h` — slot colors and border width
+- `guiTable.h` — table colors and row padding
+- `statusTextHelper.h/cpp` — status text colors and duration
+- `guiEngine.cpp` — main menu header/footer padding
+- `touchcontrols.cpp`, `touchscreeneditor.cpp` — touch overlay colors
+
+### Future Work
+
+- **Hot-reload**: `GUITheme_Init()` stubs exist for future runtime theme reloading
+- **Config file loading**: Load theme values from a JSON/TOML config file instead of hardcoding
+- **WYSIWYG editor**: A web-based theme editor was prototyped on `clawtest-v9.51-gui-theme-editor` branch

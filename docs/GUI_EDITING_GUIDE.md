@@ -1,7 +1,7 @@
-# Clawtest GUI Editing Guide
+# Luantis GUI Editing Guide
 
 This document describes exactly which files to edit to change the GUI of all
-windows, buttons, tabs, dialogs, colors, fonts, and textures in the Clawtest
+windows, buttons, tabs, dialogs, colors, fonts, and textures in the Luantis
 client. It covers the main menu, in-game HUD, pause menu, and the C++ widget
 layer that renders everything.
 
@@ -18,16 +18,17 @@ layer that renders everything.
 7. [Settings Dialog](#7-settings-dialog)
 8. [Pause Menu](#8-pause-menu)
 9. [C++ GUI Widgets (src/gui/)](#9-c-gui-widgets-srcgui)
-10. [Textures & Images](#10-textures--images)
-11. [Formspec Reference](#11-formspec-reference)
-12. [How to Add a New Dialog](#12-how-to-add-a-new-dialog)
-13. [Common Patterns & Pitfalls](#13-common-patterns--pitfalls)
+10. [Centralized GUITheme System (v9.50)](#10-centralized-guitheme-system-v950)
+11. [Textures & Images](#11-textures--images)
+12. [Formspec Reference](#12-formspec-reference)
+13. [How to Add a New Dialog](#13-how-to-add-a-new-dialog)
+14. [Common Patterns & Pitfalls](#14-common-patterns--pitfalls)
 
 ---
 
 ## 1. Architecture Overview
 
-The Clawtest GUI uses Luanti's **formspec** system — a declarative markup
+The Luantis GUI uses Luanti's **formspec** system — a declarative markup
 language that describes UI elements as strings. Lua code generates formspec
 strings, and the C++ engine (`src/gui/guiFormSpecMenu.cpp`) parses and renders
 them using Irrlicht.
@@ -403,7 +404,69 @@ edit these files if you want to change how a formspec element is rendered
 
 ---
 
-## 10. Textures & Images
+## 10. Centralized GUITheme System (v9.50)
+
+### Overview
+
+All GUI styling constants are defined in `src/gui/GUITheme.h` as a single source of truth. Before v9.50, colors, sizes, and timing values were hardcoded as magic numbers throughout 30+ GUI source files. Now, every styling constant lives in one header file with clear documentation.
+
+### How to Use GUITheme Constants
+
+When editing any file in `src/gui/`, always reference GUITheme constants instead of hardcoded values:
+
+```cpp
+#include "GUITheme.h"
+
+// CORRECT — use GUITheme constants
+driver->draw2DRectangle(GUITheme::Colors::MODAL_BG, AbsoluteRect);
+s32 padding = GUITheme::Sizing::CHECKBOX_PADDING;
+float duration = GUITheme::Timing::STATUS_TEXT_DURATION_GAME;
+
+// WRONG — hardcoded magic numbers
+driver->draw2DRectangle(video::SColor(140, 0, 0, 0), AbsoluteRect);  // What color is this?
+s32 padding = 7;  // Why 7?
+float duration = 1.5f;  // Where did this come from?
+```
+
+### Adding a New Constant
+
+1. Check `src/gui/GUITheme.h` for an existing constant in the appropriate namespace
+2. If none exists, add it to the correct namespace with a comment documenting its purpose and which file(s) use it
+3. Add a test in `gui_test/gui_theme_test.cpp` for the new constant
+4. Replace hardcoded values in the consuming file(s) with the new GUITheme reference
+5. Run the test suite to verify: `./bin/luanti --run-unittests`
+
+### GUITheme Namespace Reference
+
+| Namespace | Count | What It Contains |
+|-----------|-------|------------------|
+| `GUITheme::Colors` | 35 | ARGB SColor values for backgrounds, text, buttons, slots, tables, chat, etc. |
+| `GUITheme::Sizing` | 42 | Layout/spacing values: heights, widths, paddings, ratios, dimensions |
+| `GUITheme::Timing` | 11 | Animation/duration values: blink speeds, display durations, thresholds |
+| `GUITheme::ButtonModifiers` | 2 | Hover brighten (1.25) and press darken (0.85) multipliers |
+| `GUITheme::Fonts` | 8 | Font mode strings and size constants |
+| `GUITheme::Sounds` | 1 | Default button click sound |
+| `GUITheme::Dialogs` | 6 | Standard dialog dimension constants |
+| `GUITheme::validate()` | — | Runtime validation checking all constants are in valid ranges |
+
+### Color Format
+
+Colors use Irrlicht's `video::SColor(alpha, red, green, blue)` — ARGB format:
+```cpp
+const video::SColor MODAL_BG = video::SColor(140, 0, 0, 0);  // Semi-transparent black
+const video::SColor TEXT_DEFAULT = video::SColor(255, 255, 255, 255);  // Opaque white
+```
+
+### Test Coverage
+
+89 TDD tests in `gui_test/gui_theme_test.cpp` validate:
+- All constants in each namespace
+- `validate()` returns true with default values
+- `validate()` returns false with invalid values (zero sizes, negative durations, etc.)
+
+---
+
+## 11. Textures & Images
 
 ### Default Texture Directory
 
@@ -440,7 +503,7 @@ Games can provide their own menu textures in their `menu/` directory:
 
 ---
 
-## 11. Formspec Reference
+## 12. Formspec Reference
 
 ### Common Elements
 
@@ -517,7 +580,7 @@ set_focus[NAME;FORCE]
 
 ---
 
-## 12. How to Add a New Dialog
+## 13. How to Add a New Dialog
 
 ### Step-by-step
 
@@ -579,7 +642,7 @@ end)
 
 ---
 
-## 13. Common Patterns & Pitfalls
+## 14. Common Patterns & Pitfalls
 
 ### Table Data — Escape Each Cell Individually
 
@@ -679,3 +742,5 @@ value.
 | `src/script/lua_api/l_mainmenu.cpp` | Lua API bindings for mainmenu |
 | `textures/base/pack/` | Menu texture images |
 | `fonts/` | Font files (Arimo, Cousine, DroidSansFallback) |
+| `src/gui/GUITheme.h` | Centralized theme constants (all colors, sizes, timing) |
+| `gui_test/gui_theme_test.cpp` | GUITheme TDD tests (89 tests across 8 suites) |

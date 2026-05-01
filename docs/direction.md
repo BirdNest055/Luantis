@@ -8,12 +8,14 @@ Luanti-Secure is a fork of Luanti focused on **real, verifiable encrypted commun
 
 ### 0.1 Encryption Completeness (v9.x)
 
-- **Phase 7: Toggleable Overlay System** — Mini/Standard/Detailed security overlay modes, toggleable from Settings. Currently the overlay is a simple text banner; this would add a proper multi-mode system with color-coded lock icons.
-- **Phase 8: Security Info Settings Tab** — A proper in-game tab showing real-time security details: cipher, key exchange, auth method, replay protection status, packet stats, and honest limitations.
-- **Phase 10: CI/CD** — GitHub Actions workflow for automated builds and test runs across platforms.
-- **Crypto Layer Reconciliation** — Two parallel crypto API implementations exist (top-level X25519 API and detailed P-256/ECDSA API in `src/network/crypto/`). These need to be merged: use X25519 for key exchange, add ECDSA verification, use the replay-protected NonceCounter, and adopt the 3-message handshake.
+- **Phase 7: Toggleable Overlay System** — Partially addressed by v9.50 GUITheme system — colors and sizing are centralized, but overlay modes (mini/standard/detailed) are not yet implemented.
+- **Phase 8: Security Info Settings Tab** — Partially addressed — security info is visible in Settings, but a dedicated in-game tab with packet stats is not yet implemented.
+- **Phase 10: CI/CD** — DONE (v9.5–v9.6). Single `build.yml` workflow runs on GitHub Actions.
+- **Crypto Layer Reconciliation** — Still pending. Two parallel crypto APIs exist. GUITheme system (v9.50) was prioritized over this.
 
 ### 0.2 Forward Secrecy (v10.x)
+
+> **Status: COMPLETE (v9.11)** — ECDH X25519 forward secrecy is now implemented and working. This section is kept for historical reference.
 
 The current encryption architecture derives keys from the SRP session key, which is itself derived from the password. This means that if the password is compromised, all past sessions can be decrypted. Forward secrecy requires adding an ephemeral key exchange (X25519) on top of SRP:
 - Generate ephemeral X25519 key pairs on both sides
@@ -35,6 +37,24 @@ AES-256 is believed to be quantum-resistant, but SRP is vulnerable to quantum at
 - Post-quantum key encapsulation mechanisms (ML-KEM / Kyber)
 - Hybrid classical+PQ key exchange
 - Migration path for existing deployments
+
+### 0.5 GUITheme System (v9.50+)
+
+The centralized GUITheme system was implemented in v9.50, replacing hardcoded magic numbers across 14+ GUI files with a single `src/gui/GUITheme.h` header containing 93+ constants across 8 namespaces. Future work:
+
+- **Runtime hot-reload**: `GUITheme_Init()` stubs exist for loading theme values at runtime. Implement loading from a JSON/TOML config file or Lua table so themes can be changed without recompiling.
+- **WYSIWYG Theme Editor**: A web-based editor (Svelte + Vite) was prototyped on branch `clawtest-v9.51-gui-theme-editor`. It can import/export `GUITheme.h` files, preview theme changes in real-time, and apply preset themes (Default, Dark, Light, Retro, High-Contrast). This needs to be finalized and merged.
+- **Theme marketplace**: Allow community themes to be shared and installed similar to texture packs.
+- **Formspec-level theming**: Expose GUITheme constants to Lua via `core.gui_theme` API so modders can reference the current theme in their formspecs.
+
+### 0.6 Voice Chat Enhancements (v9.44+)
+
+Voice chat with E2EE was implemented in v9.39. Future work:
+
+- **Voice chat GUI**: In-game volume controls per-player, mute indicators, and push-to-talk visual feedback
+- **Spatial audio**: Positional voice chat where volume decreases with distance in-game
+- **Voice channels**: Support for team/zone-based voice channels
+- **Voice activity detection**: Automatic transmission when speaking (instead of push-to-talk only)
 
 
 ## 1. Upstream Luanti Long-term Roadmap

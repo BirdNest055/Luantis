@@ -2,7 +2,7 @@
     <img src="textures/base/pack/logo.png" width="32%">
     <h1>Luanti-Secure</h1>
     <p><em>A fork of Luanti (formerly Minetest) with real encrypted communications</em></p>
-    <img src="https://img.shields.io/badge/version-v9.40-blue.svg" alt="Version">
+    <img src="https://img.shields.io/badge/version-v9.50-blue.svg" alt="Version">
     <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html"><img src="https://img.shields.io/badge/license-LGPLv2.1%2B-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/encryption-AES--256--GCM-green.svg" alt="Encryption">
     <img src="https://img.shields.io/badge/auth-SRP-orange.svg" alt="Auth">
@@ -20,14 +20,15 @@ Table of Contents
 
 1. [What's Different from Luanti](#whats-different-from-luanti)
 2. [Encryption Architecture](#encryption-architecture)
-3. [Quick Start](#quick-start)
-4. [Default Controls](#default-controls)
-5. [Paths](#paths)
-6. [Configuration File](#configuration-file)
-7. [Command-line Options](#command-line-options)
-8. [Compiling](#compiling)
-9. [Docker](#docker)
-10. [Version Scheme](#version-scheme)
+3. [Centralized GUITheme System](#centralized-guitheme-system)
+4. [Quick Start](#quick-start)
+5. [Default Controls](#default-controls)
+6. [Paths](#paths)
+7. [Configuration File](#configuration-file)
+8. [Command-line Options](#command-line-options)
+9. [Compiling](#compiling)
+10. [Docker](#docker)
+11. [Version Scheme](#version-scheme)
 
 
 What's Different from Luanti
@@ -63,6 +64,7 @@ Luanti-Secure extends Luanti v5.16.0-dev with these major features:
 | Sprint toggle | v9.39+ | Ctrl sprint changed from hold-to-run to toggle; press once to sprint, press again to stop |
 | Tab overlay toggle | v9.39+ | Tab key changed from hold-to-show to toggle; press once to show overlay, press again to hide |
 | Consolidated docs | v9.40+ | All documentation consolidated from `doc/` into `docs/` directory; comprehensive docs index with Luantis-specific guides |
+| GUITheme system | v9.50+ | Centralized `GUITheme.h` with 93+ constants across 8 namespaces (Colors, Sizing, Timing, ButtonModifiers, Fonts, Sounds, Dialogs, validate); all 14 GUI files refactored to use constants instead of hardcoded values |
 
 Encryption Architecture
 -----------------------
@@ -89,6 +91,37 @@ Encryption Architecture
 - Forward secrecy: Available via ECDH X25519 key exchange. When ECDH completes, past sessions are protected even if the password is later compromised. Without ECDH, forward secrecy is not available.
 - No certificate-based trust: Uses "Trust On First Use" (TOFU) model with SRP verifier hash.
 - No quantum resistance: AES-256 is believed quantum-resistant, but SRP is not.
+
+Centralized GUITheme System
+----------------------------
+
+### GUITheme Architecture (v9.50)
+
+All GUI styling constants (colors, sizes, fonts, spacing, timing, etc.) are defined in `src/gui/GUITheme.h` as a single source of truth. No other source file should contain hardcoded style values.
+
+**Namespace hierarchy:**
+```
+GUITheme
+├── Colors         — 35 color constants (ARGB SColor) for modal backgrounds, tooltips, buttons, tables, chat, etc.
+├── Sizing         — 42 layout/spacing constants for button heights, slot spacing, padding, dialog sizes, etc.
+├── Timing         — 11 animation/duration constants for cursor blink, chat speed, status text duration, etc.
+├── ButtonModifiers — 2 hover/press color interpolation multipliers
+├── Fonts          — 8 font mode/size constants
+├── Sounds         — 1 default sound constant
+├── Dialogs        — 6 standard dialog dimension constants
+└── validate()     — Runtime validation ensuring all constants are in valid ranges
+```
+
+**Example usage in C++:**
+```cpp
+#include "GUITheme.h"
+// Use centralized constants instead of hardcoded magic numbers
+driver->draw2DRectangle(GUITheme::Colors::MODAL_BG, rect);
+s32 border = GUITheme::Sizing::FOCUS_BORDER_WIDTH;
+float duration = GUITheme::Timing::STATUS_TEXT_DURATION_GAME;
+```
+
+**Test coverage:** 89 TDD tests in `gui_test/gui_theme_test.cpp` validate all 8 namespaces and the `validate()` function.
 
 ### Security Score: 85–100/100 (Honest)
 
@@ -378,9 +411,9 @@ Version scheme
 Luanti-Secure uses a dual version scheme:
 
 1. **Engine version** (from upstream Luanti): `major.minor.patch` (currently 5.16.1)
-2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.40)
+2. **Luanti-Secure version** (encryption feature version): `v9.X` (currently v9.50)
 
-The full version string is `5.16.1-v9.40-dev`, displayed via `--version` and in the UI.
+The full version string is `5.16.1-v9.50-dev`, displayed via `--version` and in the UI.
 
 The Luanti-Secure version tracks encryption feature development:
 - v7: Secure connection overlay + settings toggle
@@ -411,5 +444,7 @@ The Luanti-Secure version tracks encryption feature development:
 - v9.38: Server info overlay — Tab key shows in-game overlay with server name, player list, ping, uptime, and extensible Lua section system
 - v9.39: Voice chat with E2EE — Opus codec voice chat with X25519 ECDH key exchange and AES-256-GCM encryption; push-to-talk (~ key) and toggle modes; keypair authentication mechanism (AUTH_MECHANISM_KEYPAIR); Ctrl sprint changed to toggle; Tab overlay changed to toggle
 - v9.40: Documentation consolidation — all docs moved from `doc/` to `docs/`; fixed voice_chat.lua crash (register_on_connect replaced with register_on_joinplayer); fixed Tab overlay not toggling (wasKeyPressed check moved from drawScene to processKeyInput); comprehensive docs index with Luantis-specific guides
+- v9.41–v9.49: Internal development iterations — keypair history, settingtypes fixes, voice server authority, keybind fixes, Clay GUI exploration (not merged)
+- v9.50: Centralized GUITheme system — `src/gui/GUITheme.h` with 93+ constants across 8 namespaces; 14 GUI files refactored to use GUITheme constants; 89 TDD tests in `gui_test/gui_theme_test.cpp`; no more hardcoded magic numbers for colors, sizes, or timing
 
-Git tags follow the pattern `luanti-secure-v9.40`.
+Git tags follow the pattern `luanti-secure-v9.50`.

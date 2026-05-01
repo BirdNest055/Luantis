@@ -1,9 +1,9 @@
 # Luanti-Secure Project — Complete File & Dependency Map
 
 > **Repository:** [BirdNest055/Clawtest](https://github.com/BirdNest055/Clawtest) (fork of Luanti with real encrypted communications)
-> **Version:** 5.16.1-v9.3 | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
+> **Version:** 5.16.1-v9.50 | **Language:** C++17 + Lua 5.x | **License:** LGPL 2.1
 > **Total Source Files:** ~330 C++ (.h/.cpp) + ~120 Lua (.lua) + 79 IrrlichtMt C++ + GLSL Shaders + 12 Crypto layer (integrated)
-> **Last Updated:** 2026-04-25 | **Map Version:** v4
+> **Last Updated:** 2026-05-01 | **Map Version:** v5
 
 ---
 
@@ -53,7 +53,7 @@ Luanti is a **voxel-based game engine** with a **client-server architecture**. T
 | Networking | `src/network/` | MTProtocol over UDP, packet serialization |
 | Encryption | `src/network/encryption_config.h/cpp`, `src/network/crypto.h/cpp`, `src/network/encrypted_connection.h/cpp`, `src/network/crypto/` | Real AES-256-GCM encryption via SRP session key + modular toggle (v9.3) |
 | Scripting | `src/script/` | C++ ↔ Lua bridge (42 Lua API modules) |
-| GUI | `src/gui/` | Formspec-based UI, dialogs, main menu |
+| GUI | `src/gui/` | Formspec-based UI, dialogs, main menu, centralized GUITheme constants |
 | Database | `src/database/` | Map/player storage (SQLite3, PostgreSQL, LevelDB, Redis) |
 | Rendering | `src/client/render/`, `src/client/shadows/`, `client/shaders/` | OpenGL pipeline, shadows, post-processing |
 | Sound | `src/client/sound/` | OpenAL-based audio system |
@@ -125,7 +125,7 @@ These headers form the backbone of the codebase — included by the most other f
 | `CMakeLists.txt` | Master build file. Version 5.16.1-v9.3, C++17. Options: BUILD_CLIENT, BUILD_SERVER, BUILD_UNITTESTS, ENABLE_LTO, RUN_IN_PLACE, BUILD_WITH_TRACY. OpenSSL REQUIRED. | All subdirectories |
 | `CMakePresets.json` | CMake preset configurations | `CMakeLists.txt` |
 | `vcpkg.json` | vcpkg dependency manifest: zlib, zstd, openssl, curl, openal-soft, libvorbis, libogg, libjpeg-turbo, sqlite3, freetype, luajit, gmp, jsoncpp, gettext, sdl2 | `CMakeLists.txt` |
-| `VERSION` | Luanti-Secure version file (currently "9.3") | `CMakeLists.txt` |
+| `VERSION` | Luanti-Secure version file (currently "9.50") | `CMakeLists.txt` |
 | `minetest.conf.example` | Example configuration with all settings documented | `src/defaultsettings.cpp`, `builtin/settingtypes.txt` |
 | `README.md` | Project readme — Luanti-Secure fork with encrypted comms | — |
 | `LICENSE.txt` / `COPYING.LESSER` | LGPL 2.1 license | — |
@@ -144,6 +144,10 @@ These headers form the backbone of the codebase — included by the most other f
 | `docs/OPENSECURE_GUIDE.md` | OpenSecure CLI guide | — |
 | `docs/ENCRYPTION_DATA_FLOW.md` | Comprehensive encryption data flow guide | — |
 | `docs/GUI_EDITING_GUIDE.md` | GUI editing reference | — |
+| `gui_test/gui_theme_test.cpp` | 89 TDD tests for GUITheme constants across 8 namespaces | `src/gui/GUITheme.h` |
+| `gui_test/gui_theme_visual_test.py` | Visual regression test script for GUI theme | `src/gui/GUITheme.h`, game client |
+| `gui_test/gui_theme_video.py` | Video generation script for GUITheme demo | `src/gui/GUITheme.h`, FFmpeg |
+| `gui_test/gui_e2e_screenshots.py` | End-to-end screenshot capture for GUI testing | game client, Xvfb |
 
 ---
 
@@ -708,6 +712,8 @@ The C++ ↔ Lua bridge — the largest subsystem by file count (78 files).
 
 | File | Purpose | Key Dependencies |
 |------|---------|-----------------|
+| `GUITheme.h` | **Centralized theme constants** — 93+ constants across 8 namespaces (Colors, Sizing, Timing, ButtonModifiers, Fonts, Sounds, Dialogs); `validate()` runtime check | `irrlichttypes_bloated.h`, `<string>` |
+| `GUITheme.cpp` | Theme implementation — `GUITheme_Init()` stubs for future hot-reload | `GUITheme.h` |
 | `guiEngine.h/cpp` | Main menu GUI engine — drives the Lua main menu | `guiFormSpecMenu.h`, `clouds.h`, `sound.h`, `translation.h` |
 | `guiFormSpecMenu.h/cpp` | **Formspec parser/renderer** — the central GUI class | `inventory.h`, `modalMenu.h`, `StyleSpec.h`, `guiInventoryList.h` |
 | `modalMenu.h/cpp` | Modal menu base class | `<IGUIElement.h>`, `irr_ptr.h` |
@@ -1409,7 +1415,8 @@ From `vcpkg.json`: zlib, zstd, openssl, curl[ssl], openal-soft, libvorbis, libog
 |--------|---------|------|
 | `main` | Primary development branch with all modifications | `origin/main` |
 | `v7-overlay-settings` | v7: Secure connection overlay + settings toggle (tagged v7.0.0) | `main` |
-| `v8-security-info-tab` | v8: Security Info settings tab with technical details (current) | `v7-overlay-settings` |
+| `v8-security-info-tab` | v8: Security Info settings tab with technical details | `v7-overlay-settings` |
+| `clawtest-v9.50-centralized-gui` | v9.50: Centralized GUITheme constants system (current) | `main` |
 | `crypto-wip` | Encrypted communications layer (WIP) | `main` |
 
 ### 26.2 Versioning Convention
@@ -1427,6 +1434,7 @@ From `vcpkg.json`: zlib, zstd, openssl, curl[ssl], openal-soft, libvorbis, libog
 | v5-v6 | (pre-branch) | — | Overlay integration, build script, server/client scripts |
 | v7 | `v7-overlay-settings` | `v7.0.0` | Secure connection overlay + settings checkbox for toggle |
 | v8 | `v8-security-info-tab` | — | Security Info settings tab showing technical connection details (TDD) |
+| v9.50 | `clawtest-v9.50-centralized-gui` | — | Centralized GUITheme constants (93+ constants, 8 namespaces), TDD tests (89), visual tests |
 
 ### 26.4 v8 Feature: Security Info Settings Tab
 
@@ -1459,6 +1467,7 @@ From `vcpkg.json`: zlib, zstd, openssl, curl[ssl], openal-soft, libvorbis, libog
 |---------|--------|--------|-------------|
 | Encrypted Comms | `crypto-wip` | WIP (paused) | X25519/P-256 ECDH + AES-256-GCM + ECDSA, 2 parallel API layers need reconciliation |
 | Linux Build Script | `feature/linux-build-script` | Active | Fully automated Linux build script with TDD (53 tests pass) |
+| Centralized GUI Theme | `clawtest-v9.50-centralized-gui` | Active (current) | GUITheme.h/cpp with 93+ constants, 89 TDD tests, visual regression tests |
 | Project Map | (all branches) | Always maintained | Living document tracking all files, connections, and subsystems |
 
 ### 26.4 Docker Build Reference

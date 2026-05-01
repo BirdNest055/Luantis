@@ -122,3 +122,46 @@ Stage Summary:
 - Branch: clawtest-v9.36-fix-gui-overlap
 - Key files modified: builtin/mainmenu/tab_online.lua
 - CI: SUCCESS
+
+---
+Task ID: v9.50
+Agent: main
+Task: Centralized GUITheme system
+
+Work Log:
+- Created src/gui/GUITheme.h with 93+ constants across 8 namespaces (Colors, Sizing, Timing, ButtonModifiers, Fonts, Sounds, Dialogs, validate)
+- Created src/gui/GUITheme.cpp with GUITheme_Init() stubs for future hot-reload
+- Refactored 14 GUI files to replace hardcoded magic numbers with GUITheme constant references
+- Created gui_test/gui_theme_test.cpp with 89 TDD tests across 8 test suites
+- All 89 tests passing
+- Added gui_test/gui_theme_visual_test.py and gui_test/gui_theme_video.py for visual testing
+- Added gui_test/gui_e2e_screenshots.py for end-to-end screenshot capture
+
+Stage Summary:
+- Branch: clawtest-v9.50-centralized-gui
+- Key files created: src/gui/GUITheme.h, src/gui/GUITheme.cpp, gui_test/gui_theme_test.cpp
+- Key files modified: 14 src/gui/*.cpp/.h files
+- All 89 TDD tests passing
+- No more hardcoded magic numbers in GUI code
+
+---
+Task ID: v9.52
+Agent: main
+Task: Update all MD files and AI agent info
+
+Work Log:
+- Created branch clawtest-v9.52-docs-update from clawtest-v9.50-centralized-gui
+- Updated docs/ai-agent-instructions.md: version v9.24→v9.50, branch refs, new GUITheme Section 5, pitfalls, checklist items, repo URL
+- Updated docs/ai-codebase-reference.md: version v9.24→v9.50, GUITheme architecture, v9.41-v9.50 version history, file tree, known issues
+- Updated README.md: version badge v9.40→v9.50, GUITheme feature row, GUITheme architecture section, v9.41-v9.50 version history
+- Updated docs/V9_PLAN.md: v9.26-v9.50 progress tracker entries, new GUITheme System section
+- Updated docs/GUI_EDITING_GUIDE.md: Clawtest→Luantis, new GUITheme System section, renumbered sections
+- Updated docs/direction.md: updated Phase 7/8/10 status, added GUITheme roadmap (0.5), Voice Chat roadmap (0.6)
+- Updated docs/luanti-project-map.md: version v9.3→v9.50, GUITheme.h/cpp entries, gui_test/ entries, branch strategy
+- Updated VERSION file: 9.40→9.52
+
+Stage Summary:
+- Branch: clawtest-v9.52-docs-update
+- 8 MD files updated with v9.50 GUITheme information
+- All version references updated from v9.24/v9.40 to v9.50
+- AI agent instruction files fully updated with GUITheme rules and conventions
