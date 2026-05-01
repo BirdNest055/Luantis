@@ -11,40 +11,31 @@
 #include "profiler.h"
 
 namespace video {
-	class IVideoDriver;
+        class IVideoDriver;
 }
 
 /* Profiler display */
 class ProfilerGraph
 {
 private:
-	// FIXME: this data structure is awfully inefficient
-	struct Piece
-	{
-		Piece(const Profiler::GraphValues &v) : values(v) {}
-		Profiler::GraphValues values;
-	};
-	struct Meta
-	{
-		float min;
-		float max;
-		video::SColor color;
-		Meta(float initial = 0,
-				video::SColor color = video::SColor(255, 255, 255, 255)) :
-				min(initial),
-				max(initial), color(color)
-		{
-		}
-	};
-	std::deque<Piece> m_log;
+        // TODO: This data structure is awfully inefficient — Piece copies the
+        // entire Profiler::GraphValues (std::map<std::string, float>) into a
+        // deque entry every frame. Consider using a ring buffer of flat arrays
+        // or per-graph deques keyed by metric name to reduce per-frame allocations.
+        struct Piece
+        {
+                Piece(const Profiler::GraphValues &v) : values(v) {}
+                Profiler::GraphValues values;
+        };
+        std::deque<Piece> m_log;
 
 public:
-	u32 m_log_max_size = 200;
+        u32 m_log_max_size = 200;
 
-	ProfilerGraph() = default;
+        ProfilerGraph() = default;
 
-	void put(const Profiler::GraphValues &values);
+        void put(const Profiler::GraphValues &values);
 
-	void draw(s32 x_left, s32 y_bottom, video::IVideoDriver *driver,
-			gui::IGUIFont *font) const;
+        void draw(s32 x_left, s32 y_bottom, video::IVideoDriver *driver,
+                        gui::IGUIFont *font) const;
 };

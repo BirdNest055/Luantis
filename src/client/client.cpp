@@ -4,23 +4,6 @@
 
 #include <string>
 
-// SSCM modes (matches enable_sscsm setting)
-enum class SSCMMode {
-        NOWHERE = 0,      // "nowhere"
-        SINGLEPLAYER = 1, // "singleplayer"
-        ALWAYS = 2          // "always" (or any other value)
-};
-
-// Convert string setting to SSCMMode enum
-[[maybe_unused]] static SSCMMode getSSCMMode(const std::string &setting)
-{
-        if (setting == "singleplayer")
-                return SSCMMode::SINGLEPLAYER;
-        if (setting == "nowhere")
-                return SSCMMode::NOWHERE;
-        return SSCMMode::ALWAYS; // Default/unknown
-}
-
 #include "client.h"
 
 #include "chatmessage.h"

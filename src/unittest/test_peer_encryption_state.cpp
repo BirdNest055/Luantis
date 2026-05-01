@@ -410,13 +410,13 @@ void TestPeerEncryptionState::testNextNonceIncrementsCounter()
         DirectionalEncryptionState dir;
         dir.nonce_counter = 0;
 
-        dir.nextNonce();
+        (void)dir.nextNonce();
         UASSERTEQ(u64, dir.nonce_counter, 1u);
 
-        dir.nextNonce();
+        (void)dir.nextNonce();
         UASSERTEQ(u64, dir.nonce_counter, 2u);
 
-        dir.nextNonce();
+        (void)dir.nextNonce();
         UASSERTEQ(u64, dir.nonce_counter, 3u);
 }
 

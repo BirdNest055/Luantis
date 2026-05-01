@@ -823,7 +823,7 @@ void TestCrypto::testBuildNonceCounterZero()
 
         // Last 8 bytes should be all zeros (counter = 0, big-endian)
         for (size_t i = NONCE_BASE_SIZE; i < GCM_NONCE_SIZE; i++) {
-                UASSERTEQ(int, nonce[i], 0);
+                UASSERTEQ(u8, nonce[i], u8(0));
         }
 }
 
@@ -840,7 +840,7 @@ void TestCrypto::testBuildNonceCounterMax()
 
         // Last 8 bytes should be all 0xFF (counter = max, big-endian)
         for (size_t i = NONCE_BASE_SIZE; i < GCM_NONCE_SIZE; i++) {
-                UASSERTEQ(int, nonce[i], 0xFF);
+                UASSERTEQ(u8, nonce[i], u8(0xFF));
         }
 }
 

@@ -544,18 +544,22 @@ void TestEncryptedPacketFormat::testTamperEncryptedFlagFails()
         // Tamper with the encrypted flag byte (part of AAD)
         enc_packet[BASE_HEADER_SIZE] ^= 0x01;
 
-        // Decryption should fail (AAD tampering detected)
-        bool decrypt_ok_flag = true;
+        // Decryption should fail (AAD tampering detected).
+        // Start with the assumption that decryption succeeds, then
+        // verify it actually fails.
+        bool decrypt_failed = false;
         try {
                 auto dec = decryptPacket(enc_packet, *enc_state, false);
-                // If we get here, check if the decrypted data matches
-                if (dec != pt_packet) decrypt_ok_flag = false;
+                // If decryption succeeded without throwing, the output should
+                // not match the original plaintext (AAD tampering broke auth).
+                if (dec == pt_packet)
+                        decrypt_failed = false;
+                else
+                        decrypt_failed = true;
         } catch (...) {
-                decrypt_ok_flag = false;
+                decrypt_failed = true;
         }
-        // The key point: tampering should cause decryption to fail
-        // (either exception or wrong output)
-        UASSERT(!decrypt_ok_flag);
+        UASSERT(decrypt_failed);
 }
 
 void TestEncryptedPacketFormat::testTamperNonceByteFails()

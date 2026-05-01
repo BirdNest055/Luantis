@@ -22,8 +22,8 @@
 #endif
 
 struct VideoDriverInfo {
-	std::string name;
-	std::string friendly_name;
+        std::string name;
+        std::string friendly_name;
 };
 
 class ITextureSource;
@@ -38,24 +38,24 @@ class RenderingCore;
 /* Helpers */
 
 struct FpsControl {
-	FpsControl() : last_time(0), busy_time(0), sleep_time(0) {}
+        FpsControl() : last_time(0), busy_time(0), sleep_time(0) {}
 
-	void reset();
+        void reset();
 
-	void limit(IrrlichtDevice *device, f32 *dtime);
+        void limit(IrrlichtDevice *device, f32 *dtime);
 
-	u32 getBusyMs() const { return busy_time / 1000; }
+        u32 getBusyMs() const { return busy_time / 1000; }
 
-	// all values in microseconds (us)
-	u64 last_time, busy_time, sleep_time;
+        // all values in microseconds (us)
+        u64 last_time, busy_time, sleep_time;
 };
 
 // Populates fogColor, fogDistance, fogShadingParameter with values from Irrlicht
 class FogShaderUniformSetterFactory : public IShaderUniformSetterFactory
 {
 public:
-	FogShaderUniformSetterFactory() {};
-	virtual IShaderUniformSetter *create(const std::string &name);
+        FogShaderUniformSetterFactory() {};
+        virtual IShaderUniformSetter *create(const std::string &name);
 };
 
 /* Rendering engine class */
@@ -63,112 +63,115 @@ public:
 class RenderingEngine
 {
 public:
-	RenderingEngine(MyEventReceiver *eventReceiver);
-	~RenderingEngine();
+        RenderingEngine(MyEventReceiver *eventReceiver);
+        ~RenderingEngine();
 
-	void setResizable(bool resize);
+        void setResizable(bool resize);
 
-	video::IVideoDriver *getVideoDriver() { return driver; }
+        video::IVideoDriver *getVideoDriver() { return driver; }
 
-	static const VideoDriverInfo &getVideoDriverInfo(video::E_DRIVER_TYPE type);
-	static float getDisplayDensity();
+        static const VideoDriverInfo &getVideoDriverInfo(video::E_DRIVER_TYPE type);
+        static float getDisplayDensity();
 
-	// Show error message box to user. Intended for situations where graphics
-	// output might not even be working.
-	// Will block.
-	static void showErrorMessageBox(const std::string &message);
+        // Show error message box to user. Intended for situations where graphics
+        // output might not even be working.
+        // Will block.
+        static void showErrorMessageBox(const std::string &message);
 
-	bool setupTopLevelWindow();
-	bool setWindowIcon();
-	void cleanupMeshCache();
+        bool setupTopLevelWindow();
+        bool setWindowIcon();
+        void cleanupMeshCache();
 
-	void removeMesh(const scene::IMesh* mesh);
+        void removeMesh(const scene::IMesh* mesh);
 
-	/**
-	 * This takes 3d_mode into account - side-by-side will return a
-	 * halved horizontal size.
-	 *
-	 * @return "window" size
-	 */
-	static v2u32 getWindowSize()
-	{
-		sanity_check(s_singleton);
-		return s_singleton->_getWindowSize();
-	}
+        /**
+         * This takes 3d_mode into account - side-by-side will return a
+         * halved horizontal size.
+         *
+         * @return "window" size
+         */
+        static v2u32 getWindowSize()
+        {
+                sanity_check(s_singleton);
+                return s_singleton->_getWindowSize();
+        }
 
-	io::IFileSystem *get_filesystem()
-	{
-		return m_device->getFileSystem();
-	}
+        io::IFileSystem *get_filesystem()
+        {
+                return m_device->getFileSystem();
+        }
 
-	static video::IVideoDriver *get_video_driver()
-	{
-		sanity_check(s_singleton && s_singleton->m_device);
-		return s_singleton->m_device->getVideoDriver();
-	}
+        static video::IVideoDriver *get_video_driver()
+        {
+                sanity_check(s_singleton && s_singleton->m_device);
+                return s_singleton->m_device->getVideoDriver();
+        }
 
-	scene::ISceneManager *get_scene_manager()
-	{
-		return m_device->getSceneManager();
-	}
+        scene::ISceneManager *get_scene_manager()
+        {
+                return m_device->getSceneManager();
+        }
 
-	static IrrlichtDevice *get_raw_device()
-	{
-		sanity_check(s_singleton && s_singleton->m_device);
-		return s_singleton->m_device;
-	}
+        static IrrlichtDevice *get_raw_device()
+        {
+                sanity_check(s_singleton && s_singleton->m_device);
+                return s_singleton->m_device;
+        }
 
-	gui::IGUIEnvironment *get_gui_env()
-	{
-		return m_device->getGUIEnvironment();
-	}
+        gui::IGUIEnvironment *get_gui_env()
+        {
+                return m_device->getGUIEnvironment();
+        }
 
-	// If "indef_pos" is given, the value of "percent" is ignored and an indefinite
-	// progress bar is drawn.
-	void draw_load_screen(const std::wstring &text,
-			gui::IGUIEnvironment *guienv, ITextureSource *tsrc,
-			float dtime = 0, int percent = 0, float *indef_pos = nullptr);
+        // If "indef_pos" is given, the value of "percent" is ignored and an indefinite
+        // progress bar is drawn.
+        void draw_load_screen(const std::wstring &text,
+                        gui::IGUIEnvironment *guienv, ITextureSource *tsrc,
+                        float dtime = 0, int percent = 0, float *indef_pos = nullptr);
 
-	void draw_scene(video::SColor skycolor, bool show_hud,
-			bool draw_wield_tool, bool draw_crosshair);
+        void draw_scene(video::SColor skycolor, bool show_hud,
+                        bool draw_wield_tool, bool draw_crosshair);
 
-	void initialize(Client *client, Hud *hud);
-	void finalize();
+        void initialize(Client *client, Hud *hud);
+        void finalize();
 
-	bool run()
-	{
-		return m_device->run();
-	}
+        bool run()
+        {
+                return m_device->run();
+        }
 
-	// TODO: Make this instanced instead of global/static
-	static ShadowRenderer *get_shadow_renderer()
-	{
-		if (s_singleton && s_singleton->core)
-			return s_singleton->core->get_shadow_renderer();
-		return nullptr;
-	}
-	static std::vector<video::E_DRIVER_TYPE> getSupportedVideoDrivers();
+        // TODO: Make this instanced instead of global/static.
+        // ShadowRenderer access should go through the RenderingEngine instance
+        // (e.g. m_device->getSceneManager()) rather than through a static singleton.
+        // This would allow multiple RenderingEngine instances for testing or split-screen.
+        static ShadowRenderer *get_shadow_renderer()
+        {
+                if (s_singleton && s_singleton->core)
+                        return s_singleton->core->get_shadow_renderer();
+                return nullptr;
+        }
+        static std::vector<video::E_DRIVER_TYPE> getSupportedVideoDrivers();
 
-	static void autosaveScreensizeAndCo(
-			const core::dimension2d<u32> initial_screen_size,
-			const bool initial_window_maximized);
+        static void autosaveScreensizeAndCo(
+                        const core::dimension2d<u32> initial_screen_size,
+                        const bool initial_window_maximized);
 
-	static PointerType getLastPointerType()
-	{
-		sanity_check(s_singleton && s_singleton->m_receiver);
-		return s_singleton->m_receiver->getLastPointerType();
-	}
+        static PointerType getLastPointerType()
+        {
+                sanity_check(s_singleton && s_singleton->m_receiver);
+                return s_singleton->m_receiver->getLastPointerType();
+        }
 
-	video::SColor m_menu_sky_color = video::SColor(255, 140, 186, 250);
-	video::SColor m_menu_clouds_color = video::SColor(255, 240, 240, 255);
+        video::SColor m_menu_sky_color = video::SColor(255, 140, 186, 250);
+        video::SColor m_menu_clouds_color = video::SColor(255, 240, 240, 255);
 
 private:
-	static void settingChangedCallback(const std::string &name, void *data);
-	v2u32 _getWindowSize() const;
+        static void settingChangedCallback(const std::string &name, void *data);
+        v2u32 _getWindowSize() const;
 
-	std::unique_ptr<RenderingCore> core;
-	IrrlichtDevice *m_device = nullptr;
-	video::IVideoDriver *driver;
-	MyEventReceiver *m_receiver = nullptr;
-	static RenderingEngine *s_singleton;
+        std::unique_ptr<RenderingCore> core;
+        IrrlichtDevice *m_device = nullptr;
+        video::IVideoDriver *driver;
+        MyEventReceiver *m_receiver = nullptr;
+        static RenderingEngine *s_singleton;
 };

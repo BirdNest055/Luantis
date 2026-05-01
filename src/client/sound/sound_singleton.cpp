@@ -12,46 +12,47 @@ namespace sound {
 
 bool SoundManagerSingleton::init()
 {
-	if (!(m_device = unique_ptr_alcdevice(alcOpenDevice(nullptr)))) {
-		errorstream << "Audio: Global Initialization: Failed to open device" << std::endl;
-		return false;
-	}
+        if (!(m_device = unique_ptr_alcdevice(alcOpenDevice(nullptr)))) {
+                errorstream << "Audio: Global Initialization: Failed to open device" << std::endl;
+                return false;
+        }
 
-	if (!(m_context = unique_ptr_alccontext(alcCreateContext(m_device.get(), nullptr)))) {
-		errorstream << "Audio: Global Initialization: Failed to create context" << std::endl;
-		return false;
-	}
+        if (!(m_context = unique_ptr_alccontext(alcCreateContext(m_device.get(), nullptr)))) {
+                errorstream << "Audio: Global Initialization: Failed to create context" << std::endl;
+                return false;
+        }
 
-	if (!alcMakeContextCurrent(m_context.get())) {
-		errorstream << "Audio: Global Initialization: Failed to make current context" << std::endl;
-		return false;
-	}
+        if (!alcMakeContextCurrent(m_context.get())) {
+                errorstream << "Audio: Global Initialization: Failed to make current context" << std::endl;
+                return false;
+        }
 
-	alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+        alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
 
-	// Speed of sound in nodes per second
-	// FIXME: This value assumes 1 node sidelength = 1 meter, and "normal" air.
-	//        Ideally this should be mod-controlled.
-	alSpeedOfSound(343.3f);
+        // Speed of sound in nodes per second.
+        // Assumes 1 node sidelength = 1 meter and "normal" air at ~20°C.
+        // TODO: Make this mod-controllable via a setting or Lua API.
+        static constexpr float SPEED_OF_SOUND = 343.3f;
+        alSpeedOfSound(SPEED_OF_SOUND);
 
-	// doppler effect turned off for now, for best backwards compatibility
-	alDopplerFactor(0.0f);
+        // doppler effect turned off for now, for best backwards compatibility
+        alDopplerFactor(0.0f);
 
-	if (alGetError() != AL_NO_ERROR) {
-		errorstream << "Audio: Global Initialization: OpenAL Error " << alGetError() << std::endl;
-		return false;
-	}
+        if (alGetError() != AL_NO_ERROR) {
+                errorstream << "Audio: Global Initialization: OpenAL Error " << alGetError() << std::endl;
+                return false;
+        }
 
-	infostream << "Audio: Global Initialized: OpenAL " << alGetString(AL_VERSION)
-		<< ", using " << alcGetString(m_device.get(), ALC_DEVICE_SPECIFIER)
-		<< std::endl;
+        infostream << "Audio: Global Initialized: OpenAL " << alGetString(AL_VERSION)
+                << ", using " << alcGetString(m_device.get(), ALC_DEVICE_SPECIFIER)
+                << std::endl;
 
-	return true;
+        return true;
 }
 
 SoundManagerSingleton::~SoundManagerSingleton()
 {
-	infostream << "Audio: Global Deinitialized." << std::endl;
+        infostream << "Audio: Global Deinitialized." << std::endl;
 }
 
 } // namespace sound
