@@ -593,6 +593,9 @@ void str_replace(std::string &str, char from, char to)
 
 std::string wrap_rows(std::string_view from, unsigned row_len, bool has_color_codes)
 {
+	if (row_len == 0)
+		return std::string(from);
+
 	std::string to;
 	to.reserve(from.size());
 	std::string last_color_code;

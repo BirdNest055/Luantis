@@ -21,6 +21,7 @@
 #include "client/tile.h"
 
 #include <mt_opengl.h>
+#include <chrono>
 
 /*
         A cache from shader name to shader path
@@ -865,10 +866,17 @@ void ShaderSource::generateShader(ShaderInfo &shaderinfo)
         cb->setExtraSetter(shaderinfo.setter_cb.get());
 
         infostream << "Compiling high level shaders for " << log_name << std::endl;
+        auto compile_start = std::chrono::steady_clock::now();
         s32 shadermat = gpu->addHighLevelShaderMaterial(
                 vertex_shader.c_str(), fragment_shader.c_str(), geometry_shader_ptr,
                 log_name.c_str(), scene::EPT_TRIANGLES, scene::EPT_TRIANGLES, 0,
                 cb.get(), shaderinfo.base_material);
+        auto compile_end = std::chrono::steady_clock::now();
+        auto compile_ms = std::chrono::duration_cast<std::chrono::milliseconds>(compile_end - compile_start).count();
+        if (compile_ms > 10000) {
+                warningstream << "generateShader(): shader compilation for "
+                        << log_name << " took " << compile_ms << " ms" << std::endl;
+        }
         if (shadermat == -1) {
                 errorstream << "generateShader(): failed to generate shaders for "
                         << log_name << ", addHighLevelShaderMaterial failed." << std::endl;

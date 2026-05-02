@@ -215,6 +215,11 @@ bool Settings::parseConfigLines(std::istream &is)
 
         while (is.good()) {
                 std::getline(is, line);
+                if (line.size() > 65536) {
+                        errorstream << "Settings: ignoring excessively long line ("
+                                << line.size() << " chars), possible corrupt config" << std::endl;
+                        continue;
+                }
                 SettingsParseEvent event = parseConfigObject(line, name, value);
 
                 switch (event) {
@@ -378,6 +383,9 @@ bool Settings::updateConfigFile(const char *filename)
         MutexAutoLock lock(m_mutex);
 
         std::ifstream is(filename);
+        if (!is.good() && !fs::PathExists(filename)) {
+                // File doesn't exist — will be created by safeWriteToFile
+        }
         std::ostringstream os(std::ios_base::binary);
 
         bool was_modified = updateConfigObject(is, os);
@@ -386,8 +394,12 @@ bool Settings::updateConfigFile(const char *filename)
         if (!was_modified)
                 return true;
 
-        if (!fs::safeWriteToFile(filename, os.str()))
+        std::string content = os.str();
+        if (!fs::safeWriteToFile(filename, content)) {
+                errorstream << "Settings::updateConfigFile: failed to write \""
+                        << filename << "\": " << strerror(errno) << std::endl;
                 return false;
+        }
 
         return true;
 }

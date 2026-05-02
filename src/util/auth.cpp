@@ -65,15 +65,29 @@ void generate_srp_verifier_and_salt(const std::string &name,
         const std::string &password, std::string *verifier,
         std::string *salt)
 {
-        char *bytes_v = nullptr;
-        size_t verifier_len = 0;
-        char *salt_ptr = nullptr;
-        size_t salt_len = 0;
-        gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
-        *verifier = std::string(bytes_v, verifier_len);
-        *salt = std::string(salt_ptr, salt_len);
-        free(bytes_v);
-        free(salt_ptr);
+        // Retry up to 3 times if the salt is all zeros (extremely unlikely but possible)
+        for (int attempt = 0; attempt < 3; attempt++) {
+                char *bytes_v = nullptr;
+                size_t verifier_len = 0;
+                char *salt_ptr = nullptr;
+                size_t salt_len = 0;
+                gen_srp_v(name, password, &salt_ptr, &salt_len, &bytes_v, &verifier_len);
+                *verifier = std::string(bytes_v, verifier_len);
+                *salt = std::string(salt_ptr, salt_len);
+                free(bytes_v);
+                free(salt_ptr);
+
+                // Verify the salt is not all zeros
+                bool all_zeros = !salt->empty() && std::all_of(salt->begin(), salt->end(),
+                        [](char c) { return c == 0; });
+                if (!all_zeros)
+                        return;
+
+                warningstream << "generate_srp_verifier_and_salt: generated all-zero salt, retrying (attempt "
+                        << (attempt + 1) << ")" << std::endl;
+        }
+        // If still all zeros after retries, proceed anyway (extremely unlikely)
+        warningstream << "generate_srp_verifier_and_salt: salt is all zeros after retries" << std::endl;
 }
 
 /// Gets an SRP verifier, generating a salt,

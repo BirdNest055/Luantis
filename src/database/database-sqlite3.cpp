@@ -361,6 +361,14 @@ void MapDatabaseSQLite3::listAllLoadableBlocks(std::vector<v3s16> &dst)
                 } else {
                         p = getIntegerAsBlock(sqlite_to_int64(m_stmt_list, 0));
                 }
+                // Sanity check for corrupted rows
+                if (p.X < -32768 || p.X > 32767 ||
+                        p.Y < -32768 || p.Y > 32767 ||
+                        p.Z < -32768 || p.Z > 32767) {
+                        warningstream << "listAllLoadableBlocks: skipping corrupted block position ("
+                                << p.X << "," << p.Y << "," << p.Z << ")" << std::endl;
+                        continue;
+                }
                 dst.push_back(p);
         }
 

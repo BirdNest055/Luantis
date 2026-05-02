@@ -145,17 +145,23 @@ void Sky::render()
                 float offset = (1.0 - fabs(sin((m_time_of_day - 0.5) * core::PI))) * 511;
 
                 if (m_sun_tonemap) {
-                        auto texel_color = m_sun_tonemap->getPixel(offset, 0);
-                        texel_color.setAlpha(255);
-                        // Only accessed by our code later, not used by a shader
-                        m_materials[3].ColorParam = texel_color;
+                        auto tex_size = m_sun_tonemap->getDimension();
+                        if (tex_size.Width > 0 && tex_size.Height > 0) {
+                                auto texel_color = m_sun_tonemap->getPixel(offset, 0);
+                                texel_color.setAlpha(255);
+                                // Only accessed by our code later, not used by a shader
+                                m_materials[3].ColorParam = texel_color;
+                        }
                 }
 
                 if (m_moon_tonemap) {
-                        auto texel_color = m_moon_tonemap->getPixel(offset, 0);
-                        texel_color.setAlpha(255);
-                        // Only accessed by our code later, not used by a shader
-                        m_materials[4].ColorParam = texel_color;
+                        auto tex_size = m_moon_tonemap->getDimension();
+                        if (tex_size.Width > 0 && tex_size.Height > 0) {
+                                auto texel_color = m_moon_tonemap->getPixel(offset, 0);
+                                texel_color.setAlpha(255);
+                                // Only accessed by our code later, not used by a shader
+                                m_materials[4].ColorParam = texel_color;
+                        }
                 }
 
                 const f32 t = 1.0f;

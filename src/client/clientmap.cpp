@@ -1633,8 +1633,11 @@ void ClientMap::updateTransparentMeshBuffers()
                 if (!blockmesh)
                         continue;
 
-                if (m_needs_update_transparent_meshes ||
-                                blockmesh->getTransparentBuffers().size() == 0) {
+                auto &transparent_buffers = blockmesh->getTransparentBuffers();
+                if (transparent_buffers.size() == 0)
+                        continue;
+
+                if (m_needs_update_transparent_meshes) {
                         bool do_sort_block = transparency_sorting_enabled;
 
                         if (do_sort_block) {

@@ -106,6 +106,11 @@ std::vector<DirListNode> GetDirListing(const std::string &pathstring)
 
 bool CreateDir(const std::string &path)
 {
+        if (path.size() > 260) {
+                errorstream << "CreateDir: path too long (" << path.size()
+                        << " chars): " << path.substr(0, 80) << "..." << std::endl;
+                return false;
+        }
         bool r = CreateDirectory(path.c_str(), nullptr);
         if (r || GetLastError() == ERROR_ALREADY_EXISTS)
                 return true;
@@ -315,6 +320,11 @@ std::vector<DirListNode> GetDirListing(const std::string &pathstring)
 
 bool CreateDir(const std::string &path)
 {
+        if (path.size() > 4096) {
+                errorstream << "CreateDir: path too long (" << path.size()
+                        << " chars): " << path.substr(0, 80) << "..." << std::endl;
+                return false;
+        }
         int r = mkdir(path.c_str(), 0775);
         if (r == 0) {
                 return true;
@@ -527,8 +537,14 @@ bool CopyFileContents(const std::string &source, const std::string &target)
                                 << strerror(errno) << std::endl;
                         return false;
                 }
-                if (readbytes > 0)
-                        fwrite(readbuffer, 1, readbytes, targetfile.get());
+                if (readbytes > 0) {
+                        size_t written = fwrite(readbuffer, 1, readbytes, targetfile.get());
+                        if (written != readbytes) {
+                                errorstream << target << ": write error (disk full?): "
+                                                << strerror(errno) << std::endl;
+                                return false;
+                        }
+                }
                 if (feof(sourcefile.get())) {
                         // flush destination file to catch write errors (e.g. disk full)
                         fflush(targetfile.get());
@@ -568,11 +584,17 @@ std::vector<std::string> GetRecursiveDirs(const std::string &dir)
         return result;
 }
 
-void GetRecursiveSubPaths(const std::string &path,
+static void GetRecursiveSubPathsImpl(const std::string &path,
                 std::vector<std::string> &dst,
                 bool list_files,
-                std::string_view ignore)
+                std::string_view ignore,
+                int depth)
 {
+        if (depth > 100) {
+                warningstream << "GetRecursiveSubPaths: recursion depth limit exceeded at "
+                        << path << ", possible circular symlink" << std::endl;
+                return;
+        }
         std::vector<DirListNode> content = GetDirListing(path);
         for (const auto &n : content) {
                 std::string fullpath = path + DIR_DELIM + n.name;
@@ -580,10 +602,17 @@ void GetRecursiveSubPaths(const std::string &path,
                         continue;
                 if (list_files || n.dir)
                         dst.push_back(fullpath);
-                // Note: this is probably vulnerable to a symlink infinite loop trap
                 if (n.dir)
-                        GetRecursiveSubPaths(fullpath, dst, list_files, ignore);
+                        GetRecursiveSubPathsImpl(fullpath, dst, list_files, ignore, depth + 1);
         }
+}
+
+void GetRecursiveSubPaths(const std::string &path,
+                std::vector<std::string> &dst,
+                bool list_files,
+                std::string_view ignore)
+{
+        GetRecursiveSubPathsImpl(path, dst, list_files, ignore, 0);
 }
 
 bool CreateAllDirs(const std::string &path)
