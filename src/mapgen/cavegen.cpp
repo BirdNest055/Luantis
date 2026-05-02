@@ -582,6 +582,11 @@ void CavesRandomWalk::carveRoute(v3f vec, float f, bool randomize_xz)
                                         continue;
 
                                 u32 i = vm->m_area.index(p);
+                                // Additional bounds check: verify index is within
+                                // m_data and m_flags array bounds
+                                if (i >= vm->m_area.getVolume())
+                                        continue;
+
                                 content_t c = vm->m_data[i].getContent();
                                 if (!ndef->get(c).is_ground_content)
                                         continue;
@@ -883,6 +888,11 @@ void CavesV6::carveRoute(v3f vec, float f, bool randomize_xz,
                                         continue;
 
                                 u32 i = vm->m_area.index(p);
+                                // Additional bounds check: verify index is within
+                                // m_data and m_flags array bounds
+                                if (i >= vm->m_area.getVolume())
+                                        continue;
+
                                 content_t c = vm->m_data[i].getContent();
                                 if (!ndef->get(c).is_ground_content)
                                         continue;

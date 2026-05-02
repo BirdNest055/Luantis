@@ -318,6 +318,10 @@ size_t DecoSimple::generate(MMVManip *vm, PcgRandom *pr, v3s16 p, bool ceiling)
         if (c_decos.empty())
                 return 0;
 
+        // Check that the decoration height is > 0 before placing
+        if (deco_height <= 0 && deco_height_max <= 0)
+                return 0;
+
         if (!canPlaceDecoration(vm, p))
                 return 0;
 
@@ -416,6 +420,10 @@ size_t DecoSchematic::generate(MMVManip *vm, PcgRandom *pr, v3s16 p, bool ceilin
         // Schematic could have been unloaded but not the decoration
         // In this case generate() does nothing (but doesn't *fail*)
         if (schematic == NULL)
+                return 0;
+
+        // Check for zero-height schematics before attempting to place them
+        if (schematic->size.Y <= 0)
                 return 0;
 
         if (!canPlaceDecoration(vm, p))

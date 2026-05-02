@@ -199,7 +199,12 @@ void Schematic::blitToVManip(MMVManip *vm, v3s16 p, Rotation rot, bool force_pla
 bool Schematic::placeOnVManip(MMVManip *vm, v3s16 p, u32 flags,
         Rotation rot, bool force_place)
 {
-        assert(vm != NULL);
+        if (!vm) {
+                warningstream << "Schematic::placeOnVManip: voxelmanip is null, "
+                        "skipping placement" << std::endl;
+                return false;
+        }
+
         assert(schemdata && slice_probs);
         sanity_check(m_ndef != NULL);
 
@@ -294,6 +299,19 @@ bool Schematic::deserializeFromMts(std::istream *is)
 
         //// Read size
         size = readV3S16(ss);
+
+        // Sanity check: reject unreasonably large schematics to prevent OOM
+        // on corrupt files. Limit each dimension to 256 nodes (max ~16M nodes).
+        const s16 SCHEM_SIZE_LIMIT = 256;
+        if (size.X <= 0 || size.Y <= 0 || size.Z <= 0 ||
+                        size.X > SCHEM_SIZE_LIMIT ||
+                        size.Y > SCHEM_SIZE_LIMIT ||
+                        size.Z > SCHEM_SIZE_LIMIT) {
+                errorstream << __FUNCTION__ << ": invalid schematic size ("
+                        << size.X << "," << size.Y << "," << size.Z
+                        << "), limits are 1.." << SCHEM_SIZE_LIMIT << std::endl;
+                return false;
+        }
 
         //// Read Y-slice probability values
         delete []slice_probs;

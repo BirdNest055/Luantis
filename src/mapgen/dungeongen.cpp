@@ -68,6 +68,10 @@ void DungeonGen::generate(MMVManip *vm, u32 bseed, v3s16 nmin, v3s16 nmax)
 
         assert(vm);
 
+        // Bounds check: ensure the voxelmanip area has valid extent before proceeding
+        if (vm->m_area.hasEmptyExtent())
+                return;
+
         //TimeTaker t("gen dungeons");
 
         this->vm = vm;

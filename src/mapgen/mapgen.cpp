@@ -239,7 +239,10 @@ u32 Mapgen::getBlockSeed2(v3s16 p, s32 seed)
 }
 
 
-// Returns -MAX_MAP_GENERATION_LIMIT if not found
+// Returns -MAX_MAP_GENERATION_LIMIT if not found.
+// Callers using this for spawn level calculation must check that the
+// result is not below -MAX_MAP_GENERATION_LIMIT before using it as a
+// spawn position.
 s16 Mapgen::findGroundLevel(v2s16 p2d, s16 ymin, s16 ymax)
 {
         const v3s32 &em = vm->m_area.getExtent();
@@ -361,6 +364,10 @@ void Mapgen::updateLiquid(UniqueQueue<v3s16> *trans_liquid, v3s16 nmin, v3s16 nm
         content_t was_n;
         const v3s32 &em = vm->m_area.getExtent();
 
+        // Bounds check: ensure liquid positions are within the voxelmanip area
+        if (!vm->m_area.contains(VoxelArea(nmin, nmax)))
+                return;
+
         isignored = true;
         isliquid = false;
         was_n = CONTENT_IGNORE;
@@ -472,6 +479,13 @@ void Mapgen::calcLighting(v3s16 nmin, v3s16 nmax, v3s16 full_nmin, v3s16 full_nm
         bool propagate_shadow)
 {
         ScopeProfiler sp(g_profiler, "EmergeThread: update lighting", SPT_AVG);
+
+        // Check that the voxelmanip is properly initialized before calculating lighting
+        if (!vm || vm->m_area.hasEmptyExtent()) {
+                warningstream << "Mapgen::calcLighting: voxelmanip is not properly "
+                        "initialized, skipping lighting calculation" << std::endl;
+                return;
+        }
 
         propagateSunlight(nmin, nmax, propagate_shadow);
         spreadLight(full_nmin, full_nmax);

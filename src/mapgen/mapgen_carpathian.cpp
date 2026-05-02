@@ -511,6 +511,10 @@ int MapgenCarpathian::generateTerrain()
 
                         // Combine height noises and apply 3D variation
                         float mnt_var = noise_mnt_var->result[index3d];
+                        // NaN check: skip this position if noise values are NaN,
+                        // which could occur from corrupt noise parameters
+                        if (std::isnan(mnt_var))
+                                continue;
                         float hill1 = getLerp(height1, height2, mnt_var);
                         float hill2 = getLerp(height3, height4, mnt_var);
                         float hill3 = getLerp(height3, height2, mnt_var);

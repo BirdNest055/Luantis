@@ -446,6 +446,14 @@ void OreVein::generate(MMVManip *vm, int mapseed, u32 blockseed,
         PcgRandom pr(blockseed + 520);
         MapNode n_ore(c_ore, 0, ore_param2);
 
+        // Sanity check: noise parameters must have non-zero spread to avoid
+        // division by zero in noise generation
+        if (np.spread.X == 0.0f || np.spread.Y == 0.0f || np.spread.Z == 0.0f) {
+                warningstream << "OreVein::generate: noise spread is zero, "
+                        "skipping ore placement" << std::endl;
+                return;
+        }
+
         int sizex = nmax.X - nmin.X + 1;
         int sizey = nmax.Y - nmin.Y + 1;
         // Because this ore uses 3D noise the noisemap Y size can be different in

@@ -174,7 +174,14 @@ float BiomeGenOriginal::calcHumidityAtPoint(v3s16 pos) const
 
 Biome *BiomeGenOriginal::calcBiomeAtPoint(v3s16 pos) const
 {
-        return calcBiomeFromNoise(calcHeatAtPoint(pos), calcHumidityAtPoint(pos), pos);
+        float heat = calcHeatAtPoint(pos);
+        float humidity = calcHumidityAtPoint(pos);
+        // If heat or humidity are NaN (e.g. from corrupt noise parameters),
+        // return the default biome instead of propagating NaN through
+        // calcBiomeFromNoise which would cause incorrect results.
+        if (std::isnan(heat) || std::isnan(humidity))
+                return (Biome *)m_bmgr->getRaw(BIOME_NONE);
+        return calcBiomeFromNoise(heat, humidity, pos);
 }
 
 
@@ -196,6 +203,13 @@ void BiomeGenOriginal::calcBiomeNoise(v3s16 pmin)
 
 biome_t *BiomeGenOriginal::getBiomes(s16 *heightmap, v3s16 pmin)
 {
+        // Safety check: if no biomes are registered (beyond the default),
+        // fill the biomemap with BIOME_NONE and return early.
+        if (m_bmgr->getNumObjects() <= 1) {
+                memset(biomemap, 0, sizeof(biome_t) * m_csize.X * m_csize.Z);
+                return biomemap;
+        }
+
         for (s16 zr = 0; zr < m_csize.Z; zr++)
         for (s16 xr = 0; xr < m_csize.X; xr++) {
                 s32 i = zr * m_csize.X + xr;
