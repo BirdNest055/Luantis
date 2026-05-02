@@ -31,14 +31,6 @@ namespace con
         #define PROFILE(a) a
 #endif
 
-// NOTE: The LOG(a) macro is a passthrough — LOG(x) is equivalent to just x.
-// It should be removed: inline all LOG(stream << ...) calls as direct stream
-// writes. To migrate:
-//   1. Search for all LOG( usage in src/network/mtp/
-//   2. Replace LOG(verbosestream << ...) with verbosestream << ...
-//   3. Replace LOG(dout_con << ...) with dout_con << ...
-//   4. Delete this #define and the identical one in threads.cpp
-#define LOG(a) a
 
 #define PING_INTERVAL 5.0f
 
@@ -172,10 +164,10 @@ SharedBuffer<u8> makeReliablePacket(const SharedBuffer<u8> &data, u16 seqnum)
 void ReliablePacketBuffer::print()
 {
         MutexAutoLock listlock(m_list_mutex);
-        LOG(dout_con<<"Dump of ReliablePacketBuffer:" << std::endl);
+        dout_con<<"Dump of ReliablePacketBuffer:" << std::endl;
         unsigned int index = 0;
         for (BufferedPacketPtr &packet : m_list) {
-                LOG(dout_con<<index<< ":" << packet->getSeqnum() << std::endl);
+                dout_con<<index<< ":" << packet->getSeqnum() << std::endl;
                 index++;
         }
 }
@@ -232,8 +224,8 @@ BufferedPacketPtr ReliablePacketBuffer::popSeqnum(u16 seqnum)
         MutexAutoLock listlock(m_list_mutex);
         auto r = findPacketNoLock(seqnum);
         if (r == m_list.end()) {
-                LOG(dout_con<<"Sequence number: " << seqnum
-                                << " not found in reliable buffer"<<std::endl);
+                dout_con<<"Sequence number: " << seqnum
+                                << " not found in reliable buffer"<<std::endl;
                 throw NotFoundException("seqnum not found in buffer");
         }
 
@@ -528,9 +520,9 @@ SharedBuffer<u8> IncomingSplitBuffer::insert(BufferedPacketPtr &p_ptr, bool reli
                 return SharedBuffer<u8>();
         }
         if (reliable != sp->reliable)
-                LOG(derr_con<<"Connection: WARNING: reliable="<<reliable
+                derr_con<<"Connection: WARNING: reliable="<<reliable
                                 <<" != sp->reliable="<<sp->reliable
-                                <<std::endl);
+                                <<std::endl;
 
         // Cut chunk data out of packet
         u32 chunkdatasize = p.size() - headersize;
@@ -569,7 +561,7 @@ void IncomingSplitBuffer::removeUnreliableTimedOuts(float dtime, float timeout)
                 }
         }
         for (u16 j : remove_queue) {
-                LOG(dout_con<<"NOTE: Removing timed out unreliable split packet"<<std::endl);
+                dout_con<<"NOTE: Removing timed out unreliable split packet"<<std::endl;
                 auto it = m_buf.find(j);
                 delete it->second;
                 m_buf.erase(it);
@@ -1099,21 +1091,21 @@ void UDPPeer::PutReliableSendCommand(ConnectionCommandPtr &c,
         if (chan.queued_commands.empty() &&
                         /* don't queue more packets then window size */
                         (chan.queued_reliables.size() + 1 < chan.getWindowSize() / 2)) {
-                LOG(dout_con<<m_connection->getDesc()
+                dout_con<<m_connection->getDesc()
                                 <<" processing reliable command for peer id: " << c->peer_id
-                                <<" data size: " << c->data.getSize() << std::endl);
+                                <<" data size: " << c->data.getSize() << std::endl;
                 if (processReliableSendCommand(c, max_packet_size))
                         return;
         } else {
-                LOG(dout_con<<m_connection->getDesc()
+                dout_con<<m_connection->getDesc()
                                 <<" Queueing reliable command for peer id: " << c->peer_id
-                                <<" data size: " << c->data.getSize() <<std::endl);
+                                <<" data size: " << c->data.getSize() <<std::endl;
 
                 if (chan.queued_commands.size() + 1 >= chan.getWindowSize() / 2) {
-                        LOG(derr_con << m_connection->getDesc()
+                        derr_con << m_connection->getDesc()
                                         << "Possible packet stall to peer id: " << c->peer_id
                                         << " queued_commands=" << chan.queued_commands.size()
-                                        << std::endl);
+                                        << std::endl;
                 }
         }
         chan.queued_commands.push_back(c);
@@ -1183,11 +1175,11 @@ bool UDPPeer::processReliableSendCommand(
                 while (!toadd.empty()) {
                         BufferedPacketPtr p = toadd.front();
                         toadd.pop();
-//                      LOG(dout_con<<connection->getDesc()
+//                      dout_con<<connection->getDesc()
 //                                      << " queuing reliable packet for peer_id: " << c.peer_id
 //                                      << " channel: " << (c.channelnum&0xFF)
 //                                      << " seqnum: " << readU16(&p.data[BASE_HEADER_SIZE+1])
-//                                      << std::endl)
+//                                      << std::endl
                         // Queue size limit: drop oldest if queue exceeds 1000 packets
                         if (chan.queued_reliables.size() >= 1000) {
                                 warningstream << "Channel::putPacket: Outgoing reliable queue full ("
@@ -1222,7 +1214,7 @@ bool UDPPeer::processReliableSendCommand(
 
         u32 n_queued = chan.outgoing_reliables_sent.size();
 
-        LOG(dout_con<<m_connection->getDesc()
+        dout_con<<m_connection->getDesc()
                         << " Windowsize exceeded on reliable sending "
                         << c.data.getSize() << " bytes"
                         << std::endl << "\t\tinitial_sequence_number: "
@@ -1231,7 +1223,7 @@ bool UDPPeer::processReliableSendCommand(
                         << packets_available << " packets"
                         << std::endl << "\t\tpackets queued         : "
                         << n_queued
-                        << std::endl);
+                        << std::endl;
 
         return false;
 }
@@ -1248,17 +1240,17 @@ void UDPPeer::RunCommandQueues(
                         try {
                                 ConnectionCommandPtr c = channel.queued_commands.front();
 
-                                LOG(dout_con << m_connection->getDesc()
-                                                << " processing queued reliable command " << std::endl);
+                                dout_con << m_connection->getDesc()
+                                                << " processing queued reliable command " << std::endl;
 
                                 // Packet is processed, remove it from queue
                                 if (processReliableSendCommand(c, max_packet_size)) {
                                         channel.queued_commands.pop_front();
                                 } else {
-                                        LOG(dout_con << m_connection->getDesc()
+                                        dout_con << m_connection->getDesc()
                                                         << " Failed to queue packets for peer_id: " << c->peer_id
                                                         << ", delaying sending of " << c->data.getSize()
-                                                        << " bytes" << std::endl);
+                                                        << " bytes" << std::endl;
                                 }
                         }
                         catch (ItemNotFoundException &e) {
@@ -1543,8 +1535,8 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
                 const ConnectionEvent &e = *e_ptr;
 
                 if (e.type != CONNEVENT_NONE) {
-                        LOG(dout_con << getDesc() << ": Receive: got event: "
-                                        << e.describe() << std::endl);
+                        dout_con << getDesc() << ": Receive: got event: "
+                                        << e.describe() << std::endl;
                 }
 
                 switch (e.type) {
@@ -1712,8 +1704,8 @@ session_t Connection::createPeer(const Address &sender, int fd)
         m_peers[peer->id] = peer;
         m_peer_ids.push_back(peer->id);
 
-        LOG(dout_con << getDesc()
-                        << "createPeer(): giving peer_id=" << peer_id_new << std::endl);
+        dout_con << getDesc()
+                        << "createPeer(): giving peer_id=" << peer_id_new << std::endl;
 
         {
                 Buffer<u8> reply(4);
@@ -1954,10 +1946,10 @@ void Connection::sendAck(session_t peer_id, u8 channelnum, u16 seqnum)
 {
         assert(channelnum < CHANNEL_COUNT); // Pre-condition
 
-        LOG(dout_con<<getDesc()
+        dout_con<<getDesc()
                         <<" Queuing ACK command to peer_id: " << peer_id <<
                         " channel: " << (channelnum & 0xFF) <<
-                        " seqnum: " << seqnum << std::endl);
+                        " seqnum: " << seqnum << std::endl;
 
         SharedBuffer<u8> ack(4);
         writeU8(&ack[0], PACKET_TYPE_CONTROL);

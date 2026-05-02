@@ -118,13 +118,7 @@ static void ensureTraceFileOpen()
 
         // If no path was explicitly set, create one alongside debug.txt
         if (!g_trace_path_set) {
-                std::string path_user;
-                try {
-                        path_user = porting::path_user;
-                } catch (...) {
-                        // If porting::path_user isn't available yet, fall back to /tmp
-                        path_user = "/tmp";
-                }
+                std::string path_user = porting::path_user;
 
                 if (!path_user.empty()) {
                         g_trace_path = path_user + DIR_DELIM + "encryption_trace.log";

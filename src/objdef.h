@@ -12,7 +12,7 @@
 class IGameDef;
 class NodeDefManager;
 
-#define OBJDEF_INVALID_INDEX ((u32)(-1))
+#define OBJDEF_INVALID_INDEX static_cast<u32>(-1)
 #define OBJDEF_INVALID_HANDLE 0
 #define OBJDEF_HANDLE_SALT 0x00585e6fu
 #define OBJDEF_MAX_ITEMS (1 << 18)

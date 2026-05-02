@@ -4,6 +4,7 @@
 
 #include "database-sqlite3.h"
 
+#include "debug.h"
 #include "log.h"
 #include "filesys.h"
 #include "exceptions.h"
@@ -161,7 +162,7 @@ void Database_SQLite3::verifyDatabase()
 
 bool Database_SQLite3::checkTable(const char *table)
 {
-        assert(m_database);
+        sanity_check(m_database);
 
         // PRAGMA table_list would be cleaner here but it was only introduced in
         // sqlite 3.37.0 (2021-11-27).
@@ -179,7 +180,7 @@ bool Database_SQLite3::checkTable(const char *table)
 
 bool Database_SQLite3::checkColumn(const char *table, const char *column)
 {
-        assert(m_database);
+        sanity_check(m_database);
 
         sqlite3_stmt *m_stmt_tmp = nullptr;
         auto query_str = std::string("PRAGMA table_info(").append(table).append(");");

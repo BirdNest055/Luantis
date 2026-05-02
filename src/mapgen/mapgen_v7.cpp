@@ -6,6 +6,7 @@
 
 #include "mapgen.h"
 #include <cmath>
+#include <memory>
 #include "voxel.h"
 #include "noise.h"
 #include "mapnode.h"
@@ -61,42 +62,42 @@ MapgenV7::MapgenV7(MapgenV7Params *params, EmergeParams *emerge)
         dungeon_ymax       = params->dungeon_ymax;
 
         // Allocate floatland noise offset cache
-        this->float_offset_cache = new float[csize.Y + 2];
+        float_offset_cache = std::make_unique<float[]>(csize.Y + 2);
 
         // 2D noise
         noise_terrain_base =
-                new Noise(&params->np_terrain_base,    seed, csize.X, csize.Z);
+                std::make_unique<Noise>(&params->np_terrain_base,    seed, csize.X, csize.Z);
         noise_terrain_alt =
-                new Noise(&params->np_terrain_alt,     seed, csize.X, csize.Z);
+                std::make_unique<Noise>(&params->np_terrain_alt,     seed, csize.X, csize.Z);
         noise_terrain_persist =
-                new Noise(&params->np_terrain_persist, seed, csize.X, csize.Z);
+                std::make_unique<Noise>(&params->np_terrain_persist, seed, csize.X, csize.Z);
         noise_height_select =
-                new Noise(&params->np_height_select,   seed, csize.X, csize.Z);
+                std::make_unique<Noise>(&params->np_height_select,   seed, csize.X, csize.Z);
         noise_filler_depth =
                 new Noise(&params->np_filler_depth,    seed, csize.X, csize.Z);
 
         if (spflags & MGV7_MOUNTAINS) {
                 // 2D noise
                 noise_mount_height =
-                        new Noise(&params->np_mount_height, seed, csize.X, csize.Z);
+                        std::make_unique<Noise>(&params->np_mount_height, seed, csize.X, csize.Z);
                 // 3D noise, 1 up, 1 down overgeneration
                 noise_mountain =
-                        new Noise(&params->np_mountain,     seed, csize.X, csize.Y + 2, csize.Z);
+                        std::make_unique<Noise>(&params->np_mountain,     seed, csize.X, csize.Y + 2, csize.Z);
         }
 
         if (spflags & MGV7_RIDGES) {
                 // 2D noise
                 noise_ridge_uwater =
-                        new Noise(&params->np_ridge_uwater, seed, csize.X, csize.Z);
+                        std::make_unique<Noise>(&params->np_ridge_uwater, seed, csize.X, csize.Z);
                 // 3D noise, 1 up, 1 down overgeneration
                 noise_ridge =
-                        new Noise(&params->np_ridge,        seed, csize.X, csize.Y + 2, csize.Z);
+                        std::make_unique<Noise>(&params->np_ridge,        seed, csize.X, csize.Y + 2, csize.Z);
         }
 
         if (spflags & MGV7_FLOATLANDS) {
                 // 3D noise, 1 up, 1 down overgeneration
                 noise_floatland =
-                        new Noise(&params->np_floatland,    seed, csize.X, csize.Y + 2, csize.Z);
+                        std::make_unique<Noise>(&params->np_floatland,    seed, csize.X, csize.Y + 2, csize.Z);
         }
 
         // 3D noise, 1 down overgeneration
@@ -108,30 +109,13 @@ MapgenV7::MapgenV7(MapgenV7Params *params, EmergeParams *emerge)
 }
 
 
-MapgenV7::~MapgenV7()
-{
-        delete noise_terrain_base;
-        delete noise_terrain_alt;
-        delete noise_terrain_persist;
-        delete noise_height_select;
-        delete noise_filler_depth;
+// Destructor: V7-specific Noise members are std::unique_ptr (auto-cleaned).
+// float_offset_cache is std::unique_ptr<float[]> (auto-cleaned).
+// noise_filler_depth is owned by base class MapgenBasic.
+MapgenV7::~MapgenV7() = default;
 
-        if (spflags & MGV7_MOUNTAINS) {
-                delete noise_mount_height;
-                delete noise_mountain;
-        }
 
-        if (spflags & MGV7_RIDGES) {
-                delete noise_ridge_uwater;
-                delete noise_ridge;
-        }
 
-        if (spflags & MGV7_FLOATLANDS) {
-                delete noise_floatland;
-        }
-
-        delete []float_offset_cache;
-}
 
 
 MapgenV7Params::MapgenV7Params():

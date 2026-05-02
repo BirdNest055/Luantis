@@ -405,7 +405,7 @@ MapBlock * ServerMap::createBlock(v3s16 p)
         try {
                 sector = createSector(p2d);
         } catch (InvalidPositionException &e) {
-                infostream<<"createBlock: createSector() failed"<<std::endl;
+                errorstream<<"createBlock: createSector() failed"<<std::endl;
                 throw e;
         }
 

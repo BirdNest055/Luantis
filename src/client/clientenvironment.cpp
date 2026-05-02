@@ -339,7 +339,7 @@ void ClientEnvironment::addActiveObject(u16 id, u8 type,
         std::unique_ptr<ClientActiveObject> obj =
                 ClientActiveObject::create((ActiveObjectType) type, m_client, this);
         if (!obj) {
-                infostream<<"ClientEnvironment::addActiveObject(): "
+                warningstream<<"ClientEnvironment::addActiveObject(): "
                         <<"id="<<id<<" type="<<type<<": Couldn't create object"
                         <<std::endl;
                 return;

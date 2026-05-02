@@ -64,6 +64,12 @@ Generated automatically from code comments.
 | FIX | 20 (v9.57 batch 38 — script API hardening) |
 | FIX | 27 (v9.57 batch 39 — client input & event safety) |
 | FIX | 8 (v9.57 build fix — std::min/max type mismatches, missing includes, container type fixes) |
+| FIX | 10 (v9.57 batch 40 — RAII & smart pointer improvements: MapgenV7 unique_ptr, FileCloser RAII, ALLOW_CLASS_MOVE noexcept, ModifySafeMap sanity_check) |
+| FIX | 9 (v9.57 batch 41 — error handling & exception safety: assert→FATAL_ERROR, catch-all handler, logged exceptions, destructor safety) |
+| FIX | 2 (v9.57 batch 42 — lock ordering & deadlock prevention: Settings::operator= std::lock, RemoteClient leak warning) |
+| FIX | 4 (v9.57 batch 43 — type safety & casting: reinterpret_cast→static_cast, C-style cast→static_cast, OBJDEF_INVALID_INDEX) |
+| FIX | 15 (v9.57 batch 44 — logging & diagnostic improvements: wrong log levels, LOG() macro removal, derr_con→dout_con) |
+| FIX | 4 (v9.57 batch 45 — additional safety: RAII porting.cpp, encryption_trace catch cleanup, rollback destructor, servermap logging) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 

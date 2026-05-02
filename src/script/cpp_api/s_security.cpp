@@ -672,9 +672,17 @@ bool ScriptApiSecurity::safeLoadString(lua_State *L, std::string_view code, cons
         return true;
 }
 
+namespace {
+struct FileCloser {
+        void operator()(FILE *f) const { if (f) std::fclose(f); }
+};
+} // namespace
+
 bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char *display_name)
 {
-        FILE *fp;
+        FILE *fp_raw = nullptr;
+        // RAII guard: auto-closes the file on any return path (except stdin)
+        std::unique_ptr<FILE, FileCloser> fp_guard;
         // Batch 35: Use unique_ptr for heap-allocated chunk_name to prevent leak on
         // early return paths (e.g. if fseek or fread fails). The old raw pointer
         // required manual delete[] on every exit path.
@@ -683,14 +691,16 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
         if (!display_name)
                 display_name = path;
         if (!path) {
-                fp = stdin;
+                fp_raw = stdin;
+                // fp_guard not set — stdin must never be closed
                 chunk_name = "=stdin";
         } else {
-                fp = std::fopen(path, "rb");
-                if (!fp) {
+                fp_raw = std::fopen(path, "rb");
+                if (!fp_raw) {
                         lua_pushfstring(L, "%s: %s", path, strerror(errno));
                         return false;
                 }
+                fp_guard.reset(fp_raw); // now auto-closed on any return path
                 size_t len = strlen(display_name) + 2;
                 chunk_name_owned.reset(new char[len]);
                 snprintf(chunk_name_owned.get(), len, "@%s", display_name);
@@ -698,38 +708,31 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
         }
 
         size_t start = 0;
-        int c = std::getc(fp);
+        int c = std::getc(fp_raw);
         if (c == '#') {
                 // Skip the shebang line (but keep line-ending)
                 while (c != EOF && c != '\n')
-                        c = std::getc(fp);
-                start = std::ftell(fp) - 1;
+                        c = std::getc(fp_raw);
+                start = std::ftell(fp_raw) - 1;
         }
 
         // Read the file
-        int ret = std::fseek(fp, 0, SEEK_END);
+        int ret = std::fseek(fp_raw, 0, SEEK_END);
         if (ret) {
                 lua_pushfstring(L, "%s: %s", path, strerror(errno));
-                if (path) {
-                        std::fclose(fp);
-                }
                 return false;
         }
 
-        size_t size = std::ftell(fp) - start;
+        size_t size = std::ftell(fp_raw) - start;
         std::string code(size, '\0');
-        ret = std::fseek(fp, start, SEEK_SET);
+        ret = std::fseek(fp_raw, start, SEEK_SET);
         if (ret) {
                 lua_pushfstring(L, "%s: %s", path, strerror(errno));
-                if (path) {
-                        std::fclose(fp);
-                }
                 return false;
         }
 
-        size_t num_read = std::fread(&code[0], 1, size, fp);
-        if (path)
-                std::fclose(fp);
+        size_t num_read = std::fread(&code[0], 1, size, fp_raw);
+        // fp_guard auto-closes the file (if it was opened, not stdin)
         if (num_read != size) {
                 lua_pushliteral(L, "Error reading file to load.");
                 return false;

@@ -3,6 +3,7 @@
 // Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
 
 #include "map.h"
+#include "debug.h"
 #include "mapsector.h"
 #include "mapblock.h"
 #include "voxel.h"
@@ -807,7 +808,7 @@ MMVManip::MMVManip(Map *map):
 MMVManip::~MMVManip()
 {
         for (auto **ref_ref : m_tracked_refs) {
-                assert(*ref_ref == this);
+                sanity_check(*ref_ref == this);
                 *ref_ref = nullptr;
         }
 }

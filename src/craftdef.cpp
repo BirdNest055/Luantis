@@ -4,6 +4,7 @@
 
 #include "craftdef.h"
 
+#include "debug.h"
 #include "irrlichttypes.h"
 #include "log.h"
 #include <sstream>
@@ -61,7 +62,7 @@ static u64 getHashForGrid(CraftHashType type, const std::vector<std::string> &gr
                         return 0;
         }
         // invalid CraftHashType
-        assert(false);
+        FATAL_ERROR("Invalid CraftHashType");
         return 0;
 }
 
@@ -893,7 +894,7 @@ u64 CraftDefinitionCooking::getHash(CraftHashType type) const
         }
 
         // illegal hash type for this CraftDefinition (pre-condition)
-        assert(false);
+        FATAL_ERROR("Invalid CraftHashType for CraftDefinitionCooking");
         return 0;
 }
 
@@ -996,7 +997,7 @@ u64 CraftDefinitionFuel::getHash(CraftHashType type) const
         }
 
         // illegal hash type for this CraftDefinition (pre-condition)
-        assert(false);
+        FATAL_ERROR("Invalid CraftHashType for CraftDefinitionFuel");
         return 0;
 }
 

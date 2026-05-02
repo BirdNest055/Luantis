@@ -4108,7 +4108,7 @@ std::string Server::getBuiltinLuaPath()
 void Server::setAsyncFatalError(const std::string &error)
 {
         // print error right here in the thread that set it, for clearer logging
-        infostream << "setAsyncFatalError: " << error << std::endl;
+        errorstream << "setAsyncFatalError: " << error << std::endl;
 
         m_async_fatal_error.set(error);
 

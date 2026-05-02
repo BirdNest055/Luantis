@@ -72,6 +72,14 @@ RemoteClient::RemoteClient() :
 {
 }
 
+RemoteClient::~RemoteClient()
+{
+        if (!m_known_objects.empty()) {
+                warningstream << "RemoteClient::~RemoteClient(): m_known_objects not empty ("
+                        << m_known_objects.size() << " objects leaked)" << std::endl;
+        }
+}
+
 void RemoteClient::ResendBlockIfOnWire(v3s16 p)
 {
         // if this block is on wire, mark it for sending again as soon as possible
@@ -759,7 +767,7 @@ void ClientInterface::step(float dtime)
                         float rtt = 0;
                         try {
                                 rtt = m_con->getPeerStat(it.second->peer_id, con::AVG_RTT);
-                        } catch (...) {}
+                        } catch (...) { infostream << "Server: getPeerStat exception for peer_id=" << it.second->peer_id << std::endl; }
                         // If RTT is negative (peer gone) and uptime > 60s, force disconnect
                         if (rtt < 0 && uptime > UNRESPONSIVE_TIMEOUT_S) {
                                 warningstream << "Force disconnecting unresponsive client peer_id="

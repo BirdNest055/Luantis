@@ -136,8 +136,9 @@ Settings & Settings::operator=(const Settings &other)
         FATAL_ERROR_IF(m_hierarchy || other.m_hierarchy,
                 "Cannot copy or overwrite Settings object that belongs to a hierarchy");
 
-        MutexAutoLock lock(m_mutex);
-        MutexAutoLock lock2(other.m_mutex);
+        std::lock(m_mutex, other.m_mutex);
+        MutexAutoLock lock(m_mutex, std::adopt_lock);
+        MutexAutoLock lock2(other.m_mutex, std::adopt_lock);
 
         clearNoLock();
         m_settings = other.m_settings;

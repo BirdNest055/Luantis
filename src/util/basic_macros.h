@@ -15,21 +15,21 @@
 
 // Requires <algorithm>
 #define SORT_AND_UNIQUE(c) do { \
-	std::sort((c).begin(), (c).end()); \
-	(c).erase(std::unique((c).begin(), (c).end()), (c).end()); \
-	} while (0)
+        std::sort((c).begin(), (c).end()); \
+        (c).erase(std::unique((c).begin(), (c).end()), (c).end()); \
+        } while (0)
 
 // To disable copy constructors and assignment operations for some class
 // 'Foobar', add the macro DISABLE_CLASS_COPY(Foobar) in the class definition.
 // Note this also disables copying for any classes derived from 'Foobar' as well
 // as classes having a 'Foobar' member.
 #define DISABLE_CLASS_COPY(C)        \
-	C(const C &) = delete;           \
-	C &operator=(const C &) = delete;
+        C(const C &) = delete;           \
+        C &operator=(const C &) = delete;
 
 // If you have used DISABLE_CLASS_COPY with a class but still want to permit moving
 // use this macro to add the default move constructors back.
-#define ALLOW_CLASS_MOVE(C)      \
-	C(C &&other) = default;      \
-	C &operator=(C &&) = default;
+#define ALLOW_CLASS_MOVE(C)          \
+        C(C &&other) noexcept = default;  \
+        C &operator=(C &&) noexcept = default;
 

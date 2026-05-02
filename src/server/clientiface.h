@@ -244,7 +244,7 @@ public:
         void setEncryptedPassword(const std::string& pwd);
 
         RemoteClient();
-        ~RemoteClient() = default;
+        ~RemoteClient();
 
         /*
                 Finds block that should be sent next to the client.

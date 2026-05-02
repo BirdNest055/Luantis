@@ -8,6 +8,7 @@
 #include "settings.h"
 #include "exceptions.h"
 #include "debug.h"
+#include "log.h"
 #include "filesys.h"
 #include "server/player_sao.h"
 #include "util/string.h"
@@ -49,7 +50,7 @@ void PlayerDatabaseFiles::deSerialize(RemotePlayer *p, std::istream &is,
 
                 try {
                         sao->setBasePosition(args.getV3F("position").value_or(v3f()));
-                } catch (SettingNotFoundException &e) {}
+                } catch (SettingNotFoundException &e) { infostream << "PlayerSAO: position not found, defaulting" << std::endl; }
 
                 try {
                         sao->setLookPitch(args.getFloat("pitch"));
@@ -78,7 +79,7 @@ void PlayerDatabaseFiles::deSerialize(RemotePlayer *p, std::istream &is,
                                 sao->getMeta().setString(it, attr_value.asString());
                         }
                         sao->getMeta().setModified(false);
-                } catch (SettingNotFoundException &e) {}
+                } catch (SettingNotFoundException &e) { infostream << "PlayerSAO: extended_attributes not found" << std::endl; }
         }
 
         try {

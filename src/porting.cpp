@@ -64,6 +64,7 @@
 #include <vector>
 #include <csignal>
 #include <cstdarg>
+#include <memory>
 #include <cstdio>
 #include <optional>
 #include <signal.h>
@@ -841,10 +842,10 @@ bool secure_rand_fill_buf(void *buf, size_t len)
         FILE *fp = fopen("/dev/urandom", "rb");
         if (!fp)
                 return false;
+        std::unique_ptr<FILE, decltype(&std::fclose)> fp_guard(fp, std::fclose);
 
-        bool success = fread(buf, len, 1, fp) == 1;
+        bool success = fread(buf, len, 1, fp_guard.get()) == 1;
 
-        fclose(fp);
         return success;
 }
 
