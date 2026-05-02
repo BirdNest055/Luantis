@@ -790,6 +790,10 @@ void Hud::drawStatbar(v2s32 pos, u16 corner, u16 drawdir,
 }
 void Hud::drawHotbar(const v2s32 &pos, const v2f &offset, u16 dir, const v2f &align)
 {
+        // Crash guard: player or inventory can be null during initialization/shutdown
+        if (!player || !inventory)
+                return;
+
         if (g_touchcontrols)
                 g_touchcontrols->resetHotbarRects();
 

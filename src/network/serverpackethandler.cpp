@@ -75,6 +75,25 @@ void Server::handleCommand_Init(NetworkPacket* pkt)
 
         client->setCachedAddress(addr);
 
+        // Rate limiter for connection attempts from the same IP
+        // Max 5 attempts per 10 seconds
+        {
+                u64 now_s = porting::getTimeS();
+                auto &rl = m_connect_rate_limit[addr_s];
+                if (now_s - rl.window_start_s > 10) {
+                        rl.count = 0;
+                        rl.window_start_s = now_s;
+                }
+                rl.count++;
+                if (rl.count > 5) {
+                        warningstream << "Server: Rate limiting connection attempt from "
+                                << addr_s << " (" << rl.count << " in 10s)" << std::endl;
+                        DenyAccess(peer_id, SERVER_ACCESSDENIED_RATE_LIMIT,
+                                "Too many connection attempts, try again later");
+                        return;
+                }
+        }
+
         verbosestream << "Server: Got TOSERVER_INIT from " << addr_s <<
                 " (peer_id=" << peer_id << ")" << std::endl;
 
@@ -603,6 +622,23 @@ void Server::handleCommand_DeletedBlocks(NetworkPacket* pkt)
 void Server::handleCommand_InventoryAction(NetworkPacket* pkt)
 {
         session_t peer_id = pkt->getPeerId();
+
+        // Rate limiter for inventory actions: max 10 per second per player
+        {
+                u64 now_s = porting::getTimeS();
+                auto &rl = m_inventory_rate_limit[peer_id];
+                if (now_s - rl.second > 1) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 10) {
+                        warningstream << "Server: Rate limiting inventory actions for peer_id="
+                                << peer_id << " (" << rl.first << " in 1s)" << std::endl;
+                        return;
+                }
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;

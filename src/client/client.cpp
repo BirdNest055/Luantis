@@ -639,6 +639,18 @@ void Client::step(float dtime)
 
         ReceiveAll();
 
+        // Connection timeout check: if no packets received for 30 seconds,
+        // trigger a disconnect with a timeout message
+        m_last_packet_received_time += dtime;
+        if (m_state != LC_Created && m_last_packet_received_time > 30.0f) {
+                errorstream << "Client: Connection timeout - no packets received for "
+                        << m_last_packet_received_time << "s" << std::endl;
+                m_access_denied = true;
+                m_access_denied_reason = "Connection timed out (no packets received for 30s)";
+                m_state = LC_Initialized; // trigger disconnect handling
+                return;
+        }
+
         /*
                 Packet counter
         */
@@ -1224,6 +1236,7 @@ void Client::ReceiveAll()
                 try {
                         if (!m_con->TryReceive(&pkt))
                                 break;
+                        m_last_packet_received_time = 0.0f; // Reset timeout on packet received
                         ProcessData(&pkt);
                 } catch (const con::InvalidIncomingDataException &e) {
                         infostream << "Client::ReceiveAll(): "
@@ -1920,6 +1933,11 @@ void Client::initVoiceChat()
 
 void Client::sendPlayerPos()
 {
+        // Rate limiter: don't send position updates more than 20 times per second
+        if (m_playerpos_send_timer > 0 && m_playerpos_send_timer < 0.05f) {
+                return;
+        }
+
         LocalPlayer *player = m_env.getLocalPlayer();
         if (!player)
                 return;

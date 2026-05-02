@@ -1671,9 +1671,15 @@ video::SMaterial &DrawDescriptor::getMaterial()
 u32 DrawDescriptor::draw(video::IVideoDriver* driver)
 {
         if (m_use_partial_buffer) {
+                // Crash guard: partial buffer can be null if mesh was invalidated
+                if (!m_partial_buffer)
+                        return 0;
                 m_partial_buffer->draw(driver);
                 return m_partial_buffer->getBuffer()->getVertexCount();
         } else {
+                // Crash guard: mesh buffer can be null if scene node was removed
+                if (!m_buffer)
+                        return 0;
                 driver->drawMeshBuffer(m_buffer);
                 return m_buffer->getVertexCount();
         }

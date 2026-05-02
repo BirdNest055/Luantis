@@ -542,6 +542,11 @@ void LuaEntitySAO::sendPosition(bool do_interpolate, bool is_movement_end)
         if(isAttached())
                 return;
 
+        // Minimum interval check: don't send position updates more often than every 50ms
+        if (m_last_sent_position_timer < 0.05f && !is_movement_end) {
+                return;
+        }
+
         // Send attachment updates instantly to the client prior updating position
         sendOutdatedData();
 

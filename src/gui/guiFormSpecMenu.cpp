@@ -2950,6 +2950,10 @@ void GUIFormSpecMenu::parseElement(parserData* data, const std::string &element)
         if (element.empty())
                 return;
 
+        // Crash guard: malformed formspecs can have no bracket, causing invalid substr
+        if (element.size() < 2)
+                return;
+
         if (parseVersionDirect(element))
                 return;
 
@@ -3482,6 +3486,10 @@ void GUIFormSpecMenu::drawSelectedItem()
 
 void GUIFormSpecMenu::drawMenu()
 {
+        // Crash guard: m_tsrc and m_client must be valid for drawing
+        if (!m_tsrc || !m_client)
+                return;
+
         if (m_form_src) {
                 const std::string &newform = m_form_src->getForm();
                 if (newform != m_formspec_string) {

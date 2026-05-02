@@ -938,6 +938,9 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                                 unreliable_data.clear();
                                 RemoteClient *client = client_it.second;
                                 PlayerSAO *player = getPlayerSAO(client->peer_id);
+                                // Crash guard: player SAO can be null if client disconnected
+                                if (!player)
+                                        continue;
                                 // Go through all objects in message buffer
                                 for (const auto &buffered_message : buffered_messages) {
                                         // If object does not exist or is not known by client, skip it
@@ -2077,6 +2080,12 @@ void Server::SendTimeOfDay(session_t peer_id, u16 time, f32 time_speed)
                 m_clients.sendToAll(&pkt);
         }
         else {
+                // Crash guard: verify peer exists before sending
+                if (!m_clients.getClientNoEx(peer_id)) {
+                        warningstream << "Server::SendTimeOfDay(): peer_id="
+                                << peer_id << " not found, skipping." << std::endl;
+                        return;
+                }
                 Send(&pkt);
         }
 }
@@ -2538,6 +2547,10 @@ void Server::SendBlockNoLock(session_t peer_id, MapBlock *block, u8 ver,
                 u16 net_proto_version, SerializedBlockCache *cache)
 {
         thread_local const int net_compression_level = rangelim(g_settings->getS16("map_compression_level_net"), -1, 9);
+        // Sanity check: compression level must be -1 (default) or 0-9
+        int compression_level = net_compression_level;
+        if (compression_level != -1)
+                compression_level = rangelim(compression_level, 0, 9);
         std::string s, *sptr = nullptr;
 
         if (cache) {
@@ -2549,7 +2562,7 @@ void Server::SendBlockNoLock(session_t peer_id, MapBlock *block, u8 ver,
         // Serialize the block in the right format
         if (!sptr) {
                 std::ostringstream os(std::ios_base::binary);
-                block->serialize(os, ver, false, net_compression_level);
+                block->serialize(os, ver, false, compression_level);
                 block->serializeNetworkSpecific(os);
                 s = os.str();
                 sptr = &s;

@@ -172,6 +172,7 @@ ScriptApiBase::ScriptApiBase(ScriptingType type):
 ScriptApiBase::~ScriptApiBase()
 {
         lua_close(m_luastack);
+        m_luastack = nullptr; // Prevent double-close and dangling pointer
 }
 
 int ScriptApiBase::luaPanic(lua_State *L)

@@ -330,6 +330,15 @@ void MeshUpdateWorkerThread::doUpdate()
                 // This generates the mesh:
                 MapBlockMesh *mesh_new = new MapBlockMesh(m_client, q->data);
 
+                // Crash guard: mesh generation can fail under memory pressure
+                if (!mesh_new) {
+                        errorstream << "MeshUpdateWorkerThread::doUpdate(): "
+                                << "failed to allocate mesh for " << q->p << std::endl;
+                        m_queue_in->done(q->p);
+                        delete q;
+                        continue;
+                }
+
                 MeshUpdateResult r;
                 r.p = q->p;
                 r.mesh = std::unique_ptr<MapBlockMesh>(mesh_new);

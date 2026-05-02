@@ -547,6 +547,7 @@ private:
         float m_avg_rtt_timer = 0.0f;
         float m_playerpos_send_timer = 0.0f;
         int m_playerpos_repeat_count = 0;
+        float m_last_packet_received_time = 0.0f;
         IntervalLimiter m_map_timer_and_unload_interval;
 
         IWritableTextureSource *m_tsrc;

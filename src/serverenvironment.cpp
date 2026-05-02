@@ -1109,9 +1109,12 @@ void ServerEnvironment::step(float dtime)
         /*
                 Step script environment (run global on_step())
         */
-        m_script->environment_Step(dtime);
+        // Crash guard: m_script can be null during shutdown
+        if (m_script) {
+                m_script->environment_Step(dtime);
 
-        m_script->stepAsync();
+                m_script->stepAsync();
+        }
 
         /*
                 Step active objects

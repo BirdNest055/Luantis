@@ -416,6 +416,9 @@ scene::AnimatedMeshSceneNode *GenericCAO::getAnimatedMeshSceneNode() const
 
 void GenericCAO::setChildrenVisible(bool toset)
 {
+        // Crash guard: m_env can be null during shutdown
+        if (!m_env)
+                return;
         for (object_t cao_id : m_attachment_child_ids) {
                 GenericCAO *obj = m_env->getGenericCAO(cao_id);
                 if (obj) {
@@ -968,7 +971,9 @@ void GenericCAO::updateNodePos()
         scene::ISceneNode *node = getSceneNode();
 
         if (node) {
-                assert(m_matrixnode);
+                // Crash guard: m_matrixnode can be null if scene manager removed it
+                if (!m_matrixnode)
+                        return;
                 v3s16 camera_offset = m_env->getCameraOffset();
                 v3f pos = pos_translator.val_current -
                                 intToFloat(camera_offset, BS);

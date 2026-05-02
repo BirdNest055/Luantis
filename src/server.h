@@ -731,6 +731,16 @@ private:
         // Ban checking
         BanManager *m_banmanager = nullptr;
 
+        // Rate limiting for connection attempts per IP
+        struct ConnectionRateLimit {
+                u32 count = 0;
+                u64 window_start_s = 0;
+        };
+        std::unordered_map<std::string, ConnectionRateLimit> m_connect_rate_limit;
+
+        // Rate limiting for inventory actions per player
+        std::unordered_map<session_t, std::pair<u32, u64>> m_inventory_rate_limit;
+
         // Rollback manager (behind m_env_mutex)
         IRollbackManager *m_rollback = nullptr;
 

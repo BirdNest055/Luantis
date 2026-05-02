@@ -308,8 +308,21 @@ void ConnectionSendThread::runTimeouts(float dtime, u32 peer_packet_quota)
                         else
                                 m_iteration_packets_avaialble = 0;
 
-                        for (const auto &k : timed_outs)
+                        for (const auto &k : timed_outs) {
+                                // Max retry count for reliable packets: after 5 retries,
+                                // the connection is likely dead. Drop the packet and
+                                // let the peer timeout mechanism handle cleanup.
+                                constexpr u32 MAX_RELIABLE_RETRIES = 5;
+                                if (k->resend_count > MAX_RELIABLE_RETRIES) {
+                                        warningstream << m_connection->getDesc()
+                                                << " Dropping reliable packet after "
+                                                << k->resend_count << " retries, channel="
+                                                << ch << " seqnum=" << k->getSeqnum()
+                                                << " peer_id=" << udpPeer->id << std::endl;
+                                        continue;
+                                }
                                 resendReliable(channel, k.get(), resend_timeout);
+                        }
 
                         auto ws_old = channel.getWindowSize();
                         channel.UpdateTimers(dtime);
@@ -1187,6 +1200,8 @@ void ConnectionReceiveThread::receive(SharedBuffer<u8> &packetdata,
                                 " Ignoring." << std::endl);
                         return;
                 }
+                // Crash guard: sanity check channel index before array access
+                sanity_check(channelnum < CHANNEL_COUNT);
                 Channel *channel = &udpPeer->channels[channelnum];
 
                 channel->UpdateBytesReceived(received_size);

@@ -173,6 +173,13 @@ int ModApiEnv::l_set_node(lua_State *L)
 
         // parameters
         v3s16 pos = read_v3s16(L, 1);
+        // Crash guard: validate position within world bounds before setting
+        if (pos.X < -MAX_MAP_GENERATION_LIMIT || pos.X > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Y < -MAX_MAP_GENERATION_LIMIT || pos.Y > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Z < -MAX_MAP_GENERATION_LIMIT || pos.Z > MAX_MAP_GENERATION_LIMIT) {
+                lua_pushboolean(L, false);
+                return 1;
+        }
         MapNode n = readnode(L, 2);
         // Do it
         bool succeeded = env->setNode(pos, n);

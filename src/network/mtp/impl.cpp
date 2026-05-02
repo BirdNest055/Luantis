@@ -1157,6 +1157,14 @@ bool UDPPeer::processReliableSendCommand(
 //                                      << " channel: " << (c.channelnum&0xFF)
 //                                      << " seqnum: " << readU16(&p.data[BASE_HEADER_SIZE+1])
 //                                      << std::endl)
+                        // Queue size limit: drop oldest if queue exceeds 1000 packets
+                        if (chan.queued_reliables.size() >= 1000) {
+                                warningstream << "Channel::putPacket: Outgoing reliable queue full ("
+                                        << chan.queued_reliables.size()
+                                        << "), dropping oldest packet for peer_id="
+                                        << m_connection->GetPeerID() << std::endl;
+                                chan.queued_reliables.pop();
+                        }
                         chan.queued_reliables.push(p);
                 }
                 sanity_check(chan.queued_reliables.size() < 0xFFFF);
@@ -1277,6 +1285,13 @@ ConnectionEventPtr ConnectionEvent::create(ConnectionEventType type)
 
 ConnectionEventPtr ConnectionEvent::dataReceived(session_t peer_id, const Buffer<u8> &data)
 {
+        // Packet size limit: reject packets larger than 2MB
+        constexpr u32 MAX_EVENT_DATA_SIZE = 2 * 1024 * 1024;
+        if (data.getSize() > MAX_EVENT_DATA_SIZE) {
+                warningstream << "ConnectionEvent::dataReceived(): Rejecting oversized data ("
+                        << data.getSize() << " bytes) from peer_id=" << peer_id << std::endl;
+                return create(CONNEVENT_NONE);
+        }
         auto e = create(CONNEVENT_DATA_RECEIVED);
         e->peer_id = peer_id;
         data.copyTo(e->data);
@@ -1442,6 +1457,14 @@ ConnectionEventPtr Connection::waitEvent(u32 timeout_ms)
 void Connection::putCommand(ConnectionCommandPtr c)
 {
         if (!m_shutting_down) {
+                // Drop command if the send queue is overwhelmed (>1000 pending)
+                // to prevent unbounded memory growth under congestion
+                if (m_command_queue.size() > 1000) {
+                        warningstream << "Connection::putCommand(): Send queue full ("
+                                << m_command_queue.size() << " commands), dropping command type="
+                                << c->type << std::endl;
+                        return;
+                }
                 m_command_queue.push_back(c);
                 m_sendThread->Trigger();
         }
@@ -1504,6 +1527,15 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
                                 continue;
                         }
 
+                        // Packet size sanity check: reject packets larger than 2MB
+                        constexpr u32 MAX_RECV_PACKET_SIZE = 2 * 1024 * 1024;
+                        if (e.data.getSize() > MAX_RECV_PACKET_SIZE) {
+                                warningstream << "Receive: Dropping oversized packet ("
+                                        << e.data.getSize() << " bytes) from peer_id="
+                                        << e.peer_id << std::endl;
+                                continue;
+                        }
+
                         // Validate channel number is within bounds for received packets
                         if (e.data.getSize() > BASE_HEADER_SIZE) {
                                 u8 channel = readU8(&(*e.data)[6]);
@@ -1554,12 +1586,13 @@ void Connection::Send(session_t peer_id, u8 channelnum,
                 FATAL_ERROR(oss.str().c_str());
         }
 
-        // Bounds check for packet size to prevent oversized packets from
-        // causing issues in the reliable packet handler
-        if (pkt->getSize() > MAX_RELIABLE_WINDOW_SIZE * 512 * 2) {
-                errorstream << "Connection::Send(): Dropping oversized packet, peer_id="
-                        << peer_id << " command=" << pkt->getCommand()
-                        << " size=" << pkt->getSize() << std::endl;
+        // Packet size limit: reject packets larger than 2MB to prevent
+        // memory exhaustion and protocol abuse
+        constexpr u32 MAX_PACKET_SIZE_LIMIT = 2 * 1024 * 1024;
+        if (pkt->getSize() > MAX_PACKET_SIZE_LIMIT) {
+                errorstream << "Connection::Send(): Rejecting oversized packet ("
+                        << pkt->getSize() << " bytes > 2MB), peer_id=" << peer_id
+                        << " command=" << pkt->getCommand() << std::endl;
                 return;
         }
 

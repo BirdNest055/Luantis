@@ -745,6 +745,30 @@ void ClientInterface::step(float dtime)
                 } catch (con::PeerNotFoundException &e) {
                 }
         }
+
+        // Aggressive timeout for unresponsive clients:
+        // If a client hasn't responded to ACKs for 60 seconds, force disconnect.
+        constexpr u64 UNRESPONSIVE_TIMEOUT_S = 60;
+        for (const auto &it : m_clients) {
+                if (it.second->getState() < CS_Active)
+                        continue;
+                u64 uptime = it.second->uptime();
+                // Check if the connection peer has been unresponsive
+                try {
+                        float rtt = 0;
+                        try {
+                                rtt = m_con->getPeerStat(it.second->peer_id, con::AVG_RTT);
+                        } catch (...) {}
+                        // If RTT is negative (peer gone) and uptime > 60s, force disconnect
+                        if (rtt < 0 && uptime > UNRESPONSIVE_TIMEOUT_S) {
+                                warningstream << "Force disconnecting unresponsive client peer_id="
+                                        << it.second->peer_id << " (no RTT data for "
+                                        << uptime << "s)" << std::endl;
+                                m_con->DisconnectPeer(it.second->peer_id);
+                        }
+                } catch (con::PeerNotFoundException &e) {
+                }
+        }
 }
 
 void ClientInterface::UpdatePlayerList()
@@ -856,6 +880,11 @@ void ClientInterface::DeleteClient(session_t peer_id)
         // the map entry is corrupt. This should never happen.
         FATAL_ERROR_IF(n->second->peer_id != peer_id,
                 "ClientInterface::DeleteClient(): peer_id mismatch, possible double-removal");
+
+        // Mark client as disconnecting to prevent concurrent operations
+        // while we clean up. The mutex above prevents concurrent DeleteClient
+        // calls, but other threads may still hold references.
+        n->second->notifyEvent(CSE_Disconnect);
 
         /*
                 Mark objects to be not known by the client

@@ -342,6 +342,20 @@ std::string PlayerSAO::generateUpdatePhysicsOverrideCommand() const
 
 void PlayerSAO::setBasePosition(v3f position)
 {
+        // Anti-teleport check: warn if position changes by more than 100 nodes
+        // in a single update without a corresponding server teleport command
+        if (m_env && m_time_from_last_teleport > 5.0f) {
+                v3f old_pos = getBasePosition();
+                float dist = (position - old_pos).getLength() / BS;
+                if (dist > 100.0f && old_pos.getLength() > 0.01f) {
+                        warningstream << "PlayerSAO::setBasePosition(): Large position jump ("
+                                << dist << " nodes) for player " << m_player_name
+                                << " without teleport command. old="
+                                << (old_pos / BS) << " new=" << (position / BS)
+                                << std::endl;
+                }
+        }
+
         if (m_player && position != getBasePosition())
                 m_player->setDirty(true);
 

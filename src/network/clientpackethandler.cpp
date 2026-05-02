@@ -751,6 +751,26 @@ void Client::handleCommand_BlockData(NetworkPacket* pkt)
         v3s16 p;
         *pkt >> p;
 
+        // Block position validation: reject blocks that are too far from
+        // the local player (more than 200 blocks away). This prevents a
+        // malicious server from sending arbitrary far-away blocks.
+        {
+                LocalPlayer *player = m_env.getLocalPlayer();
+                if (player) {
+                        v3f player_pos_f = player->getPosition();
+                        v3s16 player_block = getNodeBlockPos(floatToInt(player_pos_f, BS));
+                        s32 max_dist = 200; // blocks
+                        if (std::abs(p.X - player_block.X) > max_dist ||
+                                        std::abs(p.Y - player_block.Y) > max_dist ||
+                                        std::abs(p.Z - player_block.Z) > max_dist) {
+                                warningstream << "Client: Rejecting block at " << p
+                                        << " (too far from player at " << player_block
+                                        << ", distance > " << max_dist << " blocks)" << std::endl;
+                                return;
+                        }
+                }
+        }
+
         std::string datastring(pkt->getRemainingString(), pkt->getRemainingBytes());
         std::istringstream istr(datastring, std::ios_base::binary);
 
@@ -931,12 +951,32 @@ void Client::handleCommand_ActiveObjectMessages(NetworkPacket* pkt)
         std::string datastring(pkt->getString(0), pkt->getSize());
         std::istringstream is(datastring, std::ios_base::binary);
 
+        // Message count limit per tick: if more than 1000 object messages,
+        // log a warning and discard extras to prevent DoS
+        constexpr u32 MAX_OBJECT_MESSAGES_PER_TICK = 1000;
+        u32 msg_count = 0;
+
         while (canRead(is)) {
+                if (msg_count >= MAX_OBJECT_MESSAGES_PER_TICK) {
+                        warningstream << "Client: Too many active object messages (>"
+                                << MAX_OBJECT_MESSAGES_PER_TICK << "), discarding extras"
+                                << std::endl;
+                        break;
+                }
+
                 u16 id = readU16(is);
                 std::string message = deSerializeString16(is);
 
+                // Crash guard: skip messages for invalid object IDs from the network
+                if (id == 0) {
+                        warningstream << "Client::handleCommand_ActiveObjectMessages(): "
+                                << "received message for invalid object id=0, ignoring." << std::endl;
+                        continue;
+                }
+
                 // Pass on to the environment
                 m_env.processActiveObjectMessage(id, message);
+                msg_count++;
         }
 }
 
