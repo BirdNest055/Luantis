@@ -1,7 +1,7 @@
 # AI Codebase Reference — Luanti-Secure Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-05-02 | **Project Version:** v9.56
+> **Last Updated:** 2026-05-03 | **Project Version:** v9.57
 
 ---
 
@@ -22,7 +22,7 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
 
 **Repository:** https://github.com/BirdNest055/Luantis
-**Current branch:** `clawtest-v9.56-fix-todo-items-b16-21`
+**Current branch:** `clawtest-v9.57-fix-todo-items-b22-27`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -42,11 +42,12 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 - **`clawtest-v9.53-guitheme-test-fix` branch:** GUITheme test improvements + drift detection
 - **`clawtest-v9.54-fix-todo-items` branch:** 140+ TODO/FIXME/compiler-warning/HACK fixes across 9 batches
 - **`clawtest-v9.55-fix-todo-items-2` branch:** 124 more TODO/FIXME/HACK fixes across 6 batches (10-15), zero TODO/FIXME/HACK markers remain in src/
-- **`clawtest-v9.56-fix-todo-items-b16-21` branch:** Current — 120+ improvements across batches 16-21: null safety, const-correctness, dead code cleanup, serialization, error handling, network safety. Build tested: server compiles cleanly.
+- **`clawtest-v9.56-fix-todo-items-b16-21` branch:** 120+ improvements across batches 16-21: null safety, const-correctness, dead code cleanup, serialization, error handling, network safety. Build tested: server compiles cleanly.
+- **`clawtest-v9.57-fix-todo-items-b22-27` branch:** Current — 120+ improvements across batches 22-27: crash prevention, memory safety/RAII, protocol robustness, Lua API safety, mapgen correctness, I/O hardening. Build tested: server compiles with zero errors.
 
-**Commit on clawtest-v9.56:**
+**Commit on clawtest-v9.57:**
 ```
-docs: Update TODO_FIXME_LIST, ai-agent-instructions, ai-codebase-reference for v9.56
+docs: Update TODO_FIXME_LIST, ai-agent-instructions, ai-codebase-reference for v9.57
 ```
 
 ---
@@ -339,6 +340,7 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.54 | `clawtest-v9.54-fix-todo-items` | 140+ TODO/FIXME/HACK fixes across 9 batches — compiler warnings (7), dead code/typos (5), FIXME/TODO resolution (9+20+20+22+20+3+18+25+23), functional fixes (static_text override color) |
 | v9.55 | `clawtest-v9.55-fix-todo-items-2` | 124 more TODO/FIXME/HACK fixes across batches 10-15 — script API, server, builtin/ Lua, irr/ Irrlicht, android, shaders, docs, games, util |
 | v9.56 | `clawtest-v9.56-fix-todo-items-b16-21` | 120+ improvements across batches 16-21 — null safety, const-correct overloads, dead code cleanup, serialization/safety, error handling, network safety, Wireshark dissector; build fix for const-correctness |
+| v9.57 | `clawtest-v9.57-fix-todo-items-b22-27` | 120+ improvements across batches 22-27 — crash prevention/null deref hardening, memory safety/RAII, protocol robustness/race conditions, Lua API safety/input validation, mapgen correctness/world integrity, I/O hardening/rendering safety; 3 build fixes |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager

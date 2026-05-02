@@ -1,7 +1,7 @@
 # AI Agent Instructions — Luanti-Secure Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-05-02 | **Applicable Versions:** v7, v8, v9.x, v9.24, v9.50+, v9.56, and all future development
+> **Last Updated:** 2026-05-03 | **Applicable Versions:** v7, v8, v9.x, v9.24, v9.50+, v9.56, v9.57, and all future development
 
 ---
 
@@ -116,13 +116,14 @@
 | `clawtest-v9.54-fix-todo-items` | TODO/FIXME resolution + compiler warning fixes (140+ items, 9 batches) | `clawtest-v9.53-guitheme-test-fix` |
 | `clawtest-v9.55-fix-todo-items-2` | TODO/FIXME/HACK round 2 (124 items, batches 10-15, zero markers in src/) | `clawtest-v9.54-fix-todo-items` |
 | `clawtest-v9.56-fix-todo-items-b16-21` | Code quality round 3 (120+ items, batches 16-21 — null safety, const-correctness, dead code, serialization, error handling) | `clawtest-v9.55-fix-todo-items-2` |
+| `clawtest-v9.57-fix-todo-items-b22-27` | Security & robustness round 4 (120+ items, batches 22-27 — crash prevention, memory safety, protocol robustness, Lua API safety, mapgen correctness, I/O hardening) | `clawtest-v9.56-fix-todo-items-b16-21` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.56-fix-todo-items-b16-21`
+- The current branch is `clawtest-v9.57-fix-todo-items-b22-27`
 
 ### 3.2 Commit Conventions
 
@@ -317,11 +318,11 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Luantis
-- **Current branch:** `clawtest-v9.56-fix-todo-items-b16-21`
-- **Previous branch:** `clawtest-v9.55-fix-todo-items-2`
+- **Current branch:** `clawtest-v9.57-fix-todo-items-b22-27`
+- **Previous branch:** `clawtest-v9.56-fix-todo-items-b16-21`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.56
+- **Current version:** v9.57
 
 ---
 

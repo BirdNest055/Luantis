@@ -43,6 +43,13 @@ Generated automatically from code comments.
 | FIX | 20 (v9.56 batch 20 — error handling & network safety) |
 | FIX | 1 (v9.56 batch 21 — inline helpers, cleanup, proposals) + 19 already done |
 | FIX | 5 (v9.56 build fix — const-correctness issues in l_mapgen, l_metadata, l_object, clientiface, areastore) |
+| FIX | 20 (v9.57 batch 22 — crash prevention & null deref hardening) |
+| FIX | 6 (v9.57 batch 23 — memory safety & RAII improvements) + 14 already-safe verifications |
+| FIX | 20 (v9.57 batch 24 — protocol robustness & race conditions) |
+| FIX | 19 (v9.57 batch 25 — Lua API safety & input validation) |
+| FIX | 20 (v9.57 batch 26 — mapgen correctness & world integrity) |
+| FIX | 20 (v9.57 batch 27 — I/O hardening & rendering safety) |
+| FIX | 3 (v9.57 build fix — compilation errors) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -427,6 +434,155 @@ Note: 19 other target items in this batch were already resolved by prior batches
 | `src/script/lua_api/l_object.cpp` | — | Const-correctness compile error | Fixed const qualifier on object API methods | Fixed |
 | `src/server/clientiface.h` | — | Const-correctness declaration mismatch | Fixed const qualifier in header declaration | Fixed |
 | `src/util/areastore.h` | — | Const-correctness declaration mismatch | Fixed const qualifier in header declaration | Fixed |
+
+## Luanti-Secure v9.57 Fixes (120+ items, batches 22-27 + build fix)
+
+These improvements were made during v9.57 development. Server compiles with zero errors.
+
+### Batch 22 — Crash Prevention & Null Deref Hardening (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/network/mtp/impl.cpp` | — | Null pointer dereference in connection timeout | Added null checks before accessing peer data | Fixed |
+| `src/network/mtp/threads.cpp` | — | Unchecked pointer in reliable packet resend | Added null guard before resend | Fixed |
+| `src/server/clientiface.cpp` | — | Null client pointer in broadcast | Added null check before accessing client | Fixed |
+| `src/server.cpp` | — | Null player SAO in packet handler | Added null guard for getPlayerSAO() | Fixed |
+| `src/client/client.cpp` | — | Unchecked pointer after dynamic_cast | Added null check after cast | Fixed |
+| `src/client/content_cao.cpp` | — | Null scene node in visual update | Added null guard before accessing scene node | Fixed |
+| `src/client/game.cpp` | — | Null camera pointer on first frame | Added null check before camera access | Fixed |
+| `src/script/lua_api/l_object.cpp` | — | Null ObjectRef in method calls | Added null guard for id-to-object lookup | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | Null mapblock in node access | Added null check before vmanip access | Fixed |
+| `src/inventory.cpp` | — | Null item in inventory list | Added null guard for list item access | Fixed |
+| `src/inventorymanager.cpp` | — | Null inventory pointer in move action | Added null check before inventory operation | Fixed |
+| `src/mapgen/mapgen.cpp` | — | Null biome in terrain generation | Added null guard for biome lookup | Fixed |
+| `src/mapgen/cavegen.cpp` | — | Null node in cave carving | Added null check before node placement | Fixed |
+| `src/mapgen/dungeongen.cpp` | — | Null room data in dungeon gen | Added null guard for room validation | Fixed |
+| `src/serverenvironment.cpp` | — | Null block in active block modifier | Added null check before ABM execution | Fixed |
+| `src/servermap.cpp` | — | Null sector in block lookup | Added null guard for sector access | Fixed |
+| `src/nodedef.cpp` | — | Null content type in node registration | Added null check for content type lookup | Fixed |
+| `src/collision.cpp` | — | Unchecked iterator in collision detection | Added bounds check and null guard | Fixed |
+| `src/emerge.cpp` | — | Null emerge thread pointer | Added null check before thread access | Fixed |
+| `src/database/database-sqlite3.cpp` | — | Null statement in query execution | Added null guard for prepared statement | Fixed |
+
+### Batch 23 — Memory Safety & RAII Improvements (6 actual fixes + 14 verifications)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/database/database-sqlite3.cpp` | — | SQLite prepared statement not finalized on error | Added RAII cleanup in error paths | Fixed |
+| `src/script/cpp_api/s_base.cpp` | — | Thread not stopped in destructor | Added stop()/wait() in destructor | Fixed |
+| `src/script/cpp_api/s_async.cpp` | — | Async thread not joined on shutdown | Added join in destructor | Fixed |
+| `src/network/mtp/threads.cpp` | — | Connection queue not drained on close | Added queue drain before destruction | Fixed |
+| `src/script/lua_api/l_util.cpp` | — | Null lua_close guard | Added null check before lua_close() | Fixed |
+| `src/client/mesh_generator_thread.cpp` | — | Mesh generator thread not stopped cleanly | Added stop/wait in destructor | Fixed |
+
+Note: 14 additional items were verified as already safe (proper RAII, smart pointers, or existing guards).
+
+### Batch 24 — Protocol Robustness & Race Conditions (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/network/mtp/impl.cpp` | — | No packet size limit — OOM from huge packets | Added 2MB packet size limit | Fixed |
+| `src/network/mtp/impl.cpp` | — | Unbounded reliable packet retries | Added max 5 reliable retries | Fixed |
+| `src/network/mtp/threads.cpp` | — | No connection rate limiting | Added connection rate limiter | Fixed |
+| `src/network/mtp/threads.cpp` | — | No connection timeout | Added 30s connection timeout | Fixed |
+| `src/server/clientiface.cpp` | — | Position update flooding from clients | Added position update rate limiter | Fixed |
+| `src/server/player_sao.cpp` | — | No anti-teleport validation | Added anti-teleport distance check | Fixed |
+| `src/server/player_sao.cpp` | — | Inventory action flooding | Added inventory rate limiter | Fixed |
+| `src/network/networkpacket.cpp` | — | No bounds on packet reading | Added size validation on deserialization | Fixed |
+| `src/network/clientpackethandler.cpp` | — | Unvalidated server data in TOCLIENT | Added input validation for server-sent data | Fixed |
+| `src/network/serverpackethandler.cpp` | — | Unvalidated client data in TOSERVER | Added input validation for client-sent data | Fixed |
+| `src/server.cpp` | — | Race condition in player list access | Added mutex for player list | Fixed |
+| `src/server.cpp` | — | Unbounded concurrent connection handling | Added connection throttle | Fixed |
+| `src/client/client.cpp` | — | Race in mesh update queue | Added mutex for mesh queue | Fixed |
+| `src/client/client.cpp` | — | Zero-length UDP packet accepted | Added zero-length UDP skip | Fixed |
+| `src/serverenvironment.cpp` | — | Race in active block list | Added mutex for active block modifiers | Fixed |
+| `src/serverenvironment.cpp` | — | Unbounded active objects | Added active object count limit check | Fixed |
+| `src/network/mtp/impl.cpp` | — | No maximum peer limit enforcement | Added peer count validation | Fixed |
+| `src/server/clientiface.cpp` | — | No cleanup of stale connections | Added stale connection timeout sweep | Fixed |
+| `src/network/connection.cpp` | — | Unvalidated address in peer creation | Added address validation | Fixed |
+| `src/network/mtp/threads.cpp` | — | No backpressure on send queue | Added send queue size limit | Fixed |
+
+### Batch 25 — Lua API Safety & Input Validation (19 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/script/lua_api/l_env.cpp` | — | No position bounds validation for set_node | Added position bounds check (±31000) | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | No position bounds validation for dig_node | Added position bounds check | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | No position bounds validation for punch_node | Added position bounds check | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | No entity name format validation | Added entity name format check | Fixed |
+| `src/script/lua_api/l_object.cpp` | — | No item validation in add_item | Added item stack validation | Fixed |
+| `src/script/lua_api/l_object.cpp` | — | No physics override NaN check | Added NaN/Inf check for physics overrides | Fixed |
+| `src/script/lua_api/l_util.cpp` | — | No size limit on compress/decompress | Added size limits for compress/decompress | Fixed |
+| `src/script/lua_api/l_util.cpp` | — | No zip bomb prevention in decompress | Added maximum decompression ratio check | Fixed |
+| `src/script/lua_api/l_inventory.cpp` | — | No validation of inventory list names | Added list name validation | Fixed |
+| `src/script/lua_api/l_inventory.cpp` | — | No stack size validation | Added stack size bounds check | Fixed |
+| `src/script/lua_api/l_item.cpp` | — | No item string length validation | Added length limit on item strings | Fixed |
+| `src/script/lua_api/l_item.cpp` | — | No metadata size validation | Added metadata size limit | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | No limit on emerge_area size | Added emerge area bounds check | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | No validation of delete_area parameters | Added parameter validation | Fixed |
+| `src/script/lua_api/l_server.cpp` | — | No chat message length limit | Added message length validation | Fixed |
+| `src/script/lua_api/l_playermeta.cpp` | — | No metadata key validation | Added key format check | Fixed |
+| `src/script/lua_api/l_noise.cpp` | — | No noise parameter range validation | Added range checks for noise params | Fixed |
+| `src/script/lua_api/l_mapgen.cpp` | — | No schematic size validation | Added schematic dimension limits | Fixed |
+| `src/script/lua_api/l_http.cpp` | — | No URL validation in HTTP request | Added URL format validation | Fixed |
+
+### Batch 26 — Mapgen Correctness & World Integrity (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/mapgen/mapgen.cpp` | — | NaN check for biome noise values | Added std::isnan guard for biome noise | Fixed |
+| `src/mapgen/mapgen.cpp` | — | NaN check for terrain height values | Added std::isnan guard for terrain heightmap | Fixed |
+| `src/mapgen/mapgen_v7.cpp` | — | NaN check for mountain noise | Added std::isnan guard for mountain noise | Fixed |
+| `src/mapgen/mapgen_v7.cpp` | — | NaN check for ridge noise | Added std::isnan guard for ridge noise | Fixed |
+| `src/mapgen/mapgen_carpathian.cpp` | — | NaN check for Carpathian noise | Added std::isnan guard for Carpathian noise | Fixed |
+| `src/mapgen/mapgen_flat.cpp` | — | NaN check for flat terrain noise | Added std::isnan guard for flat noise | Fixed |
+| `src/mapgen/mapgen_fractal.cpp` | — | NaN check for fractal noise | Added std::isnan guard for fractal noise | Fixed |
+| `src/mapgen/mapgen_valleys.cpp` | — | NaN check for valley noise | Added std::isnan guard for valley noise | Fixed |
+| `src/mapgen/mg_schematic.cpp` | — | No schematic size limits | Added schematic size validation (max 256×256×256) | Fixed |
+| `src/mapgen/mg_schematic.cpp` | — | No bounds check for schematic placement | Added bounds check before schematic place | Fixed |
+| `src/mapgen/cavegen.cpp` | — | No bounds check for cave carving | Added bounds check for cave tunnel carving | Fixed |
+| `src/mapgen/cavegen.cpp` | — | Cave can carve outside map | Added map boundary check in cave gen | Fixed |
+| `src/mapgen/dungeongen.cpp` | — | No dungeon room size validation | Added room dimension limits | Fixed |
+| `src/mapgen/dungeongen.cpp` | — | Dungeon room can exceed map | Added map boundary check for rooms | Fixed |
+| `src/mapgen/dungeongen.cpp` | — | No corridor length limit | Added max corridor length check | Fixed |
+| `src/mapgen/treegen.cpp` | — | Tree can grow outside map bounds | Added bounds check for tree placement | Fixed |
+| `src/mapgen/treegen.cpp` | — | No tree size limit | Added tree dimension validation | Fixed |
+| `src/mapgen/mapgen.cpp` | — | No check for infinite terrain loop | Added iteration limit in terrain gen | Fixed |
+| `src/mapgen/mg_decoration.cpp` | — | Decoration can place outside map | Added map boundary check for decorations | Fixed |
+| `src/mapgen/mapgen.cpp` | — | No height validation in getSpawnLevelAtPoint | Added height range validation | Fixed |
+
+### Batch 27 — I/O Hardening & Rendering Safety (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/server.cpp` | — | No disk full detection on world save | Added write error detection and errorstream logging | Fixed |
+| `src/servermap.cpp` | — | No disk full detection on map save | Added write error detection for SQLite writes | Fixed |
+| `src/database/database-sqlite3.cpp` | — | No disk full detection on database write | Added SQLite busy/error handling | Fixed |
+| `src/filesys.cpp` | — | No symlink recursion depth limit | Added symlink recursion depth limit (max 20) | Fixed |
+| `src/filesys.cpp` | — | No path traversal protection in recursive delete | Added path component validation | Fixed |
+| `src/settings.cpp` | — | No config line length limit | Added 64KB line length limit for config parsing | Fixed |
+| `src/settings.cpp` | — | No validation of setting values | Added setting value sanitization | Fixed |
+| `src/util/serialize.cpp` | — | No zstd decompression bomb prevention | Added zstd frame content size check and limit | Fixed |
+| `src/util/serialize.cpp` | — | No decompression ratio limit | Added max 100:1 decompression ratio check | Fixed |
+| `src/client/shader.cpp` | — | No shader compilation timeout | Added 30s shader compilation timeout | Fixed |
+| `src/client/shader.cpp` | — | No shader source size limit | Added shader source length limit | Fixed |
+| `src/client/tile.cpp` | — | No image dimension validation | Added image dimension validation (max 4096×4096) | Fixed |
+| `src/client/tile.cpp` | — | No image file size limit | Added image file size limit (64MB) | Fixed |
+| `src/client/imagefilters.cpp` | — | No buffer overflow check in image filter | Added bounds check for image filter operations | Fixed |
+| `src/irrlicht_changes/irrUtil.h` | — | No image loading safety | Added dimension validation in image load | Fixed |
+| `src/network/crypto.cpp` | — | Salt verification before key derivation | Added salt verification step in HKDF | Fixed |
+| `src/network/crypto.cpp` | — | No key derivation parameter validation | Added parameter validation for crypto operations | Fixed |
+| `src/client/clientmap.cpp` | — | No render distance limit | Added render distance bounds check | Fixed |
+| `src/client/mesh_generator_thread.cpp` | — | No mesh data size limit | Added mesh data size validation | Fixed |
+| `src/content/content.cpp` | — | No content pack size limit | Added content pack size validation | Fixed |
+
+### Build Fix — Compilation Errors (3 items)
+
+| File | Line | Issue | Fix | Status |
+|------|------|-------|-----|--------|
+| `src/mapgen/mapgen.cpp` | — | Compile error: missing include for std::isnan | Added `#include <cmath>` | Fixed |
+| `src/script/lua_api/l_env.cpp` | — | Compile error: undefined function in position validation | Fixed function signature mismatch | Fixed |
+| `src/network/mtp/threads.cpp` | — | Compile error: type mismatch in rate limiter | Fixed type qualifier on rate limiter variable | Fixed |
 
 ## Luanti-Secure Compiler Warnings (from GitHub Actions CI)
 
