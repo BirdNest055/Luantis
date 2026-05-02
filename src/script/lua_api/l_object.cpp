@@ -376,6 +376,14 @@ int ObjectRef::l_set_armor_groups(lua_State *L)
         ItemGroupList groups;
 
         read_groups(L, 2, groups);
+
+        // Validate that all group values are non-negative
+        for (const auto &group : groups) {
+                if (group.second < 0)
+                        luaL_error(L, "armor group '%s' value must be >= 0, got %d",
+                                group.first.c_str(), group.second);
+        }
+
         if (sao->getType() == ACTIVEOBJECT_TYPE_PLAYER) {
                 if (!g_settings->getBool("enable_damage") && !itemgroup_get(groups, "immortal")) {
                         warningstream << "Mod tried to enable damage for a player, but it's "
@@ -881,6 +889,26 @@ int ObjectRef::l_set_properties(lua_State *L)
         auto *prop = sao->accessObjectProperties();
         if (prop == nullptr)
                 return 0;
+
+        // Validate key fields before applying
+        luaL_checktype(L, 2, LUA_TTABLE);
+
+        // Validate hp_max is > 0 if provided
+        lua_getfield(L, 2, "hp_max");
+        if (!lua_isnil(L, -1)) {
+                if (!lua_isnumber(L, -1))
+                        luaL_error(L, "hp_max must be a number");
+                lua_Integer hp_max = lua_tointeger(L, -1);
+                if (hp_max <= 0 && sao->getType() != ACTIVEOBJECT_TYPE_PLAYER)
+                        luaL_error(L, "hp_max must be > 0 for entities");
+        }
+        lua_pop(L, 1);
+
+        // Validate physical is boolean if provided
+        lua_getfield(L, 2, "physical");
+        if (!lua_isnil(L, -1) && !lua_isboolean(L, -1))
+                luaL_error(L, "physical must be a boolean");
+        lua_pop(L, 1);
 
         const auto old = *prop;
         read_object_properties(L, 2, sao, prop, getServer(L)->idef());
@@ -1751,6 +1779,25 @@ int ObjectRef::l_set_physics_override(lua_State *L)
         const PlayerPhysicsOverride old = phys;
 
         luaL_checktype(L, 2, LUA_TTABLE);
+
+        // Validate that all physics override float values are numbers and not NaN
+        static const char *float_fields[] = {
+                "speed", "jump", "gravity", "speed_climb", "speed_crouch",
+                "liquid_fluidity", "liquid_fluidity_smooth", "liquid_sink",
+                "acceleration_default", "acceleration_air", "speed_fast",
+                "acceleration_fast", "speed_walk", nullptr
+        };
+        for (int i = 0; float_fields[i]; i++) {
+                lua_getfield(L, 2, float_fields[i]);
+                if (!lua_isnil(L, -1)) {
+                        if (!lua_isnumber(L, -1))
+                                luaL_error(L, "physics override field '%s' must be a number", float_fields[i]);
+                        double val = lua_tonumber(L, -1);
+                        if (std::isnan(val))
+                                luaL_error(L, "physics override field '%s' must not be NaN", float_fields[i]);
+                }
+                lua_pop(L, 1);
+        }
 
         getfloatfield(L, 2, "speed", phys.speed);
         getfloatfield(L, 2, "jump", phys.jump);

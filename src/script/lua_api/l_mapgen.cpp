@@ -1137,6 +1137,14 @@ int ModApiMapgen::l_register_biome(lua_State *L)
         int index = 1;
         luaL_checktype(L, index, LUA_TTABLE);
 
+        // Validate that required biome node fields are defined
+        std::string node_top = getstringfield_default(L, index, "node_top", "");
+        std::string node_filler = getstringfield_default(L, index, "node_filler", "");
+        if (node_top.empty())
+                throw LuaError("register_biome: 'node_top' must be specified");
+        if (node_filler.empty())
+                throw LuaError("register_biome: 'node_filler' must be specified");
+
         const NodeDefManager *ndef = getServer(L)->getNodeDefManager();
         BiomeManager *bmgr = getServer(L)->getEmergeManager()->getWritableBiomeManager();
 

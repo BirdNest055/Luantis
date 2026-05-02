@@ -288,6 +288,17 @@ int ModApiEnv::l_get_node_raw(lua_State *L)
                 double z = lua_tonumber(L, 3);
                 pos = doubleToInt(v3d(x, y, z), 1.0);
         }
+        // Validate position within world bounds
+        if (pos.X < -MAX_MAP_GENERATION_LIMIT || pos.X > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Y < -MAX_MAP_GENERATION_LIMIT || pos.Y > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Z < -MAX_MAP_GENERATION_LIMIT || pos.Z > MAX_MAP_GENERATION_LIMIT) {
+                lua_pushinteger(L, CONTENT_IGNORE);
+                lua_pushinteger(L, 0);
+                lua_pushinteger(L, 0);
+                lua_pushboolean(L, false);
+                return 4;
+        }
+
         bool pos_ok;
         MapNode n = env->getMap().getNode(pos, &pos_ok);
         // Return node and pos_ok
@@ -368,6 +379,13 @@ int ModApiEnv::l_place_node(lua_State *L)
         IItemDefManager *idef = server->idef();
 
         v3s16 pos = read_v3s16(L, 1);
+        // Validate position within world bounds
+        if (pos.X < -MAX_MAP_GENERATION_LIMIT || pos.X > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Y < -MAX_MAP_GENERATION_LIMIT || pos.Y > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Z < -MAX_MAP_GENERATION_LIMIT || pos.Z > MAX_MAP_GENERATION_LIMIT) {
+                lua_pushboolean(L, false);
+                return 1;
+        }
         MapNode n = readnode(L, 2);
 
         // Don't attempt to load non-loaded area as of now
@@ -406,6 +424,13 @@ int ModApiEnv::l_dig_node(lua_State *L)
         ScriptApiNode *scriptIfaceNode = getScriptApi<ScriptApiNode>(L);
 
         v3s16 pos = read_v3s16(L, 1);
+        // Validate position within world bounds
+        if (pos.X < -MAX_MAP_GENERATION_LIMIT || pos.X > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Y < -MAX_MAP_GENERATION_LIMIT || pos.Y > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Z < -MAX_MAP_GENERATION_LIMIT || pos.Z > MAX_MAP_GENERATION_LIMIT) {
+                lua_pushboolean(L, false);
+                return 1;
+        }
 
         // Don't attempt to load non-loaded area as of now
         MapNode n = env->getMap().getNode(pos);
@@ -436,6 +461,13 @@ int ModApiEnv::l_punch_node(lua_State *L)
         ScriptApiNode *scriptIfaceNode = getScriptApi<ScriptApiNode>(L);
 
         v3s16 pos = read_v3s16(L, 1);
+        // Validate position within world bounds
+        if (pos.X < -MAX_MAP_GENERATION_LIMIT || pos.X > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Y < -MAX_MAP_GENERATION_LIMIT || pos.Y > MAX_MAP_GENERATION_LIMIT ||
+                        pos.Z < -MAX_MAP_GENERATION_LIMIT || pos.Z > MAX_MAP_GENERATION_LIMIT) {
+                lua_pushboolean(L, false);
+                return 1;
+        }
 
         // Don't attempt to load non-loaded area as of now
         MapNode n = env->getMap().getNode(pos);
@@ -599,6 +631,12 @@ int ModApiEnv::l_get_node_timer(lua_State *L)
 
         // Do it
         v3s16 p = read_v3s16(L, 1);
+        // Return nil for out-of-bounds positions
+        if (p.X < -MAX_MAP_GENERATION_LIMIT || p.X > MAX_MAP_GENERATION_LIMIT ||
+                        p.Y < -MAX_MAP_GENERATION_LIMIT || p.Y > MAX_MAP_GENERATION_LIMIT ||
+                        p.Z < -MAX_MAP_GENERATION_LIMIT || p.Z > MAX_MAP_GENERATION_LIMIT) {
+                return 0;
+        }
         NodeTimerRef::create(L, p, &env->getServerMap());
         return 1;
 }
@@ -609,6 +647,10 @@ int ModApiEnv::l_add_entity(lua_State *L)
 
         v3f pos = checkFloatPos(L, 1);
         const char *name = luaL_checkstring(L, 2);
+        luaL_argcheck(L, name[0] != '\0', 2,
+                "entity name must be a non-empty string");
+        luaL_argcheck(L, strchr(name, ':') != nullptr, 2,
+                "entity name must be in modname:name format (contain a colon)");
         std::string staticdata = readParam<std::string>(L, 3, "");
 
         std::unique_ptr<ServerActiveObject> obj_u =
@@ -633,6 +675,13 @@ int ModApiEnv::l_add_item(lua_State *L)
         // pos
         //v3f pos = checkFloatPos(L, 1);
         // item
+        // Validate itemstring is a non-empty string before parsing
+        if (lua_isstring(L, 2)) {
+                size_t len;
+                const char *str = lua_tolstring(L, 2, &len);
+                if (len == 0)
+                        return 0;
+        }
         ItemStack item = read_item(L, 2,getServer(L)->idef());
         if(item.empty() || !item.isKnown(getServer(L)->idef()))
                 return 0;
@@ -1287,6 +1336,13 @@ int ModApiEnv::l_spawn_tree(lua_State *L)
 
         if (!read_tree_def(L, 2, ndef, tree_def))
                 return 0;
+
+        // Validate that required tree definition fields are present
+        if (tree_def.m_nodenames.size() < 2 ||
+                        tree_def.m_nodenames[0].empty() ||
+                        tree_def.m_nodenames[1].empty()) {
+                luaL_error(L, "spawn_tree(): tree definition must have 'trunk' and 'leaves' fields");
+        }
 
         ServerMap *map = &env->getServerMap();
         treegen::error e;

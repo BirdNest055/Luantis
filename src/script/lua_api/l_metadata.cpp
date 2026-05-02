@@ -98,6 +98,9 @@ int MetaDataRef::l_set_string(lua_State *L)
 
         MetaDataRef *ref = checkAnyMetadata(L, 1);
         std::string name = luaL_checkstring(L, 2);
+        // Validate that the key name is a non-empty string
+        if (name.empty())
+                luaL_error(L, "metadata key name must be a non-empty string");
         std::string_view str;
         if (!lua_isnoneornil(L, 3)) {
                 str = readParam<std::string_view>(L, 3);
@@ -139,6 +142,9 @@ int MetaDataRef::l_set_int(lua_State *L)
 
         MetaDataRef *ref = checkAnyMetadata(L, 1);
         std::string name = luaL_checkstring(L, 2);
+        // Validate that the key name is a non-empty string
+        if (name.empty())
+                luaL_error(L, "metadata key name must be a non-empty string");
         int a = luaL_checkint(L, 3);
         std::string str = itos(a);
 
@@ -195,6 +201,9 @@ int MetaDataRef::l_set_float(lua_State *L)
 
         MetaDataRef *ref = checkAnyMetadata(L, 1);
         std::string name = luaL_checkstring(L, 2);
+        // Validate that the key name is a non-empty string
+        if (name.empty())
+                luaL_error(L, "metadata key name must be a non-empty string");
         f64 number = luaL_checknumber(L, 3);
 
         IMetadata *meta = ref->getmeta(true);

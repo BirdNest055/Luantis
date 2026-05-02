@@ -127,6 +127,12 @@ int ModApiCraft::l_register_craft(lua_State *L)
 
         std::string type = getstringfield_default(L, table, "type", "shaped");
 
+        // Validate that the craft type is a recognized value
+        if (type != "shaped" && type != "shapeless" && type != "toolrepair" &&
+                        type != "cooking" && type != "fuel") {
+                throw LuaError("Unknown crafting definition type: \"" + type + "\"");
+        }
+
         /*
                 CraftDefinitionShaped
         */

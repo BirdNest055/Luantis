@@ -344,6 +344,13 @@ int ModApiUtil::l_compress(lua_State *L)
 
         auto data = readParam<std::string_view>(L, 1);
 
+        // Prevent OOM from malicious mods — limit input to 10 MB
+        const size_t MAX_COMPRESS_INPUT = 10 * 1024 * 1024;
+        if (data.size() > MAX_COMPRESS_INPUT) {
+                luaL_error(L, "compress: input size (%zu bytes) exceeds maximum allowed (%zu bytes)",
+                        data.size(), MAX_COMPRESS_INPUT);
+        }
+
         LuaCompressMethod method = get_compress_method(L, 2);
 
         std::ostringstream os(std::ios_base::binary);
@@ -375,6 +382,13 @@ int ModApiUtil::l_decompress(lua_State *L)
 
         auto data = readParam<std::string_view>(L, 1);
 
+        // Prevent zip bombs — limit compressed input to 10 MB
+        const size_t MAX_DECOMPRESS_INPUT = 10 * 1024 * 1024;
+        if (data.size() > MAX_DECOMPRESS_INPUT) {
+                luaL_error(L, "decompress: input size (%zu bytes) exceeds maximum allowed (%zu bytes)",
+                        data.size(), MAX_DECOMPRESS_INPUT);
+        }
+
         LuaCompressMethod method = get_compress_method(L, 2);
 
         // NOTE: The std::string(data) copy below is unavoidable with the current API.
@@ -396,6 +410,13 @@ int ModApiUtil::l_decompress(lua_State *L)
         }
 
         std::string out = os.str();
+
+        // Prevent zip bombs — limit decompressed output to 100 MB
+        const size_t MAX_DECOMPRESS_OUTPUT = 100 * 1024 * 1024;
+        if (out.size() > MAX_DECOMPRESS_OUTPUT) {
+                luaL_error(L, "decompress: output size (%zu bytes) exceeds maximum allowed (%zu bytes)",
+                        out.size(), MAX_DECOMPRESS_OUTPUT);
+        }
 
         lua_pushlstring(L, out.data(), out.size());
         return 1;
