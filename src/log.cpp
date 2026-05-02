@@ -246,7 +246,8 @@ inline std::string Logger::getLogTimestamp()
                 return getTimestamp();
         // LOG_TIMESTAMP_RELATIVE
         float rel = (porting::getTimeMs() - begin_of_time) / 1000.0f;
-        char s[24];
+        // Batch 28: Increased buffer from 24 to 32 for safety margin
+        char s[32];
         snprintf(s, sizeof(s), "[% 8.2f]", rel);
         return s;
 }

@@ -195,10 +195,11 @@ video::SColor Particle::updateLight(ClientEnvironment *env)
                 light = blend_light(env->getDayNightRatio(), LIGHT_SUN, 0);
 
         u8 m_light = decode_light(light + m_p.glow);
+        // Batch 32: clamp color components to valid 0-255 range
         return video::SColor(255,
-                m_light * m_base_color.getRed() / 255,
-                m_light * m_base_color.getGreen() / 255,
-                m_light * m_base_color.getBlue() / 255);
+                MYMIN(255, m_light * m_base_color.getRed() / 255),
+                MYMIN(255, m_light * m_base_color.getGreen() / 255),
+                MYMIN(255, m_light * m_base_color.getBlue() / 255));
 }
 
 void Particle::updateVertices(ClientEnvironment *env, video::SColor color)
@@ -470,7 +471,7 @@ void ParticleSpawner::spawnParticle(ClientEnvironment *env, float radius,
                                 pp, &texture.ref, texpos, texsize, &color, p.node_tile))
                         return;
         } else {
-                if (m_texpool.size() == 0)
+                if (m_texpool.empty()) // Batch 29: use empty() instead of size()==0
                         return;
                 texture = ClientParticleTexRef(m_texpool[myrand_range(0, m_texpool.size() - 1)]);
                 texpos = v2f(0.0f, 0.0f);

@@ -66,8 +66,9 @@ Schematic::~Schematic()
 {
         delete []schemdata;
         delete []slice_probs;
-        u32 nodecount = size.X * size.Y * size.Z;
-        porting::TrackFreedMemory(nodecount * sizeof(MapNode));
+        // Batch 30: Use s64 intermediate to avoid s16 multiplication overflow
+        u32 nodecount = (u32)((s64)size.X * size.Y * size.Z);
+        porting::TrackFreedMemory((size_t)nodecount * sizeof(MapNode));
 }
 
 ObjDef *Schematic::clone() const
@@ -80,7 +81,8 @@ ObjDef *Schematic::clone() const
         def->flags = flags;
         def->size = size;
         FATAL_ERROR_IF(!schemdata, "Schematic can only be cloned after loading");
-        u32 nodecount = size.X * size.Y * size.Z;
+        // Batch 30: Use s64 intermediate to avoid s16 multiplication overflow
+        u32 nodecount = (u32)((s64)size.X * size.Y * size.Z);
         def->schemdata = new MapNode[nodecount];
         memcpy(def->schemdata, schemdata, sizeof(MapNode) * nodecount);
         def->slice_probs = new u8[size.Y];
@@ -95,7 +97,8 @@ void Schematic::resolveNodeNames()
         c_nodes.clear();
         getIdsFromNrBacklog(&c_nodes, true, CONTENT_AIR);
 
-        size_t bufsize = size.X * size.Y * size.Z;
+        // Batch 30: Use s64 intermediate to avoid s16 multiplication overflow
+        size_t bufsize = (size_t)size.X * (size_t)size.Y * (size_t)size.Z;
         for (size_t i = 0; i != bufsize; i++) {
                 content_t c_original = schemdata[i].getContent();
                 if (c_original >= c_nodes.size()) {
@@ -566,7 +569,8 @@ bool Schematic::getSchematicFromMap(Map *map, v3s16 p1, v3s16 p2)
         for (s16 y = 0; y != size.Y; y++)
                 slice_probs[y] = MTSCHEM_PROB_ALWAYS;
 
-        schemdata = new MapNode[size.X * size.Y * size.Z];
+        // Batch 30: Use wider type for allocation size to avoid s16 multiplication overflow
+        schemdata = new MapNode[(size_t)size.X * (size_t)size.Y * (size_t)size.Z];
 
         u32 i = 0;
         for (s16 z = p1.Z; z <= p2.Z; z++)
@@ -593,8 +597,9 @@ void Schematic::applyProbabilities(v3s16 p0,
 {
         for (size_t i = 0; i != plist->size(); i++) {
                 v3s16 p = (*plist)[i].first - p0;
-                int index = p.Z * (size.Y * size.X) + p.Y * size.X + p.X;
-                if (index < size.Z * size.Y * size.X) {
+                // Batch 30: Use s64 for index calculation to avoid s16 overflow
+                s64 index = (s64)p.Z * size.Y * size.X + (s64)p.Y * size.X + p.X;
+                if (index < (s64)size.Z * size.Y * size.X) {
                         u8 prob = (*plist)[i].second;
                         schemdata[index].param1 = prob;
 
@@ -620,7 +625,8 @@ void Schematic::condenseContentIds()
         // Reset node resolve fields
         NodeResolver::reset();
 
-        size_t nodecount = size.X * size.Y * size.Z;
+        // Batch 30: Use wider types for multiplication to avoid s16 overflow
+        size_t nodecount = (size_t)size.X * (size_t)size.Y * (size_t)size.Z;
         for (size_t i = 0; i != nodecount; i++) {
                 content_t id;
                 content_t c = schemdata[i].getContent();

@@ -236,7 +236,9 @@ void ClientEnvironment::step(float dtime)
 
                 if (speed > tolerance && !player_immortal && pre_factor > 0.0f) {
                         f32 damage_f = (speed - tolerance) / BS;
-                        u16 damage = (u16)MYMIN(damage_f + 0.5, U16_MAX);
+                        // Batch 30: Clamp negative float before casting to u16
+                        u16 damage = (damage_f < 0.f) ? 0 :
+                                (u16)MYMIN(damage_f + 0.5, U16_MAX);
                         if (damage != 0) {
                                 damageLocalPlayer(damage, true);
                                 m_client->getEventManager()->put(

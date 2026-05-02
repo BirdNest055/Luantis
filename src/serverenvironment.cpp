@@ -294,7 +294,7 @@ ServerEnvironment::~ServerEnvironment()
         // Safety: ensure all active objects are cleared before the map is destroyed.
         // Normally deactivateBlocksAndObjects() is called before destruction,
         // but this provides a safety net if that was skipped.
-        if (m_active_blocks.size() > 0) {
+        if (m_active_blocks.size() > 0) { // Batch 29 fix: ActiveBlockList has no empty()
                 warningstream << "~ServerEnvironment: Active blocks not empty ("
                         << m_active_blocks.size() << "), clearing" << std::endl;
                 m_active_blocks.clear();
@@ -384,7 +384,7 @@ void ServerEnvironment::removePlayer(RemotePlayer *player)
         for (auto it = m_players.begin(); it != m_players.end(); ++it) {
                 if ((*it) == player) {
                         delete *it;
-                        m_players.erase(it);
+                        it = m_players.erase(it); // Batch 29: use erase-return-value idiom
                         return;
                 }
         }
@@ -1966,7 +1966,11 @@ bool ServerEnvironment::migratePlayersDatabase(const GameParams &game_params,
 
         if (backend == "files") {
                 // Create backup directory
-                fs::CreateDir(players_backup_path);
+                // Batch 31: Check directory creation result for player backup
+                if (!fs::CreateDir(players_backup_path)) {
+                        errorstream << "Could not create players backup directory: "
+                                << players_backup_path << std::endl;
+                }
         }
 
         try {

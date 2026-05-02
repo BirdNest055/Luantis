@@ -154,6 +154,9 @@ void PcgRandom::bytes(void *out, size_t len)
 
 s32 PcgRandom::randNormalDist(s32 min, s32 max, int num_trials)
 {
+        // Batch 30: Guard against division by zero if num_trials is 0
+        if (num_trials <= 0)
+                return (min + max) / 2;
         s32 accum = 0;
         for (int i = 0; i != num_trials; i++)
                 accum += range(min, max);
@@ -514,8 +517,15 @@ void Noise::valueMap2D(
         orig_u = u;
 
         //calculate noise point lattice
-        nlx = (u32)(u + sx * step_x) + 2;
-        nly = (u32)(v + sy * step_y) + 2;
+        // Batch 30: Guard against negative float-to-u32 conversion (undefined behavior)
+        {
+                float nlx_f = u + sx * step_x;
+                float nly_f = v + sy * step_y;
+                if (nlx_f < 0.f || nly_f < 0.f)
+                        throw InvalidNoiseParamsException("Negative noise lattice size in valueMap2D");
+                nlx = (u32)nlx_f + 2;
+                nly = (u32)nly_f + 2;
+        }
         index = 0;
         for (j = 0; j != nly; j++)
                 for (i = 0; i != nlx; i++)
@@ -582,9 +592,17 @@ void Noise::valueMap3D(
         orig_v = v;
 
         //calculate noise point lattice
-        nlx = (u32)(u + sx * step_x) + 2;
-        nly = (u32)(v + sy * step_y) + 2;
-        nlz = (u32)(w + sz * step_z) + 2;
+        // Batch 30: Guard against negative float-to-u32 conversion (undefined behavior)
+        {
+                float nlx_f = u + sx * step_x;
+                float nly_f = v + sy * step_y;
+                float nlz_f = w + sz * step_z;
+                if (nlx_f < 0.f || nly_f < 0.f || nlz_f < 0.f)
+                        throw InvalidNoiseParamsException("Negative noise lattice size in valueMap3D");
+                nlx = (u32)nlx_f + 2;
+                nly = (u32)nly_f + 2;
+                nlz = (u32)nlz_f + 2;
+        }
         index = 0;
         for (k = 0; k != nlz; k++)
                 for (j = 0; j != nly; j++)

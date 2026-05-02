@@ -404,19 +404,21 @@ void Sky::update(float time_of_day, float time_brightness,
         }
 
         video::SColor bgcolor_bright = m_bgcolor_bright_f.toSColor();
+        // Batch 32: clamp color components to valid 0-255 range after brightness multiply
         m_bgcolor = video::SColor(
                 255,
-                bgcolor_bright.getRed() * m_brightness,
-                bgcolor_bright.getGreen() * m_brightness,
-                bgcolor_bright.getBlue() * m_brightness
+                MYMIN(255, bgcolor_bright.getRed() * m_brightness),
+                MYMIN(255, bgcolor_bright.getGreen() * m_brightness),
+                MYMIN(255, bgcolor_bright.getBlue() * m_brightness)
         );
 
         video::SColor skycolor_bright = m_skycolor_bright_f.toSColor();
+        // Batch 32: clamp color components to valid 0-255 range after brightness multiply
         m_skycolor = video::SColor(
                 255,
-                skycolor_bright.getRed() * m_brightness,
-                skycolor_bright.getGreen() * m_brightness,
-                skycolor_bright.getBlue() * m_brightness
+                MYMIN(255, skycolor_bright.getRed() * m_brightness),
+                MYMIN(255, skycolor_bright.getGreen() * m_brightness),
+                MYMIN(255, skycolor_bright.getBlue() * m_brightness)
         );
 
         // Horizon coloring based on sun and moon direction during sunset and sunrise

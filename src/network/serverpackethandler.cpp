@@ -31,6 +31,7 @@
 #include "util/keypair.h"
 #include "util/pointedthing.h"
 #include "util/srp.h"
+#include "util/string.h" // Batch 28: for is_valid_utf8, sanitize_untrusted
 #include "network/connection_security.h"
 #include "network/crypto.h"
 #include "network/encryption_log.h"
@@ -375,6 +376,17 @@ void Server::handleCommand_RequestMedia(NetworkPacket* pkt)
 
         *pkt >> numfiles;
 
+        // Batch 33: Limit the number of media files a client can request at once
+        // to prevent DoS via excessive file requests. 1000 is generous; typical
+        // games request far fewer.
+        constexpr u16 MAX_MEDIA_REQUESTS = 1000;
+        if (numfiles > MAX_MEDIA_REQUESTS) {
+                warningstream << "Server: Client " << getPlayerName(pkt->getPeerId())
+                        << " requested too many media files (" << numfiles
+                        << "), limiting to " << MAX_MEDIA_REQUESTS << std::endl;
+                numfiles = MAX_MEDIA_REQUESTS;
+        }
+
         session_t peer_id = pkt->getPeerId();
         verbosestream << "Client " << getPlayerName(peer_id)
                 << " requested media file(s):\n";
@@ -435,7 +447,8 @@ void Server::handleCommand_ClientReady(NetworkPacket* pkt)
         {
                 const std::vector<std::string> &players = m_clients.getPlayerNames();
                 NetworkPacket list_pkt(TOCLIENT_UPDATE_PLAYER_LIST, 0, peer_id);
-                list_pkt << (u8) PLAYER_LIST_INIT << (u16) players.size();
+                // Batch 30: Clamp player count to u16 range to prevent silent truncation
+                list_pkt << (u8) PLAYER_LIST_INIT << (u16)std::min(players.size(), (size_t)U16_MAX);
                 for (const auto &player : players)
                         list_pkt << player;
                 Send(peer_id, &list_pkt);
@@ -476,6 +489,20 @@ void Server::handleCommand_GotBlocks(NetworkPacket* pkt)
 
         u8 count;
         *pkt >> count;
+
+        // Batch 33: Verify remaining bytes are sufficient for the claimed count.
+        // Each block position is 6 bytes (v3s16). If count * 6 > remaining,
+        // the packet is malformed — clamp to what's available.
+        const u32 bytes_needed = (u32)count * 6;
+        const u32 bytes_available = pkt->getRemainingBytes();
+        if (bytes_needed > bytes_available) {
+                u8 safe_count = static_cast<u8>(bytes_available / 6);
+                warningstream << "Server: GotBlocks count " << (int)count
+                        << " exceeds packet data (need " << bytes_needed
+                        << " bytes, have " << bytes_available
+                        << "), clamping to " << (int)safe_count << std::endl;
+                count = safe_count;
+        }
 
         ClientInterface::AutoLock lock(m_clients);
         RemoteClient *client = m_clients.lockedGetClientNoEx(pkt->getPeerId());
@@ -569,6 +596,14 @@ void Server::process_PlayerPos(RemotePlayer *player, PlayerSAO *playersao,
 void Server::handleCommand_PlayerPos(NetworkPacket* pkt)
 {
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Validate client is in Active state before processing position
+        RemoteClient *client = getClientNoEx(peer_id, CS_Active);
+        if (!client) {
+                // Silently ignore — position packets before active state are normal during join
+                return;
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;
@@ -606,6 +641,20 @@ void Server::handleCommand_DeletedBlocks(NetworkPacket* pkt)
 
         u8 count;
         *pkt >> count;
+
+        // Batch 33: Verify remaining bytes are sufficient for the claimed count.
+        // Each block position is 6 bytes (v3s16). If count * 6 > remaining,
+        // the packet is malformed — clamp to what's available.
+        const u32 bytes_needed = (u32)count * 6;
+        const u32 bytes_available = pkt->getRemainingBytes();
+        if (bytes_needed > bytes_available) {
+                u8 safe_count = static_cast<u8>(bytes_available / 6);
+                warningstream << "Server: DeletedBlocks count " << (int)count
+                        << " exceeds packet data (need " << bytes_needed
+                        << " bytes, have " << bytes_available
+                        << "), clamping to " << (int)safe_count << std::endl;
+                count = safe_count;
+        }
 
         ClientInterface::AutoLock lock(m_clients);
         RemoteClient *client = m_clients.lockedGetClientNoEx(pkt->getPeerId());
@@ -835,11 +884,47 @@ void Server::handleCommand_ChatMessage(NetworkPacket* pkt)
         *pkt >> message;
 
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Validate client is in Active state before processing chat
+        RemoteClient *client = getClientNoEx(peer_id, CS_Active);
+        if (!client) {
+                warningstream << FUNCTION_NAME
+                        << ": ignoring chat from non-active client peer_id=" << peer_id << std::endl;
+                return;
+        }
+
+        // Batch 33: Rate limit chat messages to prevent spam flooding.
+        // Max 5 messages per 2 seconds per player.
+        {
+                static std::unordered_map<session_t, std::pair<u32, u64>> chat_rate_limit;
+                u64 now_s = porting::getTimeS();
+                auto &rl = chat_rate_limit[peer_id];
+                if (now_s - rl.second > 2) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 5) {
+                        warningstream << "Server: Rate limiting chat for peer_id="
+                                << peer_id << " (" << rl.first << " in 2s)" << std::endl;
+                        return;
+                }
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;
                 return;
         }
+
+        // Batch 28: Sanitize chat message from network to strip control chars
+        // and validate UTF-8 (the wstring was deserialized from network data)
+        std::string message_utf8 = wide_to_utf8(message);
+        if (!is_valid_utf8(message_utf8)) {
+                message_utf8 = wide_to_utf8(utf8_to_wide(message_utf8));
+        }
+        message_utf8 = sanitize_untrusted(message_utf8);
+        message = utf8_to_wide(message_utf8);
 
         const auto &name = player->getName();
 
@@ -858,6 +943,15 @@ void Server::handleCommand_Damage(NetworkPacket* pkt)
         *pkt >> damage;
 
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Validate client is in Active state before processing damage
+        RemoteClient *client = getClientNoEx(peer_id, CS_Active);
+        if (!client) {
+                warningstream << FUNCTION_NAME
+                        << ": ignoring damage from non-active client peer_id=" << peer_id << std::endl;
+                return;
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;
@@ -976,6 +1070,33 @@ void Server::handleCommand_Interact(NetworkPacket *pkt)
                         << item_i << ", pointed=" << pointed.dump() << std::endl;
 
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Validate client is in Active state before processing interact
+        RemoteClient *client = getClientNoEx(peer_id, CS_Active);
+        if (!client) {
+                warningstream << FUNCTION_NAME
+                        << ": ignoring interact from non-active client peer_id=" << peer_id << std::endl;
+                return;
+        }
+
+        // Batch 33: Rate limit interact actions to prevent server overload.
+        // Max 20 interactions per second per player.
+        {
+                static std::unordered_map<session_t, std::pair<u32, u64>> interact_rate_limit;
+                u64 now_s = porting::getTimeS();
+                auto &rl = interact_rate_limit[peer_id];
+                if (now_s - rl.second > 1) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 20) {
+                        warningstream << "Server: Rate limiting interact for peer_id="
+                                << peer_id << " (" << rl.first << " in 1s)" << std::endl;
+                        return;
+                }
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;
@@ -1355,8 +1476,29 @@ void Server::handleCommand_Interact(NetworkPacket *pkt)
 
 void Server::handleCommand_RemovedSounds(NetworkPacket* pkt)
 {
+        session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Validate client is in Active state before processing
+        RemoteClient *client = getClientNoEx(peer_id, CS_Active);
+        if (!client) {
+                warningstream << FUNCTION_NAME
+                        << ": ignoring from non-active client peer_id=" << peer_id << std::endl;
+                return;
+        }
+
         u16 num;
         *pkt >> num;
+
+        // Batch 33: Limit count of removed sounds per packet to prevent DoS.
+        // 1000 is far more than any reasonable client would need.
+        constexpr u16 MAX_REMOVED_SOUNDS = 1000;
+        if (num > MAX_REMOVED_SOUNDS) {
+                warningstream << "Server: Client " << getPlayerName(peer_id)
+                        << " sent too many removed sounds (" << num
+                        << "), limiting to " << MAX_REMOVED_SOUNDS << std::endl;
+                num = MAX_REMOVED_SOUNDS;
+        }
+
         for (u16 k = 0; k < num; k++) {
                 s32 id;
 
@@ -1377,6 +1519,15 @@ static bool pkt_read_formspec_fields(NetworkPacket *pkt, StringMap &fields)
 {
         u16 field_count;
         *pkt >> field_count;
+
+        // Batch 33: Limit the number of formspec fields to prevent DoS.
+        // 500 fields is far more than any reasonable formspec would need.
+        constexpr u16 MAX_FORMSPEC_FIELDS = 500;
+        if (field_count > MAX_FORMSPEC_FIELDS) {
+                warningstream << "pkt_read_formspec_fields: too many fields ("
+                        << field_count << "), limiting to " << MAX_FORMSPEC_FIELDS << std::endl;
+                field_count = MAX_FORMSPEC_FIELDS;
+        }
 
         size_t length = 0;
         for (u16 k = 0; k < field_count; k++) {
@@ -1401,6 +1552,25 @@ static bool pkt_read_formspec_fields(NetworkPacket *pkt, StringMap &fields)
 void Server::handleCommand_NodeMetaFields(NetworkPacket* pkt)
 {
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Rate limit formspec submissions to prevent server overload.
+        // Max 5 node meta field submissions per 2 seconds per player.
+        {
+                static std::unordered_map<session_t, std::pair<u32, u64>> nodemeta_rate_limit;
+                u64 now_s = porting::getTimeS();
+                auto &rl = nodemeta_rate_limit[peer_id];
+                if (now_s - rl.second > 2) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 5) {
+                        warningstream << "Server: Rate limiting nodemeta fields for peer_id="
+                                << peer_id << " (" << rl.first << " in 2s)" << std::endl;
+                        return;
+                }
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
                 warningstream << FUNCTION_NAME << ": player is null" << std::endl;
@@ -1446,6 +1616,25 @@ void Server::handleCommand_NodeMetaFields(NetworkPacket* pkt)
 void Server::handleCommand_InventoryFields(NetworkPacket* pkt)
 {
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Rate limit inventory formspec submissions to prevent server overload.
+        // Max 5 inventory field submissions per 2 seconds per player.
+        {
+                static std::unordered_map<session_t, std::pair<u32, u64>> invfields_rate_limit;
+                u64 now_s = porting::getTimeS();
+                auto &rl = invfields_rate_limit[peer_id];
+                if (now_s - rl.second > 2) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 5) {
+                        warningstream << "Server: Rate limiting inventory fields for peer_id="
+                                << peer_id << " (" << rl.first << " in 2s)" << std::endl;
+                        return;
+                }
+        }
+
         RemotePlayer *player = m_env->getPlayer(peer_id);
 
         if (!player)
@@ -1647,7 +1836,7 @@ void Server::handleCommand_SrpBytesA(NetworkPacket* pkt)
         // though FIRST_SRP wasn't set as chosen_mech. The FIRST_SRP handler
         // leaves chosen_mech as NONE to signal that the SRP exchange is pending.
         bool is_first_srp_key_exchange = !wantSudo &&
-                client->enc_pwd.size() > 0 &&
+                !client->enc_pwd.empty() && // Batch 29: use !empty() instead of size()>0
                 client->chosen_mech == AUTH_MECHANISM_NONE &&
                 cstate == CS_HelloSent &&
                 client->isMechAllowed(AUTH_MECHANISM_FIRST_SRP);
@@ -2044,6 +2233,25 @@ void Server::handleCommand_ModChannelMsg(NetworkPacket *pkt)
         *pkt >> channel_name >> channel_msg;
 
         session_t peer_id = pkt->getPeerId();
+
+        // Batch 33: Rate limit mod channel messages to prevent flooding.
+        // Max 10 messages per second per player.
+        {
+                static std::unordered_map<session_t, std::pair<u32, u64>> modchannel_rate_limit;
+                u64 now_s = porting::getTimeS();
+                auto &rl = modchannel_rate_limit[peer_id];
+                if (now_s - rl.second > 1) {
+                        rl.first = 0;
+                        rl.second = now_s;
+                }
+                rl.first++;
+                if (rl.first > 10) {
+                        warningstream << "Server: Rate limiting mod channel messages for peer_id="
+                                << peer_id << " (" << rl.first << " in 1s)" << std::endl;
+                        return;
+                }
+        }
+
         verbosestream << "Mod channel message received from peer " << peer_id <<
                 " on channel " << channel_name << " message: " << channel_msg <<
                 std::endl;
@@ -2083,6 +2291,17 @@ void Server::handleCommand_HaveMedia(NetworkPacket *pkt)
         u8 numtokens;
 
         *pkt >> numtokens;
+
+        // Batch 33: Limit the number of media callback tokens per packet.
+        // 255 is the max u8 value, but even 100 is far beyond typical use.
+        constexpr u8 MAX_MEDIA_TOKENS = 100;
+        if (numtokens > MAX_MEDIA_TOKENS) {
+                warningstream << "Server: Client " << getPlayerName(pkt->getPeerId())
+                        << " sent too many media tokens (" << (int)numtokens
+                        << "), limiting to " << (int)MAX_MEDIA_TOKENS << std::endl;
+                numtokens = MAX_MEDIA_TOKENS;
+        }
+
         for (u16 i = 0; i < numtokens; i++) {
                 u32 n;
                 *pkt >> n;
@@ -2593,6 +2812,15 @@ void Server::handleCommand_VoiceData(NetworkPacket* pkt)
         u16 data_length;
 
         *pkt >> channel_id >> seq_num >> data_length;
+
+        // Batch 33: Limit voice data size to prevent bandwidth amplification attacks.
+        // Opus frames are typically 100-1000 bytes; 4000 bytes is very generous.
+        constexpr u16 MAX_VOICE_DATA_LENGTH = 4000;
+        if (data_length > MAX_VOICE_DATA_LENGTH) {
+                warningstream << "Server: Voice data too large (" << data_length
+                        << " bytes) from peer_id=" << peer_id << ", dropping" << std::endl;
+                return;
+        }
 
         // Read the raw opus data
         std::string raw_data = pkt->readRawString(data_length);

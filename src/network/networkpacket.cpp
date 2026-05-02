@@ -5,6 +5,7 @@
 #include "networkpacket.h"
 #include <sstream>
 #include "util/serialize.h"
+#include "util/string.h" // Batch 28: for is_valid_utf8
 #include "networkprotocol.h"
 
 void NetworkPacket::checkReadOffset(u32 from_offset, u32 field_size) const
@@ -34,6 +35,16 @@ void NetworkPacket::putRawPacket(const u8 *data, u32 datasize, session_t peer_id
         assert(m_command == 0);
 
         assert(datasize >= 2);
+
+        // Batch 33: Reject unreasonably large packets to prevent memory exhaustion
+        // from malicious or corrupted data. 2 MB is a generous upper bound;
+        // normal game packets are typically much smaller.
+        constexpr u32 MAX_PACKET_DATA_SIZE = 2 * 1024 * 1024;
+        if (datasize > MAX_PACKET_DATA_SIZE) {
+                throw PacketError("Packet too large: " + std::to_string(datasize) +
+                        " bytes exceeds max " + std::to_string(MAX_PACKET_DATA_SIZE));
+        }
+
         m_datasize = datasize - 2;
         m_peer_id = peer_id;
 
@@ -107,6 +118,12 @@ NetworkPacket& NetworkPacket::operator>>(std::string& dst)
         dst.reserve(strLen);
         dst.append((char*)&m_data[m_read_offset], strLen);
 
+        // Batch 28: Validate UTF-8 for strings received from network
+        if (!is_valid_utf8(dst)) {
+                // Replace invalid sequences by round-tripping through wide
+                dst = wide_to_utf8(utf8_to_wide(dst));
+        }
+
         m_read_offset += strLen;
         return *this;
 }
@@ -163,7 +180,16 @@ NetworkPacket& NetworkPacket::operator>>(std::wstring& dst)
                         m_read_offset += sizeof(u16);
 
                         wchar_t c2 = readU16(&m_data[m_read_offset]);
-                        c = 0x10000 + ( ((c & 0x3ff) << 10) | (c2 & 0x3ff) );
+                        // Batch 28: Validate low surrogate
+                        if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+                                c = 0x10000 + ( ((c & 0x3ff) << 10) | (c2 & 0x3ff) );
+                        } else {
+                                // Invalid surrogate pair: use replacement character
+                                c = 0xFFFD;
+                        }
+                } else if (NEED_SURROGATE_CODING && c >= 0xDC00 && c <= 0xDFFF) {
+                        // Batch 28: Unpaired low surrogate, replace with U+FFFD
+                        c = 0xFFFD;
                 }
                 dst.push_back(c);
                 m_read_offset += sizeof(u16);
@@ -178,7 +204,7 @@ NetworkPacket& NetworkPacket::operator<<(std::wstring_view src)
                 throw PacketError("String too long");
         }
 
-        if (!NEED_SURROGATE_CODING || src.size() == 0) {
+        if (!NEED_SURROGATE_CODING || src.empty()) { // Batch 29: use empty() instead of size()==0
                 *this << static_cast<u16>(src.size());
                 for (u16 i = 0; i < src.size(); i++)
                         *this << static_cast<u16>(src[i]);
@@ -232,6 +258,11 @@ std::string NetworkPacket::readLongString()
 
         dst.reserve(strLen);
         dst.append((char*)&m_data[m_read_offset], strLen);
+
+        // Batch 28: Validate UTF-8 for long strings received from network
+        if (!is_valid_utf8(dst)) {
+                dst = wide_to_utf8(utf8_to_wide(dst));
+        }
 
         m_read_offset += strLen;
 

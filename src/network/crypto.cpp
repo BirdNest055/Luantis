@@ -1214,6 +1214,14 @@ bool FingerprintStore::save(const std::string &filepath) const
                 file << entry.first << " " << entry.second << "\n";
         }
 
+        // Batch 31: Check for write errors after saving fingerprint store
+        if (file.fail()) {
+                enclog_error("FingerprintStore: failed to write file")
+                        << EncLog::kv("filepath", filepath)
+                        << std::endl;
+                return false;
+        }
+
         enclog_init("FingerprintStore saved")
                 << EncLog::kv("filepath", filepath)
                 << EncLog::kv("entries", (u32)m_fingerprints.size())
@@ -1408,6 +1416,9 @@ bool FingerprintStore::save(const std::string &filepath) const
         file << "# Format: <address>:<port> <fingerprint>\n";
         for (const auto &entry : m_fingerprints)
                 file << entry.first << " " << entry.second << "\n";
+        // Batch 31: Check for write errors after saving fingerprint store (Clawtest format)
+        if (file.fail())
+                return false;
         return true;
 }
 

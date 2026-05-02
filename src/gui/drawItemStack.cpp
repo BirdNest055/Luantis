@@ -94,18 +94,27 @@ void drawItemStack(
                 ProjMatrix.buildProjectionMatrixOrthoLH(2.0f, 2.0f, -1.0f, 100.0f);
 
                 core::matrix4 ViewMatrix;
+                // Batch 32: guard against division by zero if rect has zero dimensions
+                s32 rect_w = rect.getWidth();
+                s32 rect_h = rect.getHeight();
+                if (rect_w <= 0 || rect_h <= 0)
+                        return;
+                s32 view_w = viewrect.getWidth();
+                s32 view_h = viewrect.getHeight();
+                if (view_w <= 0 || view_h <= 0)
+                        return;
                 ViewMatrix.buildProjectionMatrixOrthoLH(
-                        2.0f * viewrect.getWidth() / rect.getWidth(),
-                        2.0f * viewrect.getHeight() / rect.getHeight(),
+                        2.0f * view_w / rect_w,
+                        2.0f * view_h / rect_h,
                         -1.0f,
                         100.0f);
                 ViewMatrix.setTranslation(core::vector3df(
                         1.0f * (rect.LowerRightCorner.X + rect.UpperLeftCorner.X -
                                         viewrect.LowerRightCorner.X - viewrect.UpperLeftCorner.X) /
-                                        viewrect.getWidth(),
+                                        view_w,
                         1.0f * (viewrect.LowerRightCorner.Y + viewrect.UpperLeftCorner.Y -
                                         rect.LowerRightCorner.Y - rect.UpperLeftCorner.Y) /
-                                        viewrect.getHeight(),
+                                        view_h,
                         0.0f));
 
                 driver->setTransform(video::ETS_PROJECTION, ProjMatrix);

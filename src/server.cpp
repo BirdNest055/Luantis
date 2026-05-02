@@ -2533,7 +2533,7 @@ void Server::sendMetadataChanged(const std::unordered_set<v3s16> &positions, flo
                         // Add the change to send list
                         meta_updates_list.set(pos, meta);
                 }
-                if (meta_updates_list.size() == 0)
+                if (meta_updates_list.size() == 0) // Batch 29 fix: NodeMetadataList has no empty()
                         continue;
 
                 // Send the meta changes

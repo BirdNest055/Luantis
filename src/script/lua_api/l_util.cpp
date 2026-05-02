@@ -540,6 +540,15 @@ int ModApiUtil::l_safe_file_write(lua_State *L)
 
         CHECK_SECURE_PATH(L, path, true);
 
+        // Batch 31: Validate path for path traversal (defense in depth)
+        std::string p(path);
+        if (p.find("..") != std::string::npos) {
+                warningstream << "safe_file_write: path traversal attempt: "
+                        << p << std::endl;
+                lua_pushboolean(L, false);
+                return 1;
+        }
+
         bool ret = fs::safeWriteToFile(path, content);
         lua_pushboolean(L, ret);
 
@@ -634,8 +643,10 @@ int ModApiUtil::l_colorspec_to_colorstring(lua_State *L)
 
         video::SColor color;
         if (read_color(L, 1, &color)) {
-                char colorstring[10];
-                snprintf(colorstring, 10, "#%02X%02X%02X%02X",
+                // Batch 28: Increased buffer from 10 to 16 for safety margin
+                // (format produces exactly 9 chars + null, but 10 was tight)
+                char colorstring[16];
+                snprintf(colorstring, sizeof(colorstring), "#%02X%02X%02X%02X",
                         color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
                 lua_pushstring(L, colorstring);
                 return 1;

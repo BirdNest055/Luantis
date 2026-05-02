@@ -223,19 +223,18 @@ void Mapgen::setDefaultSettings(Settings *settings)
 
 u32 Mapgen::getBlockSeed(v3s16 p, s32 seed)
 {
-        return (u32)seed   +
-                p.Z * 38134234 +
-                p.Y * 42123    +
-                p.X * 23;
+        // Batch 30: Use s64 intermediate to avoid s32 overflow in addition chain
+        return (u32)(((s64)seed + (s64)p.Z * 38134234 + (s64)p.Y * 42123 + (s64)p.X * 23) & 0xFFFFFFFFLL);
 }
 
 
 u32 Mapgen::getBlockSeed2(v3s16 p, s32 seed)
 {
+        // Batch 30: Use u64 intermediate to avoid u32 overflow in hash computation
         // Multiply by unsigned number to avoid signed overflow (UB)
-        u32 n = 1619U * p.X + 31337U * p.Y + 52591U * p.Z + 1013U * seed;
+        u64 n = 1619ULL * p.X + 31337ULL * p.Y + 52591ULL * p.Z + 1013ULL * (u32)seed;
         n = (n >> 13) ^ n;
-        return (n * (n * n * 60493 + 19990303) + 1376312589);
+        return (u32)((n * (n * n * 60493 + 19990303) + 1376312589) & 0xFFFFFFFFULL);
 }
 
 
@@ -601,17 +600,18 @@ MapgenBasic::MapgenBasic(int mapgenid, MapgenParams *params, EmergeParams *emerg
         // Number of elements to skip to get to the next Y coordinate
         this->ystride = csize.X;
 
+        // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
         // Number of elements to skip to get to the next Z coordinate
-        this->zstride = csize.X * csize.Y;
+        this->zstride = (s32)csize.X * csize.Y;
 
         // Z-stride value for maps oversized for 1-down overgeneration
-        this->zstride_1d = csize.X * (csize.Y + 1);
+        this->zstride_1d = (s32)csize.X * (csize.Y + 1);
 
         // Z-stride value for maps oversized for 1-up 1-down overgeneration
-        this->zstride_1u1d = csize.X * (csize.Y + 2);
+        this->zstride_1u1d = (s32)csize.X * (csize.Y + 2);
 
         //// Allocate heightmap
-        this->heightmap = new s16[csize.X * csize.Z];
+        this->heightmap = new s16[(s32)csize.X * csize.Z];
 
         //// Initialize biome generator
         biomegen = emerge->biomegen;

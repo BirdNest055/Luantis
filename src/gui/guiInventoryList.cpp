@@ -79,6 +79,9 @@ void GUIInventoryList::draw()
         const s32 list_size = (s32)ilist->getSize();
 
         for (s32 i = 0; i < m_geom.X * m_geom.Y; i++) {
+                // Batch 32: guard against zero geometry (division by zero in slot calculation)
+                if (m_geom.X <= 0)
+                        break;
                 s32 item_i = i + m_start_item_i;
                 if (item_i >= list_size)
                         break;
@@ -214,6 +217,12 @@ s32 GUIInventoryList::getItemIndexAtPos(v2s32 p) const
         v2s32 base_pos = AbsoluteRect.UpperLeftCorner;
 
         // instead of looping through each slot, we look where p would be in the grid
+        // Batch 32: guard against zero slot spacing (division by zero)
+        if (m_slot_spacing.X == 0 || m_slot_spacing.Y == 0)
+                return -1;
+        // Batch 32: guard against zero geometry dimensions (division by zero)
+        if (m_geom.X <= 0 || m_geom.Y <= 0)
+                return -1;
         s32 i = static_cast<s32>((p.X - base_pos.X) / m_slot_spacing.X)
                         + static_cast<s32>((p.Y - base_pos.Y) / m_slot_spacing.Y) * m_geom.X;
 

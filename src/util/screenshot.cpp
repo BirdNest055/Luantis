@@ -19,78 +19,82 @@
 
 bool takeScreenshot(video::IVideoDriver *driver, std::string &filename_out)
 {
-	sanity_check(driver);
+        sanity_check(driver);
 
-	video::IImage* const raw_image = driver->createScreenShot();
+        video::IImage* const raw_image = driver->createScreenShot();
 
-	if (!raw_image) {
-		errorstream << "Could not take screenshot" << std::endl;
-		return false;
-	}
+        if (!raw_image) {
+                errorstream << "Could not take screenshot" << std::endl;
+                return false;
+        }
 
-	const struct tm tm = mt_localtime();
+        const struct tm tm = mt_localtime();
 
-	char timestamp_c[64];
-	strftime(timestamp_c, sizeof(timestamp_c), "%Y%m%d_%H%M%S", &tm);
+        char timestamp_c[64];
+        strftime(timestamp_c, sizeof(timestamp_c), "%Y%m%d_%H%M%S", &tm);
 
-	std::string screenshot_dir = g_settings->get("screenshot_path");
-	if (!fs::IsPathAbsolute(screenshot_dir))
-		screenshot_dir = porting::path_user + DIR_DELIM + screenshot_dir;
+        std::string screenshot_dir = g_settings->get("screenshot_path");
+        if (!fs::IsPathAbsolute(screenshot_dir))
+                screenshot_dir = porting::path_user + DIR_DELIM + screenshot_dir;
 
-	std::string filename_base = screenshot_dir
-			+ DIR_DELIM
-			+ std::string("screenshot_")
-			+ timestamp_c;
-	std::string filename_ext = "." + g_settings->get("screenshot_format");
+        std::string filename_base = screenshot_dir
+                        + DIR_DELIM
+                        + std::string("screenshot_")
+                        + timestamp_c;
+        std::string filename_ext = "." + g_settings->get("screenshot_format");
 
-	// Create the directory if it doesn't already exist.
-	// Otherwise, saving the screenshot would fail.
-	fs::CreateAllDirs(screenshot_dir);
+        // Create the directory if it doesn't already exist.
+        // Otherwise, saving the screenshot would fail.
+        // Batch 31: Check directory creation result for screenshot directory
+        if (!fs::CreateAllDirs(screenshot_dir)) {
+                errorstream << "Could not create screenshot directory: "
+                        << screenshot_dir << std::endl;
+        }
 
-	u32 quality = (u32)g_settings->getS32("screenshot_quality");
-	quality = rangelim(quality, 0, 100) / 100.0f * 255;
+        u32 quality = (u32)g_settings->getS32("screenshot_quality");
+        quality = rangelim(quality, 0, 100) / 100.0f * 255;
 
-	// Try to find a unique filename
-	std::string filename;
-	unsigned serial = 0;
+        // Try to find a unique filename
+        std::string filename;
+        unsigned serial = 0;
 
-	while (serial < SCREENSHOT_MAX_SERIAL_TRIES) {
-		filename = filename_base + (serial > 0 ? ("_" + itos(serial)) : "").append(filename_ext);
-		if (!fs::PathExists(filename))
-			break;	// File did not apparently exist, we'll go with it
-		serial++;
-	}
+        while (serial < SCREENSHOT_MAX_SERIAL_TRIES) {
+                filename = filename_base + (serial > 0 ? ("_" + itos(serial)) : "").append(filename_ext);
+                if (!fs::PathExists(filename))
+                        break;  // File did not apparently exist, we'll go with it
+                serial++;
+        }
 
-	if (serial == SCREENSHOT_MAX_SERIAL_TRIES) {
-		errorstream << "Could not find suitable filename for screenshot" << std::endl;
-		raw_image->drop();
-		return false;
-	}
+        if (serial == SCREENSHOT_MAX_SERIAL_TRIES) {
+                errorstream << "Could not find suitable filename for screenshot" << std::endl;
+                raw_image->drop();
+                return false;
+        }
 
-	video::IImage* const image =
-			driver->createImage(video::ECF_R8G8B8, raw_image->getDimension());
+        video::IImage* const image =
+                        driver->createImage(video::ECF_R8G8B8, raw_image->getDimension());
 
-	if (!image) {
-		errorstream << "Could not create image for screenshot" << std::endl;
-		raw_image->drop();
-		return false;
-	}
+        if (!image) {
+                errorstream << "Could not create image for screenshot" << std::endl;
+                raw_image->drop();
+                return false;
+        }
 
-	raw_image->copyTo(image);
+        raw_image->copyTo(image);
 
-	bool success = driver->writeImageToFile(image, filename.c_str(), quality);
+        bool success = driver->writeImageToFile(image, filename.c_str(), quality);
 
-	if (success) {
-		filename_out = filename;
-		std::string msg = fmtgettext("Saved screenshot to \"%s\"", filename.c_str());
-		infostream << msg << std::endl;
-	} else {
-		std::string msg = fmtgettext("Failed to save screenshot to \"%s\"", filename.c_str());
-		errorstream << msg << std::endl;
-	}
+        if (success) {
+                filename_out = filename;
+                std::string msg = fmtgettext("Saved screenshot to \"%s\"", filename.c_str());
+                infostream << msg << std::endl;
+        } else {
+                std::string msg = fmtgettext("Failed to save screenshot to \"%s\"", filename.c_str());
+                errorstream << msg << std::endl;
+        }
 
-	image->drop();
-	raw_image->drop();
-	return success;
+        image->drop();
+        raw_image->drop();
+        return success;
 }
 

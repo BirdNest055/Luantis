@@ -419,7 +419,11 @@ void loadGameConfAndInitWorld(const std::string &path, const std::string &name,
 
         infostream << "Initializing world at " << final_path << std::endl;
 
-        fs::CreateAllDirs(final_path);
+        // Batch 31: Check directory creation result for world path
+        if (!fs::CreateAllDirs(final_path)) {
+                errorstream << "Could not create world directory: "
+                        << final_path << std::endl;
+        }
 
         // Create world.mt if does not already exist
         std::string worldmt_path = final_path + DIR_DELIM "world.mt";

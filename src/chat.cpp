@@ -318,6 +318,10 @@ u32 ChatBuffer::formatChatLine(const ChatLine &line, u32 cols,
 
                 const std::wstring &linestring = line.text.getString();
                 u32 remaining_in_output = cols - out_column;
+                // Batch 28: Clamp remaining_in_output to prevent underflow
+                // when out_column > cols due to narrow windows
+                if (out_column > cols)
+                        remaining_in_output = 0;
                 size_t http_pos = std::wstring::npos;
                 mark_newline = false;  // now using this to SET line-end frag
 
@@ -524,7 +528,7 @@ void ChatPrompt::addToHistory(const std::wstring &line)
                 }
         }
         if (!line.empty() &&
-                        (m_history.size() == 0 || m_history.back().line != line)) {
+                        (m_history.empty() || m_history.back().line != line)) { // Batch 29: use empty() instead of size()==0
                 HistoryEntry entry(line);
                 // Remove all duplicates
                 m_history.erase(std::remove(m_history.begin(), m_history.end(), entry),

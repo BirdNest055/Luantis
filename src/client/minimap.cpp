@@ -419,9 +419,10 @@ void Minimap::blitMinimapPixelsToImageSurface(
                 }
                 // Multiply with pre-generated "color of texture"
                 video::SColor &minimap_color = f.visuals->minimap_color;
-                tilecolor.setRed(tilecolor.getRed() * minimap_color.getRed() / 255);
-                tilecolor.setGreen(tilecolor.getGreen() * minimap_color.getGreen() / 255);
-                tilecolor.setBlue(tilecolor.getBlue() * minimap_color.getBlue() / 255);
+                // Batch 32: clamp color components after multiplication
+                tilecolor.setRed(MYMIN(255, tilecolor.getRed() * minimap_color.getRed() / 255));
+                tilecolor.setGreen(MYMIN(255, tilecolor.getGreen() * minimap_color.getGreen() / 255));
+                tilecolor.setBlue(MYMIN(255, tilecolor.getBlue() * minimap_color.getBlue() / 255));
                 tilecolor.setAlpha(240);
 
                 map_image->setPixel(x, data->mode.map_size - z - 1, tilecolor);

@@ -79,7 +79,12 @@ bool KeypairManager::ensureKeypair(const std::string &username)
 
         // Ensure the keys directory exists
         if (!fs::PathExists(m_keys_dir)) {
-                fs::CreateDir(m_keys_dir);
+                // Batch 31: Check directory creation result in generateAndSaveKeypair
+                if (!fs::CreateDir(m_keys_dir)) {
+                        errorstream << "KeypairManager: Failed to create keys directory: "
+                                << m_keys_dir << std::endl;
+                        return false;
+                }
         }
 
         std::string keypair_path = getKeypairPath(username);
@@ -515,7 +520,12 @@ bool KeypairManager::saveKeypair(const std::string &username) const
 
         // Ensure the keys directory exists
         if (!fs::PathExists(m_keys_dir)) {
-                fs::CreateDir(m_keys_dir);
+                // Batch 31: Check directory creation result when generating keypair
+                if (!fs::CreateDir(m_keys_dir)) {
+                        errorstream << "KeypairManager: Failed to create keys directory: "
+                                << m_keys_dir << std::endl;
+                        return false;
+                }
         }
 
         std::string keypair_path = getKeypairPath(username);
@@ -531,6 +541,13 @@ bool KeypairManager::saveKeypair(const std::string &username) const
         }
 
         file.write(data.data(), data.size());
+        // Batch 31: Check for write errors after saving keypair
+        if (file.fail()) {
+                errorstream << "KeypairManager::saveKeypair: Failed to write file: "
+                        << keypair_path << std::endl;
+                file.close();
+                return false;
+        }
         file.close();
 
         // Set restrictive file permissions (owner read/write only)
@@ -596,7 +613,12 @@ bool KeypairManager::migrateLegacyKeypair(const std::string &username)
 
         // Ensure the keys directory exists
         if (!fs::PathExists(m_keys_dir)) {
-                fs::CreateDir(m_keys_dir);
+                // Batch 31: Check directory creation result during migration
+                if (!fs::CreateDir(m_keys_dir)) {
+                        warningstream << "KeypairManager: Failed to create keys directory for migration: "
+                                << m_keys_dir << std::endl;
+                        return false;
+                }
         }
 
         // Read the legacy keypair file
@@ -628,6 +650,13 @@ bool KeypairManager::migrateLegacyKeypair(const std::string &username)
         }
 
         dst.write(data.data(), data.size());
+        // Batch 31: Check write errors in migration before deleting source
+        if (dst.fail()) {
+                errorstream << "KeypairManager: Failed to write migrated keypair for '"
+                        << username << "'." << std::endl;
+                dst.close();
+                return false;
+        }
         dst.close();
 
         // Set restrictive permissions
@@ -729,6 +758,13 @@ void KeypairManager::saveServerUsers() const
         }
 
         file << content;
+        // Batch 31: Check write errors after saving server users file
+        if (file.fail()) {
+                errorstream << "KeypairManager: Failed to write server users file: "
+                        << m_server_users_path << std::endl;
+                file.close();
+                return;
+        }
         file.close();
 }
 

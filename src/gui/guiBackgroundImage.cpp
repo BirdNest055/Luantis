@@ -48,6 +48,9 @@ void GUIBackgroundImage::draw()
 
         core::rect<s32> rect;
         if (m_autoclip) {
+                // Batch 32: null check for Parent before accessing its clipping rect
+                if (!Parent)
+                        return;
                 rect = Parent->getAbsoluteClippingRect();
                 rect.UpperLeftCorner -= m_autoclip_offset;
                 rect.LowerRightCorner += m_autoclip_offset;

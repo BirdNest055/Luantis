@@ -348,7 +348,15 @@ void GUIButton::drawSprite(EGUI_BUTTON_STATE state, u32 startTime, const core::p
         if (spriteIdx == -1)
                 return;
 
+        // Batch 32: bounds check before accessing sprite frames
+        if (!SpriteBank || spriteIdx >= (s32)SpriteBank->getSprites().size())
+                return;
+        if (SpriteBank->getSprites()[spriteIdx].Frames.empty())
+                return;
         u32 rectIdx = SpriteBank->getSprites()[spriteIdx].Frames[0].rectNumber;
+        // Batch 32: bounds check for position index
+        if (rectIdx >= SpriteBank->getPositions().size())
+                return;
         core::rect<s32> srcRect = SpriteBank->getPositions()[rectIdx];
 
         IGUISkin *skin = Environment->getSkin();

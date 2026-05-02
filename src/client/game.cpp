@@ -49,6 +49,7 @@
 #include "util/basic_macros.h"
 #include "util/directiontables.h"
 #include "util/quicktune_shortcutter.h"
+#include "util/string.h" // Batch 28: for sanitize_untrusted
 #include "version.h"
 #include "script/scripting_client.h"
 #include "hud.h"
@@ -1229,7 +1230,11 @@ bool Game::checkConnection()
                 const std::string reason = wide_to_utf8(
                         unescape_translate(utf8_to_wide(client->accessDeniedReason())));
 
-                *error_message = fmtgettext("Access denied. Reason: %s", reason.c_str());
+                // Batch 28: Sanitize reason string from network to prevent
+                // format string issues when passed to fmtgettext
+                std::string safe_reason = sanitize_untrusted(reason);
+
+                *error_message = fmtgettext("Access denied. Reason: %s", safe_reason.c_str());
                 *reconnect_requested = client->reconnectRequested();
                 errorstream << *error_message << std::endl;
                 return false;

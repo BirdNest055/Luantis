@@ -288,7 +288,7 @@ void ConnectionSendThread::runTimeouts(float dtime, u32 peer_packet_quota)
                                 resend_timeout, peer_packet_quota);
 
                         channel.UpdatePacketLossCounter(timed_outs.size());
-                        if (timed_outs.size() > 0)
+                        if (!timed_outs.empty()) // Batch 29: use !empty() instead of size()>0
                                 g_profiler->graphAdd("packets_lost", timed_outs.size());
 
                         // Note that this only happens during connection setup, it would
@@ -481,6 +481,13 @@ bool ConnectionSendThread::rawSendAsPacket(session_t peer_id, u8 channelnum,
                         << "packet for non existent peer_id: " << peer_id << std::endl);
                 return false;
         }
+        // Batch 29: bounds check channelnum before array access
+        if (channelnum >= CHANNEL_COUNT) {
+                LOG(errorstream << m_connection->getDesc()
+                        << " rawSendAsPacket: Invalid channelnum=" << (int)channelnum
+                        << ", dropping packet" << std::endl);
+                return false;
+        }
         Channel *channel = &(dynamic_cast<UDPPeer *>(&peer)->channels[channelnum]);
 
         if (reliable) {
@@ -563,6 +570,13 @@ void ConnectionSendThread::processReliableCommand(ConnectionCommandPtr &c)
                         PeerHelper peer = m_connection->getPeerNoEx(c->peer_id);
                         if (!peer)
                                 return;
+                        // Batch 29: bounds check channelnum before array access
+                        if (c->channelnum >= CHANNEL_COUNT) {
+                                LOG(errorstream << m_connection->getDesc()
+                                        << " CONNCMD_RESEND_ONE: Invalid channelnum="
+                                        << (int)c->channelnum << std::endl);
+                                return;
+                        }
                         Channel &channel = dynamic_cast<UDPPeer *>(&peer)->channels[c->channelnum];
 
                         auto list = channel.outgoing_reliables_sent.getResend(0, 1);
@@ -1487,7 +1501,7 @@ SharedBuffer<u8> ConnectionReceiveThread::handlePacketType_Control(Channel *chan
 
                         // put bytes for max bandwidth calculation
                         channel->UpdateBytesSent(p->size(), 1);
-                        if (channel->outgoing_reliables_sent.size() == 0)
+                        if (channel->outgoing_reliables_sent.empty()) // Batch 29: use empty() instead of size()==0
                                 m_connection->TriggerSend();
                 } catch (NotFoundException &e) {
                         LOG(derr_con << m_connection->getDesc()

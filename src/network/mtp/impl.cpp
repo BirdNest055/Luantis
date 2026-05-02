@@ -333,21 +333,22 @@ void ReliablePacketBuffer::insert(BufferedPacketPtr &p_ptr, u16 next_expected)
                         )
                 {
                         /* if this happens your maximum transfer window may be to big */
-                        char buf[200];
-                        snprintf(buf, sizeof(buf),
-                                        "Duplicated seqnum %d non matching packet detected:\n",
-                                        seqnum);
-                        warningstream << buf;
-                        snprintf(buf, sizeof(buf),
-                                        "Old: seqnum: %05d size: %04zu, address: %s\n",
-                                        i->getSeqnum(), i->size(),
-                                        i->address.serializeString().c_str());
-                        warningstream << buf;
-                        snprintf(buf, sizeof(buf),
-                                        "New: seqnum: %05d size: %04zu, address: %s\n",
-                                        p.getSeqnum(), p.size(),
-                                        p.address.serializeString().c_str());
-                        warningstream << buf << std::flush;
+                        // Batch 28: Use ostringstream instead of fixed char[200]
+                        // to avoid truncation with long addresses
+                        std::ostringstream oss;
+                        oss << "Duplicated seqnum " << seqnum
+                                << " non matching packet detected:\n";
+                        warningstream << oss.str();
+                        oss.str("");
+                        oss << "Old: seqnum: " << i->getSeqnum()
+                                << " size: " << i->size()
+                                << ", address: " << i->address.serializeString() << "\n";
+                        warningstream << oss.str();
+                        oss.str("");
+                        oss << "New: seqnum: " << p.getSeqnum()
+                                << " size: " << p.size()
+                                << ", address: " << p.address.serializeString() << "\n";
+                        warningstream << oss.str() << std::flush;
                         throw IncomingDataCorruption("duplicated packet isn't same as original one");
                 }
         }
@@ -447,7 +448,7 @@ SharedBuffer<u8> IncomingSplitPacket::reassemble()
         // Copy chunks to data buffer
         u32 start = 0;
         for (u32 chunk_i = 0; chunk_i < chunk_count; chunk_i++) {
-                const SharedBuffer<u8> &buf = chunks[chunk_i];
+                const SharedBuffer<u8> &buf = chunks.at(chunk_i); // Batch 29: use at() for bounds-checked access
                 memcpy(&fulldata[start], *buf, buf.getSize());
                 start += buf.getSize();
         }
@@ -493,13 +494,26 @@ SharedBuffer<u8> IncomingSplitBuffer::insert(BufferedPacketPtr &p_ptr, bool reli
                 return SharedBuffer<u8>();
         }
 
+        // Batch 33: Limit chunk_count to prevent memory exhaustion from
+        // malicious split packets with extremely high chunk counts.
+        // 65535 is the max u16 value, but a 10000-chunk split is already
+        // unreasonable (~50MB with 5KB chunks).
+        constexpr u16 MAX_SPLIT_CHUNK_COUNT = 10000;
+        if (chunk_count > MAX_SPLIT_CHUNK_COUNT) {
+                errorstream << "IncomingSplitBuffer::insert(): chunk_count="
+                                << chunk_count << " exceeds max "
+                                << MAX_SPLIT_CHUNK_COUNT << ", dropping" << std::endl;
+                return SharedBuffer<u8>();
+        }
+
         // Add if doesn't exist
         IncomingSplitPacket *sp;
-        if (m_buf.find(seqnum) == m_buf.end()) {
+        auto it = m_buf.find(seqnum); // Batch 29: use iterator from find() instead of second lookup
+        if (it == m_buf.end()) {
                 sp = new IncomingSplitPacket(chunk_count, reliable);
                 m_buf[seqnum] = sp;
         } else {
-                sp = m_buf[seqnum];
+                sp = it->second;
         }
 
         if (chunk_count != sp->chunk_count) {
@@ -1069,6 +1083,12 @@ void UDPPeer::PutReliableSendCommand(ConnectionCommandPtr &c,
         if (m_pending_disconnect)
                 return;
 
+        // Batch 29: bounds check channelnum before array access
+        if (c->channelnum >= CHANNEL_COUNT) {
+                errorstream << "UDPPeer::PutReliableSendCommand: Invalid channelnum="
+                        << (int)c->channelnum << ", dropping" << std::endl;
+                return;
+        }
         Channel &chan = channels[c->channelnum];
 
         if (chan.queued_commands.empty() &&
@@ -1102,6 +1122,12 @@ bool UDPPeer::processReliableSendCommand(
                 return true;
 
         const auto &c = *c_ptr;
+        // Batch 29: bounds check channelnum before array access
+        if (c.channelnum >= CHANNEL_COUNT) {
+                errorstream << "UDPPeer::processReliableSendCommand: Invalid channelnum="
+                        << (int)c.channelnum << ", dropping" << std::endl;
+                return false;
+        }
         Channel &chan = channels[c.channelnum];
 
         const u32 chunksize_max = max_packet_size
@@ -1432,12 +1458,14 @@ bool Connection::deletePeer(session_t peer_id, bool timeout)
         /* lock list as short as possible */
         {
                 MutexAutoLock peerlock(m_peers_mutex);
-                if (m_peers.find(peer_id) == m_peers.end())
+                auto it = m_peers.find(peer_id); // Batch 29: use iterator from find() instead of second lookup
+                if (it == m_peers.end())
                         return false;
-                peer = m_peers[peer_id];
-                m_peers.erase(peer_id);
-                auto it = std::find(m_peer_ids.begin(), m_peer_ids.end(), peer_id);
-                m_peer_ids.erase(it);
+                peer = it->second;
+                m_peers.erase(it);
+                auto id_it = std::find(m_peer_ids.begin(), m_peer_ids.end(), peer_id);
+                if (id_it != m_peer_ids.end()) // Batch 29: check iterator before erase
+                        m_peer_ids.erase(id_it);
         }
 
         // Create event

@@ -34,8 +34,11 @@ void GUIItemImage::draw()
         core::rect<s32> rect = core::rect<s32>(AbsoluteRect);
         drawItemStack(Environment->getVideoDriver(), m_font, item, rect,
                         &AbsoluteClippingRect, m_client, IT_ROT_NONE);
-        video::SColor color = GUITheme::Colors::IMAGE_DRAW_DEFAULT;
-        m_font->draw(m_label, rect, color, true, true, &AbsoluteClippingRect);
+        // Batch 32: null check for font before using it to draw label
+        if (m_font) {
+                video::SColor color = GUITheme::Colors::IMAGE_DRAW_DEFAULT;
+                m_font->draw(m_label, rect, color, true, true, &AbsoluteClippingRect);
+        }
 
         IGUIElement::draw();
 }

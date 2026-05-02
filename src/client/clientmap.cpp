@@ -1634,7 +1634,7 @@ void ClientMap::updateTransparentMeshBuffers()
                         continue;
 
                 auto &transparent_buffers = blockmesh->getTransparentBuffers();
-                if (transparent_buffers.size() == 0)
+                if (transparent_buffers.empty()) // Batch 29: use empty() instead of size()==0
                         continue;
 
                 if (m_needs_update_transparent_meshes) {

@@ -917,6 +917,15 @@ void Client::handleCommand_ActiveObjectRemoveAdd(NetworkPacket* pkt)
                 // Read removed objects
                 *pkt >> removed_count;
 
+                // Batch 33: Limit removed/added object counts to prevent DoS.
+                // A count of 1000 is far beyond any reasonable game scenario.
+                constexpr u16 MAX_ACTIVE_OBJECT_REMOVES = 1000;
+                if (removed_count > MAX_ACTIVE_OBJECT_REMOVES) {
+                        warningstream << "Client: ActiveObjectRemoveAdd removed_count="
+                                << removed_count << " exceeds max, clamping" << std::endl;
+                        removed_count = MAX_ACTIVE_OBJECT_REMOVES;
+                }
+
                 for (u16 i = 0; i < removed_count; i++) {
                         *pkt >> id;
                         m_env.removeActiveObject(id);
@@ -926,6 +935,14 @@ void Client::handleCommand_ActiveObjectRemoveAdd(NetworkPacket* pkt)
 
                 // Read added objects
                 *pkt >> added_count;
+
+                // Batch 33: Same limit for added objects
+                constexpr u16 MAX_ACTIVE_OBJECT_ADDS = 1000;
+                if (added_count > MAX_ACTIVE_OBJECT_ADDS) {
+                        warningstream << "Client: ActiveObjectRemoveAdd added_count="
+                                << added_count << " exceeds max, clamping" << std::endl;
+                        added_count = MAX_ACTIVE_OBJECT_ADDS;
+                }
 
                 for (u16 i = 0; i < added_count; i++) {
                         *pkt >> id >> type;

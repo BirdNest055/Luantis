@@ -20,6 +20,10 @@ void GUIAnimatedImage::draw()
 
         core::dimension2d<u32> size = m_texture->getOriginalSize();
 
+        // Batch 32: guard against zero frame count (division by zero)
+        if (m_frame_count == 0)
+                return;
+
         if ((u32)m_frame_count > size.Height)
                 m_frame_count = size.Height;
         if (m_frame_idx >= m_frame_count)

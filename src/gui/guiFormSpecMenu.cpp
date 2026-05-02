@@ -727,7 +727,7 @@ void GUIFormSpecMenu::parseScrollBarOptions(parserData* data, const std::string 
 {
         std::vector<std::string> parts = split(element, ';');
 
-        if (parts.size() == 0) {
+        if (parts.empty()) { // Batch 29: use empty() instead of size()==0
                 warningstream << "Invalid scrollbaroptions element(" << parts.size() << "): '" <<
                         element << "'"  << std::endl;
                 return;

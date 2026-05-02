@@ -20,7 +20,11 @@
 
 PlayerDatabaseFiles::PlayerDatabaseFiles(const std::string &savedir) : m_savedir(savedir)
 {
-        fs::CreateDir(m_savedir);
+        // Batch 31: Check directory creation result for player database
+        if (!fs::CreateDir(m_savedir)) {
+                errorstream << "PlayerDatabaseFiles: Failed to create player directory: "
+                        << m_savedir << std::endl;
+        }
 }
 
 void PlayerDatabaseFiles::deSerialize(RemotePlayer *p, std::istream &is,
@@ -136,7 +140,11 @@ void PlayerDatabaseFiles::serialize(RemotePlayer *p, std::ostream &os)
 
 void PlayerDatabaseFiles::savePlayer(RemotePlayer *player)
 {
-        fs::CreateDir(m_savedir);
+        // Batch 31: Check directory creation result when saving player
+        if (!fs::CreateDir(m_savedir)) {
+                errorstream << "PlayerDatabaseFiles: Failed to create player directory for save: "
+                        << m_savedir << std::endl;
+        }
 
         std::string savedir = m_savedir + DIR_DELIM;
         std::string path = savedir + player->getName();
@@ -319,9 +327,10 @@ bool AuthDatabaseFiles::readAuthFile()
                 return false;
         }
         m_auth_list.clear();
-        while (file.good()) {
-                std::string line;
-                std::getline(file, line);
+        // Batch 31: Use getline return value instead of while(file.good()) to avoid
+        // processing an extra empty iteration after EOF
+        std::string line;
+        while (std::getline(file, line)) {
                 std::vector<std::string> parts = str_split(line, ':');
                 if (parts.size() < 3) // also: empty line at end
                         continue;
@@ -472,6 +481,16 @@ void ModStorageDatabaseFiles::endSave()
 
         for (auto it = m_modified.begin(); it != m_modified.end();) {
                 const std::string &modname = *it;
+
+                // Batch 31: Validate modname for path traversal before using in file path
+                if (modname.find('/') != std::string::npos ||
+                                modname.find('\\') != std::string::npos ||
+                                modname.find("..") != std::string::npos) {
+                        errorstream << "ModStorageDatabaseFiles[" << modname
+                                        << "]: invalid modname (path traversal), skipping." << std::endl;
+                        it = m_modified.erase(it);
+                        continue;
+                }
 
                 const Json::Value &json = m_mod_storage[modname];
 

@@ -151,7 +151,8 @@ void Decoration::placeDeco(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax)
         if (carea_size % sidelen != 0)
                 sidelen = carea_size;
 
-        int area = sidelen * sidelen;
+        // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
+        int area = (s32)sidelen * sidelen;
 
         for (s16 z0 = 0; z0 < carea_size; z0 += sidelen)
         for (s16 x0 = 0; x0 < carea_size; x0 += sidelen) {

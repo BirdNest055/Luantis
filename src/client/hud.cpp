@@ -165,6 +165,8 @@ void Hud::drawItem(const ItemStack &item, const core::rect<s32>& rect,
                         imgrect2.LowerRightCorner.X += (m_padding*2);
                         imgrect2.LowerRightCorner.Y += (m_padding*2);
                                 video::ITexture *texture = tsrc->getTexture(hotbar_selected_image);
+                                // Batch 32: null check before dereferencing texture pointer
+                                if (!texture) return;
                                 core::dimension2di imgsize(texture->getOriginalSize());
                         draw2DImageFilterScaled(driver, texture, imgrect2,
                                         core::rect<s32>(core::position2d<s32>(0,0), imgsize),
@@ -237,7 +239,8 @@ void Hud::drawItems(v2s32 screen_pos, v2s32 screen_offset, s32 itemcount, v2f al
                 bool is_hotbar)
 {
         s32 height  = m_hotbar_imagesize + m_padding * 2;
-        s32 width   = (itemcount - inv_offset) * (m_hotbar_imagesize + m_padding * 2);
+        // Batch 32: guard against negative width from itemcount - inv_offset
+        s32 width   = std::max(0, (itemcount - inv_offset)) * (m_hotbar_imagesize + m_padding * 2);
 
         if (direction == HUD_DIR_TOP_BOTTOM || direction == HUD_DIR_BOTTOM_TOP) {
                 s32 tmp = height;
@@ -269,6 +272,8 @@ void Hud::drawItems(v2s32 screen_pos, v2s32 screen_offset, s32 itemcount, v2f al
                         width+m_padding/2, height+m_padding/2);
                 core::rect<s32> rect2 = imgrect2 + pos;
                 video::ITexture *texture = tsrc->getTexture(hotbar_image);
+                // Batch 32: null check before dereferencing texture pointer
+                if (!texture) return;
                 core::dimension2di imgsize(texture->getOriginalSize());
                 draw2DImageFilterScaled(driver, texture, rect2,
                         core::rect<s32>(core::position2d<s32>(0,0), imgsize),
@@ -497,6 +502,9 @@ void Hud::drawLuaElements(const v3s16 &camera_offset)
                                         dstsize.X = m_screensize.X * (e->scale.X * -0.01);
                                 if (e->scale.Y < 0)
                                         dstsize.Y = m_screensize.Y * (e->scale.Y * -0.01);
+                                // Batch 32: skip rendering if destination size is invalid
+                                if (dstsize.X <= 0 || dstsize.Y <= 0)
+                                        break;
                                 v2s32 offset((e->align.X - 1.0) * dstsize.X / 2,
                                              (e->align.Y - 1.0) * dstsize.Y / 2);
                                 core::rect<s32> rect(0, 0, dstsize.X, dstsize.Y);
@@ -523,6 +531,9 @@ void Hud::drawLuaElements(const v3s16 &camera_offset)
 
                                 // Angle according to camera view
                                 scene::ICameraSceneNode *cam = client->getSceneManager()->getActiveCamera();
+                                // Batch 32: null check for camera scene node
+                                if (!cam)
+                                        return;
                                 v3f fore = cam->getAbsoluteTransformation()
                                                 .rotateAndScaleVect(v3f(0.f, 0.f, 1.f));
                                 int angle = - fore.getHorizontalAngle().Y;
@@ -596,6 +607,9 @@ void Hud::drawCompassTranslate(HudElement *e, video::ITexture *texture,
         core::dimension2di imgsize(texture->getOriginalSize());
         core::rect<s32> srcrect(0, 0, imgsize.Width, imgsize.Height);
 
+        // Batch 32: guard against division by zero if texture has zero height
+        if (imgsize.Height <= 0)
+                return;
         v2s32 dstsize(rect.getHeight() * e->scale.X * imgsize.Width / imgsize.Height,
                         rect.getHeight() * e->scale.Y);
 
@@ -852,7 +866,10 @@ void Hud::drawCrosshair()
 
         if (pointing_at_object) {
                 if (use_object_crosshair_image) {
-                        draw_image_crosshair(tsrc->getTexture("object_crosshair.png"));
+                        // Batch 32: null check for crosshair texture before use
+                        video::ITexture *obj_cross_tex = tsrc->getTexture("object_crosshair.png");
+                        if (obj_cross_tex)
+                                draw_image_crosshair(obj_cross_tex);
                 } else {
                         s32 line_size = core::round32(OBJECT_CROSSHAIR_LINE_SIZE * m_scale_factor);
 
@@ -870,7 +887,10 @@ void Hud::drawCrosshair()
         }
 
         if (use_crosshair_image) {
-                draw_image_crosshair(tsrc->getTexture("crosshair.png"));
+                // Batch 32: null check for crosshair texture before use
+                video::ITexture *cross_tex = tsrc->getTexture("crosshair.png");
+                if (cross_tex)
+                        draw_image_crosshair(cross_tex);
         } else {
                 s32 line_size = core::round32(CROSSHAIR_LINE_SIZE * m_scale_factor);
 
@@ -904,21 +924,23 @@ void Hud::drawSelectionMesh()
         if (m_mode == HIGHLIGHT_BOX) {
                 // Draw 3D selection boxes
                 for (auto & selection_box : m_selection_boxes) {
-                        u32 r = (selectionbox_argb.getRed() *
+                        // Batch 32: clamp color components to valid 0-255 range
+                        u32 r = MYMIN(255, selectionbox_argb.getRed() *
                                         m_selection_mesh_color.getRed() / 255);
-                        u32 g = (selectionbox_argb.getGreen() *
+                        u32 g = MYMIN(255, selectionbox_argb.getGreen() *
                                         m_selection_mesh_color.getGreen() / 255);
-                        u32 b = (selectionbox_argb.getBlue() *
+                        u32 b = MYMIN(255, selectionbox_argb.getBlue() *
                                         m_selection_mesh_color.getBlue() / 255);
                         driver->draw3DBox(selection_box, video::SColor(255, r, g, b));
                 }
         } else if (m_mode == HIGHLIGHT_HALO && m_selection_mesh) {
                 // Draw selection mesh
                 setMeshColor(m_selection_mesh, m_selection_mesh_color);
+                // Batch 32: clamp face color components to 0-255 range
                 video::SColor face_color(0,
-                        MYMIN(255, m_selection_mesh_color.getRed() * 1.5),
-                        MYMIN(255, m_selection_mesh_color.getGreen() * 1.5),
-                        MYMIN(255, m_selection_mesh_color.getBlue() * 1.5));
+                        MYMAX(0, MYMIN(255, m_selection_mesh_color.getRed() * 1.5)),
+                        MYMAX(0, MYMIN(255, m_selection_mesh_color.getGreen() * 1.5)),
+                        MYMAX(0, MYMIN(255, m_selection_mesh_color.getBlue() * 1.5)));
                 setMeshColorByNormal(m_selection_mesh, m_selected_face_normal,
                         face_color);
                 u32 mc = m_selection_mesh->getMeshBufferCount();

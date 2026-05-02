@@ -56,7 +56,8 @@ MapgenV6::MapgenV6(MapgenV6Params *params, EmergeParams *emerge)
 
         ystride = csize.X;
 
-        heightmap = new s16[csize.X * csize.Z];
+        // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
+        heightmap = new s16[(s32)csize.X * csize.Z];
 
         spflags      = params->spflags;
         freq_desert  = params->freq_desert;
@@ -486,7 +487,8 @@ BiomeV6Type MapgenV6::getBiome(int index, v2s16 p)
 u32 MapgenV6::get_blockseed(u64 seed, v3s16 p)
 {
         s32 x = p.X, y = p.Y, z = p.Z;
-        return (u32)(seed % 0x100000000ULL) + z * 38134234 + y * 42123 + x * 23;
+        // Batch 30: Use s64 intermediate to avoid s32 overflow in addition chain
+        return (u32)(((s64)(seed % 0x100000000ULL) + (s64)z * 38134234 + (s64)y * 42123 + (s64)x * 23) & 0xFFFFFFFFLL);
 }
 
 

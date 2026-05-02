@@ -685,6 +685,10 @@ static void createCacheDirTag()
                 PROJECT_NAME_C ".\n"
                 "# For information about cache directory tags, see: "
                 "https://bford.info/cachedir/\n";
+        // Batch 31: Check for write errors when creating CACHEDIR.TAG
+        if (ofs.fail()) {
+                errorstream << "Failed to write CACHEDIR.TAG to " << path << std::endl;
+        }
 }
 
 void initializePaths()

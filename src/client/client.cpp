@@ -908,7 +908,7 @@ void Client::step(float dtime)
                                 if (block)
                                         block->refDrop();
                 }
-                if (blocks_to_ack.size() > 0) {
+                if (!blocks_to_ack.empty()) { // Batch 29: use !empty() instead of size()>0
                                 // Acknowledge block(s)
                                 sendGotBlocks(blocks_to_ack);
                 }
@@ -1218,6 +1218,11 @@ void Client::initLocalMapSaving(const Address &address, const std::string &hostn
         }
 #undef set_world_path
         fs::CreateAllDirs(world_path);
+        // Batch 31: Check directory creation result for local world path
+        if (!fs::IsDir(world_path)) {
+                errorstream << "Could not create local world directory: "
+                        << world_path << std::endl;
+        }
 
         m_localdb = std::make_unique<MapDatabaseSQLite3>(world_path);
         m_localdb->beginSave();
@@ -1874,8 +1879,10 @@ void Client::initVoiceChat()
 
         m_voice_chat->sendVoiceData = [this](u8 channel_id, u16 seq_num,
                         const std::vector<u8> &opus_data, bool e2ee, const std::vector<u8> &nonce) {
-                NetworkPacket pkt(TOSERVER_VOICE_DATA, 1 + 2 + 2 + opus_data.size() + (e2ee ? 12 : 0));
-                pkt << channel_id << seq_num << (u16)opus_data.size();
+                // Batch 30: Clamp opus_data size to u16 range to prevent silent truncation
+                u16 opus_size = (u16)std::min((size_t)opus_data.size(), (size_t)U16_MAX);
+                NetworkPacket pkt(TOSERVER_VOICE_DATA, 1 + 2 + 2 + opus_size + (e2ee ? 12 : 0));
+                pkt << channel_id << seq_num << opus_size;
                 pkt.putRawString((const char*)opus_data.data(), opus_data.size());
                 if (e2ee && nonce.size() == 12)
                         pkt.putRawString((const char*)nonce.data(), 12);

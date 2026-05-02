@@ -371,7 +371,8 @@ void Map::timerUpdate(float dtime, float unload_timeout, s32 max_loaded_blocks,
                 block_count_all = mapblock_queue.size();
 
                 // Delete old blocks, and blocks over the limit from the memory
-                while (!mapblock_queue.empty() && ((s32)mapblock_queue.size() > max_loaded_blocks
+                // Batch 30: Use static_cast for safe signed/unsigned comparison
+                while (!mapblock_queue.empty() && (static_cast<s32>(mapblock_queue.size()) > max_loaded_blocks
                                 || mapblock_queue.top().block->getUsageTimer() > unload_timeout)) {
                         TimeOrderedMapBlock b = mapblock_queue.top();
                         mapblock_queue.pop();
@@ -792,7 +793,8 @@ void MMVManip::initialEmerge(v3s16 p_min, v3s16 p_max, bool load_if_inexistent)
         VoxelArea block_area_nodes
                         (p_min*MAP_BLOCKSIZE, (p_max+1)*MAP_BLOCKSIZE-v3s16(1,1,1));
 
-        u32 size_MB = block_area_nodes.getVolume() * sizeof(MapNode) / 1000000U;
+        // Batch 30: Use size_t to avoid u32 overflow in size calculation
+        u32 size_MB = (u32)((size_t)block_area_nodes.getVolume() * sizeof(MapNode) / 1000000U);
         if (size_MB >= 4) {
                 infostream << "initialEmerge: area: ";
                 block_area_nodes.print(infostream);
@@ -923,11 +925,12 @@ MMVManip *MMVManip::clone() const
         ret->m_area = m_area;
         if (m_data) {
                 ret->m_data = new MapNode[size];
-                memcpy(ret->m_data, m_data, size * sizeof(MapNode));
+                // Batch 30: Use size_t to avoid u32 overflow in byte count calculation
+                memcpy(ret->m_data, m_data, (size_t)size * sizeof(MapNode));
         }
         if (m_flags) {
                 ret->m_flags = new u8[size];
-                memcpy(ret->m_flags, m_flags, size * sizeof(u8));
+                memcpy(ret->m_flags, m_flags, (size_t)size * sizeof(u8));
         }
         ret->m_is_dirty = m_is_dirty;
 

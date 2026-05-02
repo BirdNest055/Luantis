@@ -936,7 +936,8 @@ video::SColor encode_light(u16 light, u8 emissive_light)
         else
                 r = 0;
         // Average light:
-        float b = (day + night) / 2;
+        // Batch 32: clamp light value to valid 0-255 range for SColor
+        float b = core::clamp((day + night) / 2.0f, 0.0f, 255.0f);
         return video::SColor(r, b, b, b);
 }
 

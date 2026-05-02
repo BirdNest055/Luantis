@@ -114,11 +114,12 @@ BiomeGenOriginal::BiomeGenOriginal(BiomeManager *biomemgr,
         heatmap  = noise_heat->result;
         humidmap = noise_humidity->result;
 
-        biomemap = new biome_t[m_csize.X * m_csize.Z];
+        // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
+        biomemap = new biome_t[(s32)m_csize.X * m_csize.Z];
         // Initialise with the ID of 'BIOME_NONE' so that cavegen can get the
         // fallback biome when biome generation (which calculates the biomemap IDs)
         // is disabled.
-        memset(biomemap, 0, sizeof(biome_t) * m_csize.X * m_csize.Z);
+        memset(biomemap, 0, sizeof(biome_t) * (s32)m_csize.X * m_csize.Z);
 
         // Calculate cache of Y transition points
         std::vector<s16> values;
@@ -194,7 +195,8 @@ void BiomeGenOriginal::calcBiomeNoise(v3s16 pmin)
         noise_heat_blend->noiseMap2D(pmin.X, pmin.Z);
         noise_humidity_blend->noiseMap2D(pmin.X, pmin.Z);
 
-        for (s32 i = 0; i < m_csize.X * m_csize.Z; i++) {
+        // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
+        for (s32 i = 0; i < (s32)m_csize.X * m_csize.Z; i++) {
                 noise_heat->result[i]     += noise_heat_blend->result[i];
                 noise_humidity->result[i] += noise_humidity_blend->result[i];
         }
@@ -206,7 +208,8 @@ biome_t *BiomeGenOriginal::getBiomes(s16 *heightmap, v3s16 pmin)
         // Safety check: if no biomes are registered (beyond the default),
         // fill the biomemap with BIOME_NONE and return early.
         if (m_bmgr->getNumObjects() <= 1) {
-                memset(biomemap, 0, sizeof(biome_t) * m_csize.X * m_csize.Z);
+                // Batch 30: Use s32 intermediate for s16 multiplication to avoid overflow
+                memset(biomemap, 0, sizeof(biome_t) * (s32)m_csize.X * m_csize.Z);
                 return biomemap;
         }
 
