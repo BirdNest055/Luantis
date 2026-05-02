@@ -50,6 +50,13 @@ Generated automatically from code comments.
 | FIX | 20 (v9.57 batch 26 — mapgen correctness & world integrity) |
 | FIX | 20 (v9.57 batch 27 — I/O hardening & rendering safety) |
 | FIX | 3 (v9.57 build fix — compilation errors) |
+| FIX | 20 (v9.57 batch 28 — string safety & format validation) |
+| FIX | 20 (v9.57 batch 29 — container bounds & iterator safety) |
+| FIX | 20+ (v9.57 batch 30 — integer overflow & arithmetic safety) |
+| FIX | 23 (v9.57 batch 31 — file I/O error handling improvements) |
+| FIX | 29 (v9.57 batch 32 — client rendering & UI safety improvements) |
+| FIX | 20 (v9.57 batch 33 — protocol & network hardening) |
+| FIX | 6 (v9.57 client build fix — LC_Init, ClientEvent ctor, missing brace, SEVENT typo) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 

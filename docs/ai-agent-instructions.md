@@ -116,7 +116,7 @@
 | `clawtest-v9.54-fix-todo-items` | TODO/FIXME resolution + compiler warning fixes (140+ items, 9 batches) | `clawtest-v9.53-guitheme-test-fix` |
 | `clawtest-v9.55-fix-todo-items-2` | TODO/FIXME/HACK round 2 (124 items, batches 10-15, zero markers in src/) | `clawtest-v9.54-fix-todo-items` |
 | `clawtest-v9.56-fix-todo-items-b16-21` | Code quality round 3 (120+ items, batches 16-21 — null safety, const-correctness, dead code, serialization, error handling) | `clawtest-v9.55-fix-todo-items-2` |
-| `clawtest-v9.57-fix-todo-items-b22-27` | Security & robustness round 4 (120+ items, batches 22-27 — crash prevention, memory safety, protocol robustness, Lua API safety, mapgen correctness, I/O hardening) | `clawtest-v9.56-fix-todo-items-b16-21` |
+| `clawtest-v9.57-fix-todo-items-b22-27` | Security & robustness round 4 (170+ items, batches 22-33 — crash prevention, memory safety, protocol robustness, Lua API safety, mapgen correctness, I/O hardening, string safety, container bounds, integer overflow, rendering safety, network hardening) + client+server build testing | `clawtest-v9.56-fix-todo-items-b16-21` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
