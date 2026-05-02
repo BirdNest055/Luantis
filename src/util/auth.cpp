@@ -3,6 +3,7 @@
 // Copyright (C) 2015, 2016 est31 <MTest31@outlook.com>
 
 #include <string>
+#include <algorithm>
 #include "auth.h"
 #include "base64.h"
 #include "util/hashing.h"

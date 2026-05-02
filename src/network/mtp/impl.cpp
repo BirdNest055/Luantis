@@ -1461,14 +1461,6 @@ ConnectionEventPtr Connection::waitEvent(u32 timeout_ms)
 void Connection::putCommand(ConnectionCommandPtr c)
 {
         if (!m_shutting_down) {
-                // Drop command if the send queue is overwhelmed (>1000 pending)
-                // to prevent unbounded memory growth under congestion
-                if (m_command_queue.size() > 1000) {
-                        warningstream << "Connection::putCommand(): Send queue full ("
-                                << m_command_queue.size() << " commands), dropping command type="
-                                << c->type << std::endl;
-                        return;
-                }
                 m_command_queue.push_back(c);
                 m_sendThread->Trigger();
         }
@@ -1525,7 +1517,7 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
                 switch (e.type) {
                 case CONNEVENT_NONE:
                         return false;
-                case CONNEVENT_DATA_RECEIVED:
+                case CONNEVENT_DATA_RECEIVED: {
                         // Data size is lesser than command size, ignoring packet
                         if (e.data.getSize() < 2) {
                                 continue;
@@ -1552,6 +1544,7 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
 
                         pkt->putRawPacket(*e.data, e.data.getSize(), e.peer_id);
                         return true;
+                }
                 case CONNEVENT_PEER_ADDED: {
                         UDPPeer tmp(e.peer_id, e.address, this);
                         if (m_bc_peerhandler)
