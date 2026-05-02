@@ -487,6 +487,19 @@ public:
 
         ~CurlFetchThread() override
         {
+                // Safety: ensure the thread is stopped before we clean up its data
+                // structures. Normally the caller stops the thread before destroying
+                // it, but this provides a safety net.
+                if (isRunning()) {
+                        stop();
+                        requestWakeUp();
+                        try {
+                                wait();
+                        } catch (...) {
+                                // Thread may have already exited
+                        }
+                }
+
                 // Ensure all CURL easy handles are cleaned up via their
                 // destructors (which return handles to the pool).
                 m_all_ongoing.clear();

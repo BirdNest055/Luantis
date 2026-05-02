@@ -201,6 +201,17 @@ Database_SQLite3::~Database_SQLite3()
         FINALIZE_STATEMENT(begin)
         FINALIZE_STATEMENT(end)
 
+        // Safety: finalize any remaining prepared statements that weren't
+        // explicitly closed by subclass destructors (e.g., if a subclass
+        // forgot one, or if an early return skipped cleanup).
+        if (m_database) {
+                sqlite3_stmt *stmt = nullptr;
+                while ((stmt = sqlite3_next_stmt(m_database, nullptr)) != nullptr) {
+                        warningstream << "~Database_SQLite3: finalizing leaked prepared statement" << std::endl;
+                        sqlite3_finalize(stmt);
+                }
+        }
+
         SQLOK_ERRSTREAM(sqlite3_close(m_database), "Failed to close database");
         m_database = nullptr;
 }

@@ -268,6 +268,18 @@ OpenALSoundManager::~OpenALSoundManager()
 {
         infostream << "Audio: Deinitializing..." << std::endl;
 
+        // Safety: ensure the sound thread is stopped before we clean up OpenAL
+        // resources. Normally the caller stops the thread first, but this
+        // provides a safety net.
+        if (isRunning()) {
+                stop();
+                try {
+                        wait();
+                } catch (...) {
+                        // Thread may have already exited
+                }
+        }
+
         // Explicitly clear all playing sounds to ensure OpenAL sources are
         // deleted via alDeleteSources() before the context may be destroyed.
         m_sounds_playing.clear();

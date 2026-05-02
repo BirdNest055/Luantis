@@ -1356,6 +1356,10 @@ Connection::~Connection()
         m_sendThread->wait();
         m_receiveThread->wait();
 
+        // Clean up any remaining unprocessed commands in the command queue.
+        // After threads are stopped, no new commands will be processed.
+        while (m_command_queue.pop_frontNoEx(0)) {}
+
         // Delete peers
         for (auto &peer : m_peers) {
                 delete peer.second;
