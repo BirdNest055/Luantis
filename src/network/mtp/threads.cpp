@@ -213,10 +213,11 @@ bool ConnectionSendThread::packetsQueued()
                 if (!peer)
                         continue;
 
-                if (dynamic_cast<UDPPeer *>(&peer) == 0)
+                UDPPeer *udp_peer = dynamic_cast<UDPPeer *>(&peer);
+                if (!udp_peer)
                         continue;
 
-                for (Channel &channel : (dynamic_cast<UDPPeer *>(&peer))->channels) {
+                for (Channel &channel : udp_peer->channels) {
                         if (!channel.queued_commands.empty()) {
                                 return true;
                         }
@@ -484,7 +485,13 @@ bool ConnectionSendThread::rawSendAsPacket(session_t peer_id, u8 channelnum,
                         << ", dropping packet" << std::endl;
                 return false;
         }
-        Channel *channel = &(dynamic_cast<UDPPeer *>(&peer)->channels[channelnum]);
+        UDPPeer *udp_peer = dynamic_cast<UDPPeer *>(&peer);
+        if (!udp_peer) {
+                errorstream << m_connection->getDesc()
+                        << " rawSendAsPacket: peer is not a UDPPeer, dropping packet" << std::endl;
+                return false;
+        }
+        Channel *channel = &(udp_peer->channels[channelnum]);
 
         if (reliable) {
                 bool have_seqnum = false;

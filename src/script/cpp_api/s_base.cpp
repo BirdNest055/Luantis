@@ -583,21 +583,27 @@ Server* ScriptApiBase::getServer()
                 // doesn't apply since async ops are designed for off-thread use.
                 sanity_check(m_gamedef != nullptr);
         }
-        return dynamic_cast<Server *>(m_gamedef);
+        Server *server = dynamic_cast<Server *>(m_gamedef);
+        if (!server)
+                errorstream << "ScriptApiBase::getServer(): m_gamedef is not a Server instance" << std::endl;
+        return server;
 }
 
 #if CHECK_CLIENT_BUILD()
 Client *ScriptApiBase::getClient()
 {
+        if (!m_gamedef)
+                return nullptr;
         return dynamic_cast<Client *>(m_gamedef);
 }
 
 ModVFS *ScriptApiBase::getModVFS()
 {
-        if (m_type == ScriptingType::Client)
-                return getClient()->getModVFS();
-        else if (m_type == ScriptingType::SSCSM)
-                return getSSCSMEnv()->getModVFS();
+        if (m_type == ScriptingType::Client) {
+                Client *client = getClient();
+                return client ? client->getModVFS() : nullptr;
+        } else if (m_type == ScriptingType::SSCSM)
+                return getSSCSMEnv() ? getSSCSMEnv()->getModVFS() : nullptr;
         else
                 return nullptr;
 }

@@ -318,6 +318,12 @@ void GenericCAO::processInitData(const std::string &data)
 
         const u8 num_messages = readU8(is);
         for (u8 i = 0; i < num_messages; i++) {
+                if (is.eof() || is.fail()) {
+                        warningstream << "GenericCAO::processInitData: stream ended "
+                                << "unexpectedly at message " << (int)i << "/" << (int)num_messages
+                                << std::endl;
+                        break;
+                }
                 std::string message = deSerializeString32(is);
                 processMessage(message);
         }

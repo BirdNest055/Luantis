@@ -610,7 +610,7 @@ void Server::init()
         // Those settings can be overwritten in world.mt, they are
         // intended to be cached after environment loading.
         // Batch 36: Clamp liquid_update interval to > 0 to prevent infinite loop
-        m_liquid_transform_every = std::max(g_settings->getFloat("liquid_update"), 0.1f);
+        m_liquid_transform_every = std::clamp(g_settings->getFloat("liquid_update"), 0.1f, 60.0f);
         // Batch 36: Clamp chat message max size to at least 1
         m_max_chatmessage_length = std::max(g_settings->getU16("chat_message_max_size"), u16(1));
         m_csm_restriction_flags = g_settings->getU64("csm_restriction_flags");
@@ -904,7 +904,8 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                 // Write changes to the mod storage
                 m_mod_storage_save_timer -= dtime;
                 if (m_mod_storage_save_timer <= 0.0f) {
-                        m_mod_storage_save_timer = g_settings->getFloat("server_map_save_interval");
+                        // Batch 38: Clamp save interval to >= 1s (consistent with map save path)
+                        m_mod_storage_save_timer = std::max(g_settings->getFloat("server_map_save_interval"), 1.0f);
                         m_mod_storage_database->endSave();
                         m_mod_storage_database->beginSave();
                 }

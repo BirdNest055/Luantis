@@ -192,7 +192,10 @@ public:
                         m_crack_texture_scale.set(&tmp, services);
                 }
 
-                const auto &lighting = m_client->getEnv().getLocalPlayer()->getLighting();
+                LocalPlayer *local_player = m_client->getEnv().getLocalPlayer();
+                if (!local_player)
+                        return;
+                const auto &lighting = local_player->getLighting();
 
                 const AutoExposure &exposure_params = lighting.exposure;
                 std::array<float, 7> exposure_buffer = {
@@ -1295,7 +1298,7 @@ void Game::updateProfilers(const RunStats &stats, const FpsControl &draw_times,
                 draw_times.busy_time - stats.drawtime);
         g_profiler->graphAdd("Sleep [us]", draw_times.sleep_time);
 
-        g_profiler->graphSet("FPS", 1.0f / dtime);
+        g_profiler->graphSet("FPS", dtime > 0.0f ? 1.0f / dtime : 0.0f);
 
         auto stats2 = driver->getFrameStats();
         g_profiler->avg("Irr: drawcalls", stats2.Drawcalls);

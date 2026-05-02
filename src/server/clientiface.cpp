@@ -21,6 +21,7 @@
 #include "server/luaentity_sao.h"
 #include "server/player_sao.h"
 #include "log.h"
+#include "util/basic_macros.h"
 #include "util/srp.h"
 #include "util/string.h"
 #include "face_position_cache.h"
@@ -52,6 +53,8 @@ const char *ClientInterface::statenames[] = {
 
 const char *ClientInterface::state2Name(ClientState state)
 {
+        if (state >= ARRLEN(statenames))
+                return "Unknown";
         return statenames[state];
 }
 
@@ -91,7 +94,8 @@ void RemoteClient::ResendBlockIfOnWire(v3s16 p)
 static LuaEntitySAO *getAttachedObject(PlayerSAO *sao, ServerEnvironment *env)
 {
         ServerActiveObject *ao = sao;
-        while (ao->getParent())
+        int depth = 0;
+        while (ao->getParent() && ++depth < 64)
                 ao = ao->getParent();
 
         return ao == sao ? nullptr : dynamic_cast<LuaEntitySAO*>(ao);
@@ -812,7 +816,9 @@ void ClientInterface::UpdatePlayerList()
 
 void ClientInterface::send(session_t peer_id, NetworkPacket *pkt)
 {
-        auto &ccf = clientCommandFactoryTable[pkt->getCommand()];
+        u16 cmd = pkt->getCommand();
+        FATAL_ERROR_IF(cmd >= TOCLIENT_NUM_MSG_TYPES, "packet command out of range");
+        auto &ccf = clientCommandFactoryTable[cmd];
         FATAL_ERROR_IF(!ccf.name, "packet type missing in table");
 
         m_con->Send(peer_id, ccf.channel, pkt, ccf.reliable);
@@ -829,7 +835,9 @@ void ClientInterface::sendCustom(session_t peer_id, u8 channel, NetworkPacket *p
 
 void ClientInterface::sendToAll(NetworkPacket *pkt, ClientState state_min)
 {
-        auto &ccf = clientCommandFactoryTable[pkt->getCommand()];
+        u16 cmd = pkt->getCommand();
+        FATAL_ERROR_IF(cmd >= TOCLIENT_NUM_MSG_TYPES, "packet command out of range");
+        auto &ccf = clientCommandFactoryTable[cmd];
         FATAL_ERROR_IF(!ccf.name, "packet type missing in table");
         RecursiveMutexAutoLock clientslock(m_clients_mutex);
         for (auto &[peer_id, client] : m_clients) {
@@ -840,6 +848,9 @@ void ClientInterface::sendToAll(NetworkPacket *pkt, ClientState state_min)
 
 RemoteClient* ClientInterface::getClientNoEx(session_t peer_id, ClientState state_min)
 {
+        // WARNING: The returned pointer is only safe to use while the caller
+        // can guarantee the client won't be deleted (e.g., within ServerThread).
+        // For safer access, use lockedGetClientNoEx() with an held AutoLock.
         RecursiveMutexAutoLock clientslock(m_clients_mutex);
         RemoteClient *client = lockedGetClientNoEx(peer_id, state_min);
         return client;

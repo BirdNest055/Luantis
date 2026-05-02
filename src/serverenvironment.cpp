@@ -1199,7 +1199,7 @@ void ServerEnvironment::step(float dtime)
                 m_server->sendDetachedInventories(PEER_ID_INEXISTENT, true);
 
         // Notify mods of modified mapblocks
-        if (m_on_mapblocks_changed_receiver.receiving &&
+        if (m_script && m_on_mapblocks_changed_receiver.receiving &&
                         !m_on_mapblocks_changed_receiver.modified_blocks.empty()) {
                 std::unordered_set<v3s16> modified_blocks;
                 std::swap(modified_blocks, m_on_mapblocks_changed_receiver.modified_blocks);
@@ -1417,6 +1417,12 @@ void ServerEnvironment::getSelectedActiveObjects(
                 v3f current_raw_normal;
 
                 ObjectProperties *props = obj->accessObjectProperties();
+                if (!props) {
+                        warningstream << FUNCTION_NAME
+                                << ": accessObjectProperties() returned null for object id="
+                                << obj->getId() << std::endl;
+                        return false;
+                }
                 bool collision;
                 UnitSAO* usao = dynamic_cast<UnitSAO*>(obj);
                 if (props->rotate_selectionbox && usao != nullptr) {

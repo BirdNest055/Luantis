@@ -191,7 +191,8 @@ void read_item_definition(lua_State* L, int index,
                                 es_TouchInteractionMode, inter.pointed_object);
         } else if (lua_isstring(L, -1)) {
                 int value;
-                if (string_to_enum(es_TouchInteractionMode, value, lua_tostring(L, -1))) {
+                const char *str = lua_tostring(L, -1);
+                if (str && string_to_enum(es_TouchInteractionMode, value, str)) {
                         inter.pointed_nothing = (TouchInteractionMode)value;
                         inter.pointed_node    = (TouchInteractionMode)value;
                         inter.pointed_object  = (TouchInteractionMode)value;
@@ -340,6 +341,8 @@ void read_object_properties(lua_State *L, int index,
         if(index < 0)
                 index = lua_gettop(L) + 1 + index;
         if (lua_isnil(L, index))
+                return;
+        if (!prop)
                 return;
 
         luaL_checktype(L, -1, LUA_TTABLE);
@@ -541,6 +544,8 @@ void read_object_properties(lua_State *L, int index,
 /******************************************************************************/
 void push_object_properties(lua_State *L, const ObjectProperties *prop)
 {
+        if (!prop)
+                return;
         lua_newtable(L);
         lua_pushnumber(L, prop->hp_max);
         lua_setfield(L, -2, "hp_max");

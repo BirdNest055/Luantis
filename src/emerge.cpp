@@ -104,6 +104,10 @@ EmergeManager::~EmergeManager()
 {
         // Safety: ensure all mapgen threads are stopped and joined before
         // destroying the manager, regardless of m_threads_active state.
+        // Note: If the destructor is invoked during stack unwinding from an
+        // exception in the constructor, some members (e.g. m_threads) may be
+        // empty or partially initialized. The stopThreads() call and the
+        // size-checked loop below handle this gracefully.
         stopThreads();
 
         for (u32 i = 0; i != m_threads.size(); i++) {

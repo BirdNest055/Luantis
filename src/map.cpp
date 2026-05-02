@@ -710,6 +710,11 @@ bool Map::isOccluded(const v3s16 pos_camera, const v3s16 pos_target,
         if (distance > 0.0f)
                 direction /= distance;
 
+        // Guard against degenerate case where camera and target are nearly coincident,
+        // which would cause an extremely long loop due to tiny step sizes.
+        if (distance < 0.01f)
+                return false;
+
         v3f pos_origin_f = intToFloat(pos_camera, BS);
         u32 count = 0;
         bool is_valid_position;

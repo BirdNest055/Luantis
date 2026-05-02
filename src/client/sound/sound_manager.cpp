@@ -165,8 +165,14 @@ std::shared_ptr<PlayingSound> OpenALSoundManager::createPlayingSound(
                 return nullptr;
         }
 
-        auto sound = std::make_shared<PlayingSound>(source_id, std::move(lsnd), loop,
-                        volume, pitch, start_time, pos_vel_opt, m_exts);
+        std::shared_ptr<PlayingSound> sound;
+        try {
+                sound = std::make_shared<PlayingSound>(source_id, std::move(lsnd), loop,
+                                volume, pitch, start_time, pos_vel_opt, m_exts);
+        } catch (...) {
+                alDeleteSources(1, &source_id);
+                throw;
+        }
 
         sound->play();
 
@@ -196,7 +202,7 @@ void OpenALSoundManager::playSoundGeneric(sound_handle_t id, const std::string &
                 return;
         }
 
-        volume = std::max(0.0f, volume);
+        volume = std::isfinite(volume) ? std::max(0.0f, volume) : 1.0f;
         f32 target_fade_volume = volume;
         if (fade > 0.0f)
                 volume = 0.0f;

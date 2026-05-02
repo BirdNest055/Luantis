@@ -230,10 +230,17 @@ static std::string detectSystemInfo()
         PathAppendA(filePath, "kernel32.dll");
 
         DWORD dwVersionSize = GetFileVersionInfoSizeA(filePath, NULL);
+        if (dwVersionSize == 0) {
+                return "Windows/unknown x86_64"; // fallback
+        }
         LPBYTE lpVersionInfo = new BYTE[dwVersionSize];
 
         GetFileVersionInfoA(filePath, 0, dwVersionSize, lpVersionInfo);
-        VerQueryValueA(lpVersionInfo, "\\", (LPVOID *)&fixedFileInfo, &blockSize);
+        if (!VerQueryValueA(lpVersionInfo, "\\", (LPVOID *)&fixedFileInfo, &blockSize) ||
+                        !fixedFileInfo || blockSize == 0) {
+                delete[] lpVersionInfo;
+                return "Windows/unknown x86_64"; // fallback
+        }
 
         oss << "Windows/"
                 << HIWORD(fixedFileInfo->dwProductVersionMS) << '.' // Major

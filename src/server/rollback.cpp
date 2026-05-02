@@ -6,6 +6,7 @@
 #include "exceptions.h"
 #include <list>
 #include "log.h"
+#include "threading/mutex_auto_lock.h"
 #include "gamedef.h"
 #include "nodedef.h"
 #include "util/string.h"
@@ -344,17 +345,19 @@ bool RollbackManager::initDatabase()
         verbosestream << "SQL prepared statements setup correctly" << std::endl;
 
         while (sqlite3_step(stmt_knownActor_select) == SQLITE_ROW) {
+                const char *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt_knownActor_select, 1));
                 registerNewActor(
                         sqlite3_column_int(stmt_knownActor_select, 0),
-                        reinterpret_cast<const char *>(sqlite3_column_text(stmt_knownActor_select, 1))
+                        text ? text : ""
                 );
         }
         SQLOK(sqlite3_reset(stmt_knownActor_select));
 
         while (sqlite3_step(stmt_knownNode_select) == SQLITE_ROW) {
+                const char *text = reinterpret_cast<const char *>(sqlite3_column_text(stmt_knownNode_select, 1));
                 registerNewNode(
                         sqlite3_column_int(stmt_knownNode_select, 0),
-                        reinterpret_cast<const char *>(sqlite3_column_text(stmt_knownNode_select, 1))
+                        text ? text : ""
                 );
         }
         SQLOK(sqlite3_reset(stmt_knownNode_select));
@@ -393,9 +396,9 @@ bool RollbackManager::registerRow(const ActionRow & row)
                         p2 = loc.find(',', p1);
                         std::string y = loc.substr(p1, p2 - p1);
                         std::string z = loc.substr(p2 + 1);
-                        SQLOK(sqlite3_bind_int(stmt_do, 10, atoi(x.c_str())));
-                        SQLOK(sqlite3_bind_int(stmt_do, 11, atoi(y.c_str())));
-                        SQLOK(sqlite3_bind_int(stmt_do, 12, atoi(z.c_str())));
+                        SQLOK(sqlite3_bind_int(stmt_do, 10, (int)strtol(x.c_str(), nullptr, 10)));
+                        SQLOK(sqlite3_bind_int(stmt_do, 11, (int)strtol(y.c_str(), nullptr, 10)));
+                        SQLOK(sqlite3_bind_int(stmt_do, 12, (int)strtol(z.c_str(), nullptr, 10)));
                 }
         } else {
                 SQLOK(sqlite3_bind_null(stmt_do, 4));
@@ -704,16 +707,19 @@ void RollbackManager::reportAction(const RollbackAction &action_)
 
 std::string RollbackManager::getActor()
 {
+        MutexAutoLock lock(m_actor_mutex);
         return current_actor;
 }
 
 bool RollbackManager::isActorGuess()
 {
+        MutexAutoLock lock(m_actor_mutex);
         return current_actor_is_guess;
 }
 
 void RollbackManager::setActor(const std::string & actor, bool is_guess)
 {
+        MutexAutoLock lock(m_actor_mutex);
         current_actor = actor;
         current_actor_is_guess = is_guess;
 }

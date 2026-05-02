@@ -80,8 +80,12 @@ bool parseModContents(ModSpec &spec)
                 spec.modpack_content = getModsInPath(spec.path, spec.virtual_path, spec.modpack_depth + 1);
 
         Settings info;
-        if (!conf_filename.empty())
-                info.readConfigFile((spec.path + DIR_DELIM + conf_filename).c_str());
+        if (!conf_filename.empty()) {
+                std::string conf_path = spec.path + DIR_DELIM + conf_filename;
+                if (!info.readConfigFile(conf_path.c_str()))
+                        warningstream << "parseModContents(): Failed to read config file: "
+                                << conf_path << std::endl;
+        }
 
         if (info.exists("name")) {
                 spec.name = info.get("name");
@@ -183,6 +187,12 @@ std::map<std::string, ModSpec> getModsInPath(
                 mod_path.clear();
                 mod_path.append(path).append(DIR_DELIM).append(modname);
                 mod_path = fs::AbsolutePath(mod_path);
+
+                if (mod_path.empty()) {
+                        warningstream << "getModsInPath(): Failed to resolve absolute path for: "
+                                << path << DIR_DELIM << modname << std::endl;
+                        continue;
+                }
 
                 mod_virtual_path.clear();
                 // Intentionally uses / to keep paths same on different platforms

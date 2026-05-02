@@ -90,7 +90,10 @@ int ObjectRef::mt_tostring(lua_State *L)
 // garbage collector
 int ObjectRef::gc_object(lua_State *L)
 {
-        ObjectRef *obj = *(ObjectRef **)(lua_touserdata(L, 1));
+        void *ud = lua_touserdata(L, 1);
+        if (!ud)
+                return 0;
+        ObjectRef *obj = *(ObjectRef **)(ud);
         delete obj;
         return 0;
 }
@@ -461,7 +464,7 @@ int ObjectRef::l_set_local_animation(lua_State *L)
 
         v2f frames[4];
         for (int i=0;i<4;i++) {
-                if (!lua_isnil(L, 2+1))
+                if (!lua_isnil(L, 2+i))
                         frames[i] = read_v2f(L, 2+i);
         }
         float frame_speed = readParam<float>(L, 6, 30.0f);
@@ -1150,7 +1153,12 @@ int ObjectRef::l_get_velocity(lua_State *L)
                 pushFloatPos(L, vel);
                 return 1;
         } else if (sao->getType() == ACTIVEOBJECT_TYPE_PLAYER) {
-                RemotePlayer *player = dynamic_cast<PlayerSAO*>(sao)->getPlayer();
+                PlayerSAO *playersao = dynamic_cast<PlayerSAO*>(sao);
+                if (!playersao)
+                        return 0;
+                RemotePlayer *player = playersao->getPlayer();
+                if (!player)
+                        return 0;
                 push_v3f(L, player->getSpeed() / BS);
                 return 1;
         }

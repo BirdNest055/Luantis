@@ -334,6 +334,11 @@ void MapDatabaseSQLite3::loadBlock(const v3s16 &pos, std::string *block)
 {
         verifyDatabase();
 
+        if (!block) {
+                errorstream << "MapDatabaseSQLite3::loadBlock: block pointer is null" << std::endl;
+                return;
+        }
+
         // Batch 37: Validate block position coordinates before querying
         if (pos.X < -32768 || pos.X > 32767 ||
                 pos.Y < -32768 || pos.Y > 32767 ||

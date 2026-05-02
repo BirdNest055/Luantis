@@ -332,6 +332,7 @@ void Client::loadMods()
 
         m_mod_vfs = std::make_unique<ModVFS>();
 
+        // new throws std::bad_alloc on failure, no manual null check needed
         m_script = new ClientScripting(this);
         m_env.setScript(m_script);
         m_script->setEnv(&m_env);

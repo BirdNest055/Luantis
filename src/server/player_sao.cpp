@@ -155,7 +155,10 @@ void PlayerSAO::step(float dtime, bool send_recommended)
                         && m_drowning_interval.step(dtime, 2.0f)) {
                 // Get nose/mouth position, approximate with eye position
                 v3s16 p = floatToInt(getEyePosition(), BS);
-                MapNode n = m_env->getMap().getNode(p);
+                bool is_valid_position = true;
+                MapNode n = m_env->getMap().getNode(p, &is_valid_position);
+                if (!is_valid_position)
+                        n = MapNode(CONTENT_AIR);
                 const ContentFeatures &c = m_env->getGameDef()->ndef()->get(n);
                 // If node generates drown
                 if (c.drowning > 0 && m_hp > 0) {
@@ -175,7 +178,10 @@ void PlayerSAO::step(float dtime, bool send_recommended)
                         && m_breathing_interval.step(dtime, 0.5f)) {
                 // Get nose/mouth position, approximate with eye position
                 v3s16 p = floatToInt(getEyePosition(), BS);
-                MapNode n = m_env->getMap().getNode(p);
+                bool is_valid_position = true;
+                MapNode n = m_env->getMap().getNode(p, &is_valid_position);
+                if (!is_valid_position)
+                        n = MapNode(CONTENT_AIR);
                 const ContentFeatures &c = m_env->getGameDef()->ndef()->get(n);
                 // If player is alive & not drowning & not in ignore & not immortal, breathe
                 if (m_breath < m_prop.breath_max && c.drowning == 0 &&
@@ -587,7 +593,8 @@ Inventory *PlayerSAO::getInventory() const
 InventoryLocation PlayerSAO::getInventoryLocation() const
 {
         InventoryLocation loc;
-        loc.setPlayer(m_player->getName());
+        if (m_player)
+                loc.setPlayer(m_player->getName());
         return loc;
 }
 
@@ -733,10 +740,11 @@ bool PlayerSAO::checkMovementCheat()
         }
 
         // Don't divide by zero!
-        if (player_max_walk < 0.0001f)
-                player_max_walk = 0.0001f;
-        if (player_max_jump < 0.0001f)
-                player_max_jump = 0.0001f;
+        static constexpr f32 ANTICHEAT_MIN_SPEED = 0.0001f;
+        if (player_max_walk < ANTICHEAT_MIN_SPEED)
+                player_max_walk = ANTICHEAT_MIN_SPEED;
+        if (player_max_jump < ANTICHEAT_MIN_SPEED)
+                player_max_jump = ANTICHEAT_MIN_SPEED;
 
         v3f diff = (getBasePosition() - m_last_good_position);
         float d_vert = diff.Y;

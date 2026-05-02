@@ -346,6 +346,14 @@ bool Schematic::deserializeFromMts(std::istream *is)
         //// Read node data
         size_t nodecount = size.X * size.Y * size.Z;
 
+        // Batch 38: Limit total nodecount to prevent OOM on low-memory devices
+        const size_t SCHEM_NODECOUNT_LIMIT = 16 * 1024 * 1024; // 16M nodes max
+        if (nodecount > SCHEM_NODECOUNT_LIMIT) {
+                errorstream << __FUNCTION__ << ": schematic nodecount too large ("
+                        << nodecount << "), max is " << SCHEM_NODECOUNT_LIMIT << std::endl;
+                return false;
+        }
+
         delete []schemdata;
         schemdata = new MapNode[nodecount];
 

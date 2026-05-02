@@ -80,6 +80,8 @@ constexpr s32 ID_PROCEED_BTN = 257;
 */
 static unsigned int font_line_height(gui::IGUIFont *font)
 {
+        if (!font)
+                return 0;
         return font->getDimension(L"Ay").Height + font->getKerning(L'A').Y;
 }
 

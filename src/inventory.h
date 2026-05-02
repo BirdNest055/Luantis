@@ -183,11 +183,19 @@ public:
         const ItemStack &getItem(u32 i) const
         {
                 assert(i < m_size); // Pre-condition
+                if (i >= m_size) {
+                        static const ItemStack empty;
+                        return empty;
+                }
                 return m_items[i];
         }
         ItemStack &getItem(u32 i)
         {
                 assert(i < m_size); // Pre-condition
+                if (i >= m_size) {
+                        static ItemStack empty;
+                        return empty;
+                }
                 return m_items[i];
         }
         // Get reference to all items

@@ -285,6 +285,11 @@ void MeshUpdateQueue::fillDataFromMapBlocks(QueuedMeshUpdate *q)
         auto mesh_grid = m_client->getMeshGrid();
         MeshMakeData *data = new MeshMakeData(m_client->ndef(),
                         MAP_BLOCKSIZE * mesh_grid.cell_size, mesh_grid);
+        if (!data) {
+                errorstream << "MeshUpdateQueue::fillDataFromMapBlocks(): "
+                        << "failed to allocate MeshMakeData for " << q->p << std::endl;
+                return;
+        }
         q->data = data;
 
         data->fillBlockDataBegin(q->p);
@@ -339,6 +344,8 @@ void MeshUpdateWorkerThread::doUpdate()
                         errorstream << "MeshUpdateWorkerThread::doUpdate(): "
                                 << "failed to allocate mesh for " << q->p << std::endl;
                         m_queue_in->done(q->p);
+                        delete q->data;
+                        q->data = nullptr;
                         delete q;
                         continue;
                 }
@@ -353,6 +360,8 @@ void MeshUpdateWorkerThread::doUpdate()
 
                 m_manager->putResult(std::move(r));
                 m_queue_in->done(q->p);
+                delete q->data;
+                q->data = nullptr;
                 delete q;
                 sp.stop();
 

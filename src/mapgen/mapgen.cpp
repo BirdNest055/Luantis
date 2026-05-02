@@ -95,7 +95,17 @@ Mapgen::Mapgen(int mapgenid, MapgenParams *params, EmergeParams *emerge) :
         water_level  = params->water_level;
         mapgen_limit = params->mapgen_limit;
         flags        = params->flags;
-        csize        = params->chunksize * MAP_BLOCKSIZE;
+
+        // Validate chunksize to prevent integer overflow in csize calculations.
+        // MAP_BLOCKSIZE is 16, so chunksize > 2047 would overflow s16.
+        // In practice, values above ~20 are unrealistic and would cause
+        // excessive memory usage, so clamp to a safe maximum.
+        csize = params->chunksize * MAP_BLOCKSIZE;
+        if (csize.X <= 0 || csize.Y <= 0 || csize.Z <= 0) {
+                errorstream << "Mapgen: Invalid csize after chunksize multiplication, "
+                        << "resetting to default" << std::endl;
+                csize = v3s16(5) * MAP_BLOCKSIZE;
+        }
 
         /*
                 We are losing half our entropy by doing this, but it is necessary to
@@ -803,7 +813,7 @@ void MapgenBasic::dustTopNodes()
         for (s16 x = node_min.X; x <= node_max.X; x++, index++) {
                 Biome *biome = (Biome *)m_bmgr->getRaw(biomemap[index]);
 
-                if (biome->c_dust == CONTENT_IGNORE)
+                if (!biome || biome->c_dust == CONTENT_IGNORE)
                         continue;
 
                 // Check if mapchunk above has generated, if so, drop dust from 16 nodes
@@ -950,6 +960,13 @@ void MapgenBasic::generateDungeons(s16 max_stone_y)
         // Get biome at mapchunk midpoint
         v3s16 chunk_mid = node_min + (node_max - node_min) / v3s16(2, 2, 2);
         Biome *biome = (Biome *)biomegen->getBiomeAtPoint(chunk_mid);
+
+        if (!biome) {
+                warningstream << "Mapgen::generateDungeons: biome is null at "
+                        << chunk_mid.X << "," << chunk_mid.Y << "," << chunk_mid.Z
+                        << ", skipping dungeon generation" << std::endl;
+                return;
+        }
 
         // Use biome-defined dungeon nodes if defined
         if (biome->c_dungeon != CONTENT_IGNORE) {

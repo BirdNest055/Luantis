@@ -141,6 +141,9 @@ void PlayerDatabaseFiles::serialize(RemotePlayer *p, std::ostream &os)
 
 void PlayerDatabaseFiles::savePlayer(RemotePlayer *player)
 {
+        if (!player)
+                return;
+
         // Batch 31: Check directory creation result when saving player
         if (!fs::CreateDir(m_savedir)) {
                 errorstream << "PlayerDatabaseFiles: Failed to create player directory for save: "
@@ -217,6 +220,8 @@ bool PlayerDatabaseFiles::removePlayer(const std::string &name)
 
 bool PlayerDatabaseFiles::loadPlayer(RemotePlayer *player, PlayerSAO *sao)
 {
+        if (!player)
+                return false;
         std::string players_path = m_savedir + DIR_DELIM;
         std::string path = players_path + player->getName();
 
@@ -338,7 +343,13 @@ bool AuthDatabaseFiles::readAuthFile()
                 const std::string &name = parts[0];
                 const std::string &password = parts[1];
                 std::vector<std::string> privileges = str_split(parts[2], ',');
-                s64 last_login = parts.size() > 3 ? atol(parts[3].c_str()) : 0;
+                s64 last_login = 0;
+                if (parts.size() > 3) {
+                        char *endptr = nullptr;
+                        last_login = strtoll(parts[3].c_str(), &endptr, 10);
+                        if (*endptr != '\0')
+                                last_login = 0; // invalid number, default to 0
+                }
 
                 m_auth_list[name] = {
                                 1,
