@@ -13,6 +13,7 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 #include <memory>
 #include <functional>
 
@@ -109,12 +110,12 @@ public:
 
         // === Server Authority ===
         void setServerVoiceAllowed(bool allowed);
-        bool isServerVoiceAllowed() const { return m_server_voice_allowed; }
+        bool isServerVoiceAllowed() const { return m_server_voice_allowed.load(std::memory_order_acquire); }
 
         // === Client Opt-Out ===
         void setReceiveOptOut(bool opt_out);
-        bool isReceiveOptOut() const { return m_receive_opt_out; }
-        bool isVoiceActive() const { return m_server_voice_allowed && !m_receive_opt_out; }
+        bool isReceiveOptOut() const { return m_receive_opt_out.load(std::memory_order_acquire); }
+        bool isVoiceActive() const { return m_server_voice_allowed.load(std::memory_order_acquire) && !m_receive_opt_out.load(std::memory_order_acquire); }
         void setMode(VoiceChatMode mode);
         VoiceChatMode getMode() const { return m_mode; }
         void setVolume(float vol);
@@ -126,10 +127,10 @@ public:
 
         // === Push-to-Talk ===
         void setPTTActive(bool active);       // Called when PTT key is pressed/released
-        bool isPTTActive() const { return m_ptt_active; }
+        bool isPTTActive() const { return m_ptt_active.load(std::memory_order_acquire); }
 
         // === Transmission Control ===
-        bool isTransmitting() const { return m_is_transmitting; }
+        bool isTransmitting() const { return m_is_transmitting.load(std::memory_order_acquire); }
         u8 getActiveChannel() const { return m_active_channel; }
         void setActiveChannel(u8 channel_id) { m_active_channel = channel_id; }
 
@@ -205,16 +206,19 @@ private:
         bool deriveSessionKey(u16 peer_id);
 
         // State
-        bool m_server_voice_allowed = false;  // Set by TOCLIENT_VOICE_STATE
-        bool m_receive_opt_out = false;           // Client chooses to mute incoming voice
+        // Batch 34: Atomic flag replacement — m_is_transmitting is read by the
+        // main thread (isTransmitting()) and written by the voice thread (step()).
+        // Using std::atomic<bool> avoids a data race without a mutex.
+        std::atomic<bool> m_server_voice_allowed{false};  // Set by TOCLIENT_VOICE_STATE
+        std::atomic<bool> m_receive_opt_out{false};           // Client chooses to mute incoming voice
         bool m_initialized = false;
         VoiceChatMode m_mode = VoiceChatMode::PTT;
         float m_volume = 0.8f;
         bool m_e2ee_enabled = true;
         bool m_noise_suppression = true;
         int m_bitrate = 32000;
-        bool m_ptt_active = false;
-        bool m_is_transmitting = false;
+        std::atomic<bool> m_ptt_active{false};
+        std::atomic<bool> m_is_transmitting{false};
         bool m_voice_toggle_on = false;    // For toggle mode
         u8 m_active_channel = VOICE_CHANNEL_GLOBAL;
         u16 m_seq_num = 0;

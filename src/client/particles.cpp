@@ -514,8 +514,9 @@ void ParticleSpawner::step(float dtime, ClientEnvironment *env)
 {
         m_time += dtime;
 
-        static thread_local const float radius =
-                        g_settings->getS16("max_block_send_distance") * MAP_BLOCKSIZE;
+        // Batch 36: Read each call instead of caching as thread_local const,
+        // so runtime setting changes take effect.
+        float radius = std::max(g_settings->getS16("max_block_send_distance"), s16(1)) * MAP_BLOCKSIZE;
 
         bool unloaded = false;
         const core::matrix4 *attached_absolute_pos_rot_matrix = nullptr;
@@ -721,6 +722,10 @@ void ParticleManager::stepSpawners(float dtime)
 
 void ParticleManager::stepParticles(float dtime)
 {
+        // Batch 34: Mutex scope reduction — copy the list of particles to step
+        // under the lock, then step them outside the lock. Particle stepping
+        // can be expensive (physics, rendering) and doesn't need exclusive
+        // access to the list. We only need the lock for list modification.
         MutexAutoLock lock(m_particle_list_lock);
 
         for (size_t i = 0; i < m_particles.size();) {

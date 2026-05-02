@@ -98,7 +98,43 @@ void script_error(lua_State *L, int pcall_result, const char *mod, const char *f
         // to avoid truncation with long mod names or callback names
         std::string err_msg = std::string(err_type) + " error from mod '" +
                 mod + "' in callback " + fxn + "(): ";
-        err_msg += err_descr;
+
+        // Batch 38: Sanitize error description to avoid exposing internal filesystem
+        // paths to connected clients. Replace absolute paths with basename only.
+        std::string safe_descr(err_descr);
+        {
+                // Strip common path prefixes that leak server-side directory structure
+                auto sanitize_path = [](std::string &s) {
+                        // Replace patterns like /home/user/.../modname/ with .../modname/
+                        size_t pos;
+                        while ((pos = s.find("/home/")) != std::string::npos) {
+                                size_t end = s.find('/', pos + 7);
+                                if (end != std::string::npos) {
+                                        size_t next_end = s.find('/', end + 1);
+                                        if (next_end != std::string::npos)
+                                                s.erase(pos, next_end - pos + 1);
+                                        else
+                                                break;
+                                } else {
+                                        break;
+                                }
+                        }
+                        while ((pos = s.find("C:\\")) != std::string::npos) {
+                                size_t end = s.find('\\', pos + 3);
+                                if (end != std::string::npos) {
+                                        size_t next_end = s.find('\\', end + 1);
+                                        if (next_end != std::string::npos)
+                                                s.erase(pos, next_end - pos + 1);
+                                        else
+                                                break;
+                                } else {
+                                        break;
+                                }
+                        }
+                };
+                sanitize_path(safe_descr);
+        }
+        err_msg += safe_descr;
 
         if (pcall_result == LUA_ERRMEM) {
                 err_msg += "\nCurrent Lua memory usage: "

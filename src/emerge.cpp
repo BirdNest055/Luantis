@@ -160,7 +160,8 @@ void EmergeManager::initMap(MapDatabaseAccessor *holder)
 
 void EmergeManager::resetMap()
 {
-        FATAL_ERROR_IF(m_threads_active, "Threads are still active.");
+        // Batch 34: Use explicit atomic load for m_threads_active
+        FATAL_ERROR_IF(m_threads_active.load(std::memory_order_acquire), "Threads are still active.");
         m_db = nullptr;
 }
 
@@ -225,7 +226,8 @@ void EmergeManager::initThreads(bool should_multithread)
 
 Mapgen *EmergeManager::getCurrentMapgen()
 {
-        if (!m_threads_active)
+        // Batch 34: Use explicit atomic load for m_threads_active (now std::atomic<bool>)
+        if (!m_threads_active.load(std::memory_order_acquire))
                 return nullptr;
 
         for (u32 i = 0; i != m_threads.size(); i++) {
@@ -239,7 +241,8 @@ Mapgen *EmergeManager::getCurrentMapgen()
 
 const Mapgen *EmergeManager::getCurrentMapgen() const
 {
-        if (!m_threads_active)
+        // Batch 34: Use explicit atomic load for m_threads_active (now std::atomic<bool>)
+        if (!m_threads_active.load(std::memory_order_acquire))
                 return nullptr;
 
         for (u32 i = 0; i != m_threads.size(); i++) {
@@ -254,19 +257,21 @@ const Mapgen *EmergeManager::getCurrentMapgen() const
 
 void EmergeManager::startThreads()
 {
-        if (m_threads_active)
+        // Batch 34: Use explicit atomic operations for m_threads_active
+        if (m_threads_active.load(std::memory_order_acquire))
                 return;
 
         for (u32 i = 0; i != m_threads.size(); i++)
                 m_threads[i]->start();
 
-        m_threads_active = true;
+        m_threads_active.store(true, std::memory_order_release);
 }
 
 
 void EmergeManager::stopThreads()
 {
-        if (!m_threads_active)
+        // Batch 34: Use explicit atomic operations for m_threads_active
+        if (!m_threads_active.load(std::memory_order_acquire))
                 return;
 
         // Request thread stop in parallel
@@ -279,7 +284,7 @@ void EmergeManager::stopThreads()
         for (u32 i = 0; i != m_threads.size(); i++)
                 m_threads[i]->wait();
 
-        m_threads_active = false;
+        m_threads_active.store(false, std::memory_order_release);
 }
 
 

@@ -17,6 +17,8 @@
 #include "noise.h"
 #include <cctype>
 #include <set>
+#include <memory> // Batch 35: std::unique_ptr
+#include <utility> // Batch 35: std::swap
 #include <algorithm>
 
 Settings *g_settings = nullptr;
@@ -233,12 +235,13 @@ bool Settings::parseConfigLines(std::istream &is)
                 case SPE_END:
                         return true;
                 case SPE_GROUP: {
-                        Settings *group = new Settings("}");
+                        // Batch 35: Use unique_ptr to prevent leak if parseConfigLines
+                        // throws or m_settings insertion fails after group is created.
+                        std::unique_ptr<Settings> group(new Settings("}"));
                         if (!group->parseConfigLines(is)) {
-                                delete group;
                                 return false;
                         }
-                        m_settings[name] = SettingsEntry(group);
+                        m_settings[name] = SettingsEntry(group.release());
                         break;
                 }
                 case SPE_MULTILINE:
@@ -886,7 +889,19 @@ bool Settings::setDefault(const std::string &name, const std::string &value)
 {
         FATAL_ERROR_IF(m_hierarchy != &g_hierarchy, "setDefault is only valid on "
                 "global settings");
-        return getLayer(SL_DEFAULTS)->set(name, value);
+        // Batch 36: Warn if a default is being overwritten with a different value,
+        // which may indicate an unintentional duplicate key definition
+        auto *defaults = getLayer(SL_DEFAULTS);
+        {
+                MutexAutoLock lock(defaults->m_mutex);
+                auto it = defaults->m_settings.find(name);
+                if (it != defaults->m_settings.end() && it->second.value != value) {
+                        warningstream << "Setting default for \"" << name
+                                << "\" overwritten: \"" << it->second.value
+                                << "\" -> \"" << value << "\"" << std::endl;
+                }
+        }
+        return defaults->set(name, value);
 }
 
 
@@ -985,21 +1000,23 @@ bool Settings::setNoiseParams(const std::string &name, const NoiseParams &np)
 
 bool Settings::remove(const std::string &name)
 {
+        // Batch 34: RAII lock guard — replaces manual lock/unlock
         // Lock as short as possible, unlock before doCallbacks()
-        m_mutex.lock();
+        bool found = false;
+        {
+                std::unique_lock<std::mutex> lock(m_mutex);
 
-        SettingEntries::iterator it = m_settings.find(name);
-        if (it != m_settings.end()) {
-                delete it->second.group;
-                m_settings.erase(it);
-                m_mutex.unlock();
-
-                doCallbacks(name);
-                return true;
+                SettingEntries::iterator it = m_settings.find(name);
+                if (it != m_settings.end()) {
+                        delete it->second.group;
+                        m_settings.erase(it);
+                        found = true;
+                }
         }
 
-        m_mutex.unlock();
-        return false;
+        if (found)
+                doCallbacks(name);
+        return found;
 }
 
 
@@ -1036,7 +1053,10 @@ void Settings::clearNoLock()
         for (SettingEntries::const_iterator it = m_settings.begin();
                         it != m_settings.end(); ++it)
                 delete it->second.group;
-        m_settings.clear();
+        // Batch 35: Swap-and-release — ensures immediate memory reclamation
+        // for large settings maps instead of leaving capacity allocated.
+        SettingEntries empty;
+        std::swap(m_settings, empty);
 }
 
 

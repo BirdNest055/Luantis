@@ -7,8 +7,9 @@
 #include "log.h"
 #include "gamedef.h"
 #include "porting.h" // strcasecmp
-
+#include <algorithm> // Batch 35: std::swap (indirectly via utility)
 #include <cassert>
+#include <utility> // Batch 35: std::swap
 
 ObjDefManager::ObjDefManager(IGameDef *gamedef, ObjDefType type)
 {
@@ -138,7 +139,10 @@ void ObjDefManager::clear()
         for (size_t i = 0; i != m_objects.size(); i++)
                 delete m_objects[i];
 
-        m_objects.clear();
+        // Batch 35: Swap-and-release — frees vector capacity immediately
+        // instead of keeping memory allocated for potential reuse.
+        std::vector<ObjDef *> empty;
+        std::swap(m_objects, empty);
 }
 
 

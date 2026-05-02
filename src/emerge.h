@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <map>
 #include <mutex>
 #include "network/networkprotocol.h"
@@ -16,8 +17,8 @@
 #define BLOCK_EMERGE_FORCE_QUEUE (1 << 1)
 
 #define EMERGE_DBG_OUT(x) {                            \
-	if (enable_mapgen_debug_info)                      \
-		infostream << "EmergeThread: " x << std::endl; \
+        if (enable_mapgen_debug_info)                      \
+                infostream << "EmergeThread: " x << std::endl; \
 }
 
 class EmergeManager;
@@ -34,218 +35,220 @@ struct MapDatabaseAccessor;
 
 // Structure containing inputs/outputs for chunk generation
 struct BlockMakeData {
-	MMVManip *vmanip = nullptr;
-	// Global map seed
-	u64 seed = 0;
-	v3s16 blockpos_min;
-	v3s16 blockpos_max;
-	UniqueQueue<v3s16> transforming_liquid;
-	const NodeDefManager *nodedef = nullptr;
+        MMVManip *vmanip = nullptr;
+        // Global map seed
+        u64 seed = 0;
+        v3s16 blockpos_min;
+        v3s16 blockpos_max;
+        UniqueQueue<v3s16> transforming_liquid;
+        const NodeDefManager *nodedef = nullptr;
 
-	BlockMakeData() = default;
+        BlockMakeData() = default;
 
-	~BlockMakeData() { delete vmanip; }
+        ~BlockMakeData() { delete vmanip; }
 };
 
 // Result from processing an item on the emerge queue
 enum EmergeAction {
-	EMERGE_CANCELLED,
-	EMERGE_ERRORED,
-	EMERGE_FROM_MEMORY,
-	EMERGE_FROM_DISK,
-	EMERGE_GENERATED,
+        EMERGE_CANCELLED,
+        EMERGE_ERRORED,
+        EMERGE_FROM_MEMORY,
+        EMERGE_FROM_DISK,
+        EMERGE_GENERATED,
 };
 
 constexpr const char *emergeActionStrs[] = {
-	"cancelled",
-	"errored",
-	"from_memory",
-	"from_disk",
-	"generated",
+        "cancelled",
+        "errored",
+        "from_memory",
+        "from_disk",
+        "generated",
 };
 
 // Callback
 typedef void (*EmergeCompletionCallback)(
-	v3s16 blockpos, EmergeAction action, void *param);
+        v3s16 blockpos, EmergeAction action, void *param);
 
 typedef std::vector<
-	std::pair<
-		EmergeCompletionCallback,
-		void *
-	>
+        std::pair<
+                EmergeCompletionCallback,
+                void *
+        >
 > EmergeCallbackList;
 
 struct BlockEmergeData {
-	u16 peer_requested;
-	u16 flags;
-	EmergeCallbackList callbacks;
+        u16 peer_requested;
+        u16 flags;
+        EmergeCallbackList callbacks;
 };
 
 class EmergeParams {
-	friend class EmergeManager;
+        friend class EmergeManager;
 public:
-	EmergeParams() = delete;
-	~EmergeParams();
-	DISABLE_CLASS_COPY(EmergeParams);
+        EmergeParams() = delete;
+        ~EmergeParams();
+        DISABLE_CLASS_COPY(EmergeParams);
 
-	const NodeDefManager *ndef; // shared
-	bool enable_mapgen_debug_info;
+        const NodeDefManager *ndef; // shared
+        bool enable_mapgen_debug_info;
 
-	u32 gen_notify_on;
-	const std::set<u32> *gen_notify_on_deco_ids; // shared
-	const std::set<std::string> *gen_notify_on_custom; // shared
+        u32 gen_notify_on;
+        const std::set<u32> *gen_notify_on_deco_ids; // shared
+        const std::set<std::string> *gen_notify_on_custom; // shared
 
-	BiomeGen *biomegen;
-	BiomeManager *biomemgr;
-	OreManager *oremgr;
-	DecorationManager *decomgr;
-	SchematicManager *schemmgr;
+        BiomeGen *biomegen;
+        BiomeManager *biomemgr;
+        OreManager *oremgr;
+        DecorationManager *decomgr;
+        SchematicManager *schemmgr;
 
-	inline GenerateNotifier createNotifier() const {
-		return GenerateNotifier(gen_notify_on, gen_notify_on_deco_ids,
-			gen_notify_on_custom);
-	}
+        inline GenerateNotifier createNotifier() const {
+                return GenerateNotifier(gen_notify_on, gen_notify_on_deco_ids,
+                        gen_notify_on_custom);
+        }
 
 private:
-	EmergeParams(EmergeManager *parent, const BiomeGen *biomegen,
-		const BiomeManager *biomemgr,
-		const OreManager *oremgr, const DecorationManager *decomgr,
-		const SchematicManager *schemmgr);
+        EmergeParams(EmergeManager *parent, const BiomeGen *biomegen,
+                const BiomeManager *biomemgr,
+                const OreManager *oremgr, const DecorationManager *decomgr,
+                const SchematicManager *schemmgr);
 };
 
 class EmergeManager {
-	/* The mod API needs unchecked access to allow:
-	 * - using decomgr or oremgr to place decos/ores
-	 * - using schemmgr to load and place schematics
-	 */
-	friend class ModApiMapgen;
+        /* The mod API needs unchecked access to allow:
+         * - using decomgr or oremgr to place decos/ores
+         * - using schemmgr to load and place schematics
+         */
+        friend class ModApiMapgen;
 public:
-	const NodeDefManager *ndef;
-	bool enable_mapgen_debug_info;
+        const NodeDefManager *ndef;
+        bool enable_mapgen_debug_info;
 
-	// Generation Notify
-	u32 gen_notify_on = 0;
-	std::set<u32> gen_notify_on_deco_ids;
-	std::set<std::string> gen_notify_on_custom;
+        // Generation Notify
+        u32 gen_notify_on = 0;
+        std::set<u32> gen_notify_on_deco_ids;
+        std::set<std::string> gen_notify_on_custom;
 
-	// Parameters passed to mapgens owned by ServerMap
-	// NOTE(hmmmm): mgparams should be removed from EmergeManager after
-	// mapgen helper methods that use it (e.g., isBlockUnderground(),
-	// getSpawnLevelAtPoint()) are moved to ServerMap, which already owns
-	// the MapgenParams. Currently EmergeManager holds this pointer as a
-	// workaround for methods that need mapgen params but are accessed
-	// before the ServerMap is fully initialized.
-	// Migration: Move isBlockUnderground() and getSpawnLevelAtPoint()
-	// to ServerMap, then remove mgparams from EmergeManager. ServerMap
-	// can provide these directly since it owns the MapgenParams.
-	MapgenParams *mgparams;
+        // Parameters passed to mapgens owned by ServerMap
+        // NOTE(hmmmm): mgparams should be removed from EmergeManager after
+        // mapgen helper methods that use it (e.g., isBlockUnderground(),
+        // getSpawnLevelAtPoint()) are moved to ServerMap, which already owns
+        // the MapgenParams. Currently EmergeManager holds this pointer as a
+        // workaround for methods that need mapgen params but are accessed
+        // before the ServerMap is fully initialized.
+        // Migration: Move isBlockUnderground() and getSpawnLevelAtPoint()
+        // to ServerMap, then remove mgparams from EmergeManager. ServerMap
+        // can provide these directly since it owns the MapgenParams.
+        MapgenParams *mgparams;
 
-	// NOTE: Workaround — EmergeManager must hold onto a ptr to the Map's setting
-	// manager since the Map can only be accessed through the Environment, and the
-	// Environment is not created until after script initialization.
-	// To fix: Make MapSettingsManager accessible independently of the Environment,
-	// or restructure initialization so EmergeManager gets the Map ptr after
-	// Environment creation.
-	MapSettingsManager *map_settings_mgr;
+        // NOTE: Workaround — EmergeManager must hold onto a ptr to the Map's setting
+        // manager since the Map can only be accessed through the Environment, and the
+        // Environment is not created until after script initialization.
+        // To fix: Make MapSettingsManager accessible independently of the Environment,
+        // or restructure initialization so EmergeManager gets the Map ptr after
+        // Environment creation.
+        MapSettingsManager *map_settings_mgr;
 
-	// Methods
-	EmergeManager(Server *server, MetricsBackend *mb);
-	~EmergeManager();
-	DISABLE_CLASS_COPY(EmergeManager);
+        // Methods
+        EmergeManager(Server *server, MetricsBackend *mb);
+        ~EmergeManager();
+        DISABLE_CLASS_COPY(EmergeManager);
 
-	const BiomeGen *getBiomeGen() const { return biomegen; }
+        const BiomeGen *getBiomeGen() const { return biomegen; }
 
-	// no usage restrictions
-	const BiomeManager *getBiomeManager() const { return biomemgr; }
-	const OreManager *getOreManager() const { return oremgr; }
-	const DecorationManager *getDecorationManager() const { return decomgr; }
-	const SchematicManager *getSchematicManager() const { return schemmgr; }
-	// only usable before mapgen init
-	BiomeManager *getWritableBiomeManager();
-	OreManager *getWritableOreManager();
-	DecorationManager *getWritableDecorationManager();
-	SchematicManager *getWritableSchematicManager();
+        // no usage restrictions
+        const BiomeManager *getBiomeManager() const { return biomemgr; }
+        const OreManager *getOreManager() const { return oremgr; }
+        const DecorationManager *getDecorationManager() const { return decomgr; }
+        const SchematicManager *getSchematicManager() const { return schemmgr; }
+        // only usable before mapgen init
+        BiomeManager *getWritableBiomeManager();
+        OreManager *getWritableOreManager();
+        DecorationManager *getWritableDecorationManager();
+        SchematicManager *getWritableSchematicManager();
 
-	void initMapgens(MapgenParams *mgparams);
-	/// @param holder non-owned reference that must stay alive
-	void initMap(MapDatabaseAccessor *holder);
-	/// resets the reference
-	void resetMap();
+        void initMapgens(MapgenParams *mgparams);
+        /// @param holder non-owned reference that must stay alive
+        void initMap(MapDatabaseAccessor *holder);
+        /// resets the reference
+        void resetMap();
 
-	void startThreads();
-	void stopThreads();
+        void startThreads();
+        void stopThreads();
 
-	bool enqueueBlockEmerge(
-		session_t peer_id,
-		v3s16 blockpos,
-		bool allow_generate,
-		bool ignore_queue_limits=false);
+        bool enqueueBlockEmerge(
+                session_t peer_id,
+                v3s16 blockpos,
+                bool allow_generate,
+                bool ignore_queue_limits=false);
 
-	bool enqueueBlockEmergeEx(
-		v3s16 blockpos,
-		session_t peer_id,
-		u16 flags,
-		EmergeCompletionCallback callback,
-		void *callback_param);
+        bool enqueueBlockEmergeEx(
+                v3s16 blockpos,
+                session_t peer_id,
+                u16 flags,
+                EmergeCompletionCallback callback,
+                void *callback_param);
 
-	size_t getQueueSize();
-	bool isBlockInQueue(v3s16 pos);
+        size_t getQueueSize();
+        bool isBlockInQueue(v3s16 pos);
 
-	Mapgen *getCurrentMapgen();
-	const Mapgen *getCurrentMapgen() const;
+        Mapgen *getCurrentMapgen();
+        const Mapgen *getCurrentMapgen() const;
 
-	// Mapgen helpers methods
-	int getSpawnLevelAtPoint(v2s16 p);
-	bool isBlockUnderground(v3s16 blockpos);
+        // Mapgen helpers methods
+        int getSpawnLevelAtPoint(v2s16 p);
+        bool isBlockUnderground(v3s16 blockpos);
 
-	/// @return min edge of chunk in block units
-	static v3s16 getContainingChunk(v3s16 blockpos, v3s16 chunksize);
+        /// @return min edge of chunk in block units
+        static v3s16 getContainingChunk(v3s16 blockpos, v3s16 chunksize);
 
 private:
-	void initThreads(bool should_multithread);
+        void initThreads(bool should_multithread);
 
-	std::vector<Mapgen *> m_mapgens;
-	std::vector<EmergeThread *> m_threads;
-	bool m_threads_active = false;
+        std::vector<Mapgen *> m_mapgens;
+        std::vector<EmergeThread *> m_threads;
+        // Batch 34: Changed from bool to std::atomic<bool> for safe cross-thread access
+        // (read by emerge threads in getCurrentMapgen(), written by server thread)
+        std::atomic<bool> m_threads_active{false};
 
-	// Server reference
-	Server *m_server = nullptr;
-	// The map database
-	MapDatabaseAccessor *m_db = nullptr;
+        // Server reference
+        Server *m_server = nullptr;
+        // The map database
+        MapDatabaseAccessor *m_db = nullptr;
 
-	std::mutex m_queue_mutex;
-	std::map<v3s16, BlockEmergeData> m_blocks_enqueued;
-	std::unordered_map<u16, u32> m_peer_queue_count;
+        std::mutex m_queue_mutex;
+        std::map<v3s16, BlockEmergeData> m_blocks_enqueued;
+        std::unordered_map<u16, u32> m_peer_queue_count;
 
-	u32 m_qlimit_total;
-	u32 m_qlimit_diskonly;
-	u32 m_qlimit_generate;
+        u32 m_qlimit_total;
+        u32 m_qlimit_diskonly;
+        u32 m_qlimit_generate;
 
-	// Emerge metrics
-	MetricCounterPtr m_completed_emerge_counter[5];
+        // Emerge metrics
+        MetricCounterPtr m_completed_emerge_counter[5];
 
-	// Managers of various map generation-related components
-	// Note that each Mapgen gets a copy(!) of these to work with
-	BiomeGen *biomegen;
-	BiomeManager *biomemgr;
-	OreManager *oremgr;
-	DecorationManager *decomgr;
-	SchematicManager *schemmgr;
+        // Managers of various map generation-related components
+        // Note that each Mapgen gets a copy(!) of these to work with
+        BiomeGen *biomegen;
+        BiomeManager *biomemgr;
+        OreManager *oremgr;
+        DecorationManager *decomgr;
+        SchematicManager *schemmgr;
 
-	// Requires m_queue_mutex held
-	EmergeThread *getOptimalThread();
+        // Requires m_queue_mutex held
+        EmergeThread *getOptimalThread();
 
-	bool pushBlockEmergeData(
-		v3s16 pos,
-		u16 peer_requested,
-		u16 flags,
-		EmergeCompletionCallback callback,
-		void *callback_param,
-		bool *entry_already_exists);
+        bool pushBlockEmergeData(
+                v3s16 pos,
+                u16 peer_requested,
+                u16 flags,
+                EmergeCompletionCallback callback,
+                void *callback_param,
+                bool *entry_already_exists);
 
-	bool popBlockEmergeData(v3s16 pos, BlockEmergeData *bedata);
+        bool popBlockEmergeData(v3s16 pos, BlockEmergeData *bedata);
 
-	void reportCompletedEmerge(EmergeAction action);
+        void reportCompletedEmerge(EmergeAction action);
 
-	friend class EmergeThread;
+        friend class EmergeThread;
 };

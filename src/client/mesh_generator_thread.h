@@ -10,6 +10,7 @@
 #include "irrlichttypes_bloated.h"
 #include "threading/mutex_auto_lock.h"
 #include "util/thread.h"
+#include <atomic>
 #include <vector>
 #include <memory>
 
@@ -103,12 +104,10 @@ private:
         std::unordered_set<v3s16> m_inflight_blocks;
         std::mutex m_mutex;
 
-        // NOTE: These cached settings are read once at startup and never updated.
-        // They should be refreshed when g_settings changes (e.g., via a SettingsCallback
-        // registered in the constructor). When updated, all existing meshes should be
-        // invalidated so they are regenerated with the new settings.
-        bool m_cache_smooth_lighting;
-        bool m_cache_enable_water_reflections;
+        // Batch 34: Changed from bool to std::atomic<bool> — written from
+        // settings callback (any thread), read by mesh generator threads
+        std::atomic<bool> m_cache_smooth_lighting;
+        std::atomic<bool> m_cache_enable_water_reflections;
 
         // Settings callback stub — call this to register with g_settings->registerChangedCallback()
         // to refresh cached settings when they change at runtime.

@@ -3967,6 +3967,9 @@ void GUIFormSpecMenu::acceptInput(FormspecQuitMode quitmode)
         {
                 StringMap fields;
 
+                // Batch 39: Limit total number of fields to prevent excessive data submission
+                static const size_t MAX_FIELDS_COUNT = 500;
+
                 if (quitmode == quit_mode_accept) {
                         fields["quit"] = "true";
                 } else if (quitmode == quit_mode_cancel) {
@@ -4000,6 +4003,16 @@ void GUIFormSpecMenu::acceptInput(FormspecQuitMode quitmode)
                 for (const GUIFormSpecMenu::FieldSpec &s : m_fields) {
                         if (s.send) {
                                 std::string name = s.fname;
+                                // Batch 39: Skip fields with empty or excessively long names
+                                if (name.empty() || name.size() > 512)
+                                        continue;
+                                // Batch 39: Stop collecting fields if limit is reached
+                                if (fields.size() >= MAX_FIELDS_COUNT) {
+                                        warningstream << "GUIFormSpecMenu::acceptInput: "
+                                                << "field count limit reached (" << MAX_FIELDS_COUNT
+                                                << "), skipping remaining fields" << std::endl;
+                                        break;
+                                }
                                 if (s.ftype == f_Button) {
                                         fields[name] = wide_to_utf8(s.flabel);
                                 } else if (s.ftype == f_Table) {
@@ -4074,8 +4087,18 @@ void GUIFormSpecMenu::acceptInput(FormspecQuitMode quitmode)
                                                 fields[name] = std::to_string(e->getFrameIndex() + 1);
                                 } else {
                                         IGUIElement *e = getElementFromId(s.fid, true);
-                                        if (e)
-                                                fields[name] = wide_to_utf8(e->getText());
+                                        if (e) {
+                                                // Batch 39: Limit field value length to prevent excessive data submission
+                                                std::string value = wide_to_utf8(e->getText());
+                                                static const size_t MAX_FIELD_VALUE_LENGTH = 10000;
+                                                if (value.size() > MAX_FIELD_VALUE_LENGTH) {
+                                                        warningstream << "GUIFormSpecMenu::acceptInput: "
+                                                                << "truncating field '" << name
+                                                                << "' (length " << value.size() << ")" << std::endl;
+                                                        value.resize(MAX_FIELD_VALUE_LENGTH);
+                                                }
+                                                fields[name] = value;
+                                        }
                                 }
                         }
                 }

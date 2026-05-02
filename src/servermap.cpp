@@ -37,6 +37,7 @@
 #if USE_POSTGRESQL
 #include "database/database-postgresql.h"
 #endif
+#include <utility> // Batch 35: std::swap
 
 /*
         Helpers
@@ -690,12 +691,27 @@ bool ServerMap::saveBlock(MapBlock *block)
 {
         // Serialize the block BEFORE acquiring the mutex (fix for Issue #680)
         v3s16 p3d = block->getPos();
+        // Batch 37: Validate block position before saving to database
+        if (blockpos_over_max_limit(p3d)) {
+                errorstream << "ServerMap::saveBlock: block position ("
+                        << p3d.X << "," << p3d.Y << "," << p3d.Z
+                        << ") exceeds world limits, skipping save" << std::endl;
+                return false;
+        }
         u8 version = SER_FMT_VER_HIGHEST_WRITE;
 
         std::ostringstream o(std::ios_base::binary);
         o.write((char*) &version, 1);
         block->serialize(o, version, true, m_map_compression_level);
         std::string serialized = o.str();
+
+        // Batch 37: Validate serialization produced meaningful output
+        if (serialized.size() < 2) {
+                errorstream << "ServerMap::saveBlock: block at ("
+                        << p3d.X << "," << p3d.Y << "," << p3d.Z
+                        << ") produced empty/truncated serialization, skipping save" << std::endl;
+                return false;
+        }
 
         // Save under mutex
         MutexAutoLock dblock(m_db.mutex);
@@ -709,6 +725,13 @@ bool ServerMap::saveBlock(MapBlock *block)
 bool ServerMap::saveBlock(MapBlock *block, MapDatabase *db, int compression_level)
 {
         v3s16 p3d = block->getPos();
+        // Batch 37: Validate block position before saving to database
+        if (blockpos_over_max_limit(p3d)) {
+                errorstream << "ServerMap::saveBlock(static): block position ("
+                        << p3d.X << "," << p3d.Y << "," << p3d.Z
+                        << ") exceeds world limits, skipping save" << std::endl;
+                return false;
+        }
 
         // Format used for writing
         u8 version = SER_FMT_VER_HIGHEST_WRITE;
@@ -852,6 +875,13 @@ MapBlock *ServerMap::loadBlock(const std::string &blob, v3s16 p3d, bool save_aft
 
 MapBlock* ServerMap::loadBlock(v3s16 blockpos)
 {
+        // Batch 37: Validate block position before attempting database load
+        if (blockpos_over_max_limit(blockpos)) {
+                warningstream << "ServerMap::loadBlock: block position ("
+                        << blockpos.X << "," << blockpos.Y << "," << blockpos.Z
+                        << ") exceeds world limits" << std::endl;
+                return getBlockNoCreateNoEx(blockpos);
+        }
         std::string data;
         {
                 ScopeProfiler sp(g_profiler, "ServerMap: load block - sync (sum)");
@@ -891,7 +921,10 @@ void ServerMap::deleteDetachedBlocks()
                 (void)block; // silence unused-variable warning in release builds
         }
 
-        m_detached_blocks.clear();
+        // Batch 35: Swap-and-release — frees vector capacity immediately
+        // for the potentially large detached blocks list.
+        std::vector<std::unique_ptr<MapBlock>> empty;
+        std::swap(m_detached_blocks, empty);
 }
 
 void ServerMap::step()
@@ -960,7 +993,9 @@ static s8 get_max_liquid_level(NodeNeighbor nb, s8 current_max_node_level)
         u8 nb_liquid_level = (nb.n.param2 & LIQUID_LEVEL_MASK);
         switch (nb.t) {
                 case NEIGHBOR_UPPER:
-                        if (nb_liquid_level + WATER_DROP_BOOST > current_max_node_level) {
+                        // Batch 37: Clamp addition to prevent s8 overflow
+                        // WATER_DROP_BOOST (4) + nb_liquid_level (max 7) = 11, fits in s8
+                        if (static_cast<s16>(nb_liquid_level) + WATER_DROP_BOOST > current_max_node_level) {
                                 max_node_level = LIQUID_LEVEL_MAX;
                                 if (nb_liquid_level + WATER_DROP_BOOST < LIQUID_LEVEL_MAX)
                                         max_node_level = nb_liquid_level + WATER_DROP_BOOST;

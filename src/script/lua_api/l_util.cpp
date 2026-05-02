@@ -694,6 +694,8 @@ int ModApiUtil::l_time_to_day_night_ratio(lua_State *L)
 {
         NO_MAP_LOCK_REQUIRED;
 
+        if (!lua_isnumber(L, 1)) // Batch 38: type check before lua_tonumber
+                throw LuaError("time_to_day_night_ratio expects a number argument");
         float time_of_day = lua_tonumber(L, 1) * 24000;
         u32 dnr = time_to_daynight_ratio(time_of_day, true);
         lua_pushnumber(L, dnr / 1000.0f);

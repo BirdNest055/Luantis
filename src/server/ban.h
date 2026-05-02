@@ -5,27 +5,30 @@
 #pragma once
 
 #include "util/string.h"
+#include <atomic>
 #include <string>
 #include <mutex>
 
 class BanManager
 {
 public:
-	BanManager(const std::string &banfilepath);
-	~BanManager();
-	void load();
-	void save();
-	bool isIpBanned(const std::string &ip) const;
-	// Supplying ip_or_name = "" lists all bans.
-	std::string getBanDescription(const std::string &ip_or_name) const;
-	std::string getBanName(const std::string &ip) const;
-	void add(const std::string &ip, const std::string &name);
-	void remove(const std::string &ip_or_name);
-	bool isModified() const;
+        BanManager(const std::string &banfilepath);
+        ~BanManager();
+        void load();
+        void save();
+        bool isIpBanned(const std::string &ip) const;
+        // Supplying ip_or_name = "" lists all bans.
+        std::string getBanDescription(const std::string &ip_or_name) const;
+        std::string getBanName(const std::string &ip) const;
+        void add(const std::string &ip, const std::string &name);
+        void remove(const std::string &ip_or_name);
+        bool isModified() const;
 
 private:
-	mutable std::mutex m_mutex;
-	std::string m_banfilepath = "";
-	StringMap m_ips;
-	bool m_modified = false;
+        mutable std::mutex m_mutex;
+        std::string m_banfilepath = "";
+        StringMap m_ips;
+        // Batch 34: Changed from bool to std::atomic<bool> to avoid
+        // acquiring mutex just for reading m_modified in isModified()
+        std::atomic<bool> m_modified{false};
 };

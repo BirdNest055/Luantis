@@ -512,6 +512,13 @@ void Server::handleCommand_GotBlocks(NetworkPacket* pkt)
         for (u16 i = 0; i < count; i++) {
                 v3s16 p;
                 *pkt >> p;
+                // Batch 37: Validate block coordinates from network packet
+                if (blockpos_over_max_limit(p)) {
+                        warningstream << "Server: GotBlocks: ignoring out-of-range block ("
+                                << p.X << "," << p.Y << "," << p.Z << ") from peer "
+                                << pkt->getPeerId() << std::endl;
+                        continue;
+                }
                 client->GotBlock(p);
         }
 }
@@ -2893,7 +2900,8 @@ void Server::handleCommand_VoiceGroupCreate(NetworkPacket* pkt)
         *pkt >> group_name;
 
         // Check max groups limit
-        int max_groups = g_settings->getS32("voice_chat_max_groups");
+        // Batch 36: Clamp voice_chat_max_groups to [1, 100] — use getU16 for unsigned semantics
+        int max_groups = rangelim(g_settings->getU16("voice_chat_max_groups"), 1, 100);
         if ((int)m_voice_groups.size() >= max_groups) {
                 infostream << "Server: Voice group limit reached (" << max_groups << ")" << std::endl;
                 return;
@@ -2937,7 +2945,8 @@ void Server::handleCommand_VoiceGroupInvite(NetworkPacket* pkt)
                 return;
 
         // Check max members limit
-        int max_members = g_settings->getS32("voice_chat_group_max_members");
+        // Batch 36: Clamp voice_chat_group_max_members to [1, 64] — use getU16 for unsigned semantics
+        int max_members = rangelim(g_settings->getU16("voice_chat_group_max_members"), 1, 64);
         if ((int)it->second.members.size() >= max_members)
                 return;
 
@@ -2965,7 +2974,8 @@ void Server::handleCommand_VoiceGroupJoin(NetworkPacket* pkt)
                 return;
 
         // Check max members limit
-        int max_members = g_settings->getS32("voice_chat_group_max_members");
+        // Batch 36: Clamp voice_chat_group_max_members to [1, 64] — use getU16 for unsigned semantics
+        int max_members = rangelim(g_settings->getU16("voice_chat_group_max_members"), 1, 64);
         if ((int)it->second.members.size() >= max_members)
                 return;
 

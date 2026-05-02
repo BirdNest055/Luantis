@@ -250,6 +250,9 @@ public:
                 for (s16 bz = bpmin.Z; bz <= bpmax.Z; bz++)
                 for (s16 bx = bpmin.X; bx <= bpmax.X; bx++)
                 for (s16 by = bpmin.Y; by <= bpmax.Y; by++) {
+                        // Batch 37: Skip block positions outside valid map range
+                        if (blockpos_over_max_limit(v3s16(bx, by, bz)))
+                                continue;
                         // y is iterated innermost to make use of the sector cache.
                         v3s16 bp(bx, by, bz);
                         MapBlock *block = getBlockNoCreateNoEx(bp);

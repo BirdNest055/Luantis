@@ -700,17 +700,36 @@ void GameUI::syncEncryptionLiveStats(Client *client)
                 return;
 
         const auto &enc_state = client->getEncryptionState();
-        auto lock = enc_state.lock();
+        // Batch 34: Mutex scope reduction — copy stats under lock, then use
+        // them outside the lock for further processing. This reduces contention
+        // on the encryption state mutex since the lock is held only briefly.
+        u64 c2s_packets, s2c_packets;
+        u64 c2s_auth, s2c_auth;
+        u64 c2s_replay, s2c_replay;
+        u64 c2s_nonce, s2c_nonce;
+        u64 activated_at;
+        {
+                auto lock = enc_state.lock();
+                c2s_packets = enc_state.c2s.packets_processed;
+                s2c_packets = enc_state.s2c.packets_processed;
+                c2s_auth = enc_state.c2s.auth_failures;
+                s2c_auth = enc_state.s2c.auth_failures;
+                c2s_replay = enc_state.c2s.replay_attempts;
+                s2c_replay = enc_state.s2c.replay_attempts;
+                c2s_nonce = enc_state.c2s.nonce_counter;
+                s2c_nonce = enc_state.s2c.nonce_counter;
+                activated_at = enc_state.activated_at;
+        }
 
-        // Copy live stats from PeerEncryptionState into m_security_info
-        m_security_info.c2s_packets_processed = enc_state.c2s.packets_processed;
-        m_security_info.s2c_packets_processed = enc_state.s2c.packets_processed;
-        m_security_info.c2s_auth_failures = enc_state.c2s.auth_failures;
-        m_security_info.s2c_auth_failures = enc_state.s2c.auth_failures;
-        m_security_info.c2s_replay_attempts = enc_state.c2s.replay_attempts;
-        m_security_info.s2c_replay_attempts = enc_state.s2c.replay_attempts;
-        m_security_info.c2s_nonce_counter = enc_state.c2s.nonce_counter;
-        m_security_info.s2c_nonce_counter = enc_state.s2c.nonce_counter;
+        // Update m_security_info from local copies (no lock needed)
+        m_security_info.c2s_packets_processed = c2s_packets;
+        m_security_info.s2c_packets_processed = s2c_packets;
+        m_security_info.c2s_auth_failures = c2s_auth;
+        m_security_info.s2c_auth_failures = s2c_auth;
+        m_security_info.c2s_replay_attempts = c2s_replay;
+        m_security_info.s2c_replay_attempts = s2c_replay;
+        m_security_info.c2s_nonce_counter = c2s_nonce;
+        m_security_info.s2c_nonce_counter = s2c_nonce;
 
         // Copy RTT from client
         m_security_info.rtt_ms = client->getRTT() * 1000.0f;
@@ -723,7 +742,7 @@ void GameUI::syncEncryptionLiveStats(Client *client)
         }
 
         // Timestamps
-        m_security_info.encryption_activated_at = enc_state.activated_at;
+        m_security_info.encryption_activated_at = activated_at;
 }
 
 // ============================================================================

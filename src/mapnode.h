@@ -184,13 +184,15 @@ struct alignas(u32) MapNode
                 // If node doesn't contain light data, ignore this
                 if (!f.has_light)
                         return;
+                // Batch 37: Clamp light value to valid 4-bit range before writing
+                a_light &= 0x0F;
                 if (bank == LIGHTBANK_DAY) {
                         param1 &= 0xf0;
-                        param1 |= a_light & 0x0f;
+                        param1 |= a_light;
                 } else {
                         assert(bank == LIGHTBANK_NIGHT);
                         param1 &= 0x0f;
-                        param1 |= (a_light & 0x0f)<<4;
+                        param1 |= (a_light)<<4;
                 }
         }
 

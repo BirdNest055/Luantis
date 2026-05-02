@@ -54,7 +54,8 @@ void VoiceChatManager::init()
         m_volume = g_settings->getFloat("voice_chat_volume", 0.0f, 1.0f);
         m_e2ee_enabled = g_settings->getBool("voice_chat_e2ee");
         m_noise_suppression = g_settings->getBool("voice_chat_noise_suppression");
-        m_bitrate = g_settings->getS32("voice_chat_bitrate");
+        // Batch 36: Clamp voice_chat_bitrate to [6000, 510000] Opus valid range
+        m_bitrate = rangelim(g_settings->getS32("voice_chat_bitrate"), 6000, 510000);
         m_vad_threshold = g_settings->getFloat("voice_chat_vad_threshold", 0.0f, 1.0f);
 
         std::string mode_str = g_settings->get("voice_chat_mode");
@@ -76,8 +77,9 @@ void VoiceChatManager::deinit()
         infostream << "VoiceChat: Shutting down voice chat subsystem" << std::endl;
 
         // Stop transmitting
-        if (m_is_transmitting) {
-                m_is_transmitting = false;
+        // Batch 34: Use atomic operations for m_is_transmitting
+        if (m_is_transmitting.load(std::memory_order_acquire)) {
+                m_is_transmitting.store(false, std::memory_order_release);
                 if (sendVoiceStop)
                         sendVoiceStop(m_active_channel);
         }
@@ -99,27 +101,30 @@ void VoiceChatManager::step(float dtime)
         bool should_transmit = false;
 
         if (m_mode == VoiceChatMode::PTT) {
-                should_transmit = m_ptt_active;
+                // Batch 34: Use atomic load for m_ptt_active (now std::atomic<bool>)
+                should_transmit = m_ptt_active.load(std::memory_order_acquire);
         } else if (m_mode == VoiceChatMode::TOGGLE) {
                 should_transmit = m_voice_toggle_on;
         }
 
         // Start/stop transmission
-        if (should_transmit && !m_is_transmitting) {
-                m_is_transmitting = true;
+        // Batch 34: Use atomic operations for m_is_transmitting (now std::atomic<bool>)
+        bool is_currently_transmitting = m_is_transmitting.load(std::memory_order_acquire);
+        if (should_transmit && !is_currently_transmitting) {
+                m_is_transmitting.store(true, std::memory_order_release);
                 m_seq_num = 0;
                 if (sendVoiceStart)
                         sendVoiceStart(m_active_channel);
                 infostream << "VoiceChat: Started transmitting on channel " << (int)m_active_channel << std::endl;
-        } else if (!should_transmit && m_is_transmitting) {
-                m_is_transmitting = false;
+        } else if (!should_transmit && is_currently_transmitting) {
+                m_is_transmitting.store(false, std::memory_order_release);
                 if (sendVoiceStop)
                         sendVoiceStop(m_active_channel);
                 infostream << "VoiceChat: Stopped transmitting" << std::endl;
         }
 
         // Capture and send audio frames while transmitting
-        if (m_is_transmitting) {
+        if (m_is_transmitting.load(std::memory_order_acquire)) {
                 m_transmit_timer += dtime;
                 while (m_transmit_timer >= m_frame_interval) {
                         m_transmit_timer -= m_frame_interval;
@@ -170,10 +175,11 @@ void VoiceChatManager::step(float dtime)
 
 void VoiceChatManager::setServerVoiceAllowed(bool allowed)
 {
-        if (m_server_voice_allowed == allowed)
+        // Batch 34: Use atomic operations for m_server_voice_allowed
+        if (m_server_voice_allowed.load(std::memory_order_acquire) == allowed)
                 return;
 
-        m_server_voice_allowed = allowed;
+        m_server_voice_allowed.store(allowed, std::memory_order_release);
 
         if (allowed && !m_receive_opt_out) {
                 init();
@@ -183,9 +189,9 @@ void VoiceChatManager::setServerVoiceAllowed(bool allowed)
                 }
         } else {
                 // Server disallows voice - stop transmitting
-                if (m_is_transmitting && sendVoiceStop) {
+                if (m_is_transmitting.load(std::memory_order_acquire) && sendVoiceStop) {
                         sendVoiceStop(m_active_channel);
-                        m_is_transmitting = false;
+                        m_is_transmitting.store(false, std::memory_order_release);
                 }
         }
 
@@ -194,18 +200,19 @@ void VoiceChatManager::setServerVoiceAllowed(bool allowed)
 
 void VoiceChatManager::setReceiveOptOut(bool opt_out)
 {
-        if (m_receive_opt_out == opt_out)
+        // Batch 34: Use atomic operations for m_receive_opt_out
+        if (m_receive_opt_out.load(std::memory_order_acquire) == opt_out)
                 return;
 
-        m_receive_opt_out = opt_out;
+        m_receive_opt_out.store(opt_out, std::memory_order_release);
 
         if (opt_out) {
                 // Client opts out - stop transmitting and receiving
-                if (m_is_transmitting && sendVoiceStop) {
+                if (m_is_transmitting.load(std::memory_order_acquire) && sendVoiceStop) {
                         sendVoiceStop(m_active_channel);
-                        m_is_transmitting = false;
+                        m_is_transmitting.store(false, std::memory_order_release);
                 }
-        } else if (m_server_voice_allowed) {
+        } else if (m_server_voice_allowed.load(std::memory_order_acquire)) {
                 // Client opts back in and server allows - initialize
                 init();
                 if (m_e2ee_enabled && sendVoiceKeyExchange) {
@@ -271,7 +278,8 @@ void VoiceChatManager::setBitrate(int bitrate_bps)
 
 void VoiceChatManager::setPTTActive(bool active)
 {
-        m_ptt_active = active;
+        // Batch 34: Use atomic store for m_ptt_active (now std::atomic<bool>)
+        m_ptt_active.store(active, std::memory_order_release);
 }
 
 // ============================================================
@@ -291,10 +299,14 @@ bool VoiceChatManager::captureAudioFrame(std::vector<opus_int16> &samples)
 void VoiceChatManager::queueReceivedAudio(u16 peer_id, u8 channel_id,
         const std::vector<u8> &opus_data, u16 seq_num)
 {
+        // Batch 34: Race condition guard — check m_peers under lock to avoid
+        // data race with updatePeerList(). The mutex protects both the map
+        // and the is_muted field access.
+        std::lock_guard<std::mutex> lock(m_playback_mutex);
+
         if (m_peers.count(peer_id) && m_peers[peer_id].is_muted)
                 return; // Drop audio from muted peers
 
-        std::lock_guard<std::mutex> lock(m_playback_mutex);
         m_playback_queue.push_back({peer_id, channel_id, opus_data, seq_num});
 }
 
@@ -978,8 +990,16 @@ void VoiceChatManager::deinitAudioPlayback()
 
 void VoiceChatManager::processPlaybackQueue()
 {
-        std::lock_guard<std::mutex> lock(m_playback_mutex);
-        for (auto &frame : m_playback_queue) {
+        // Batch 34: Mutex scope reduction — swap out the queue under the lock,
+        // then process frames outside the lock. This reduces contention since
+        // decoding frames can be expensive.
+        std::vector<QueuedFrame> local_queue;
+        {
+                std::lock_guard<std::mutex> lock(m_playback_mutex);
+                std::swap(local_queue, m_playback_queue);
+        }
+
+        for (auto &frame : local_queue) {
                 // Decode
                 std::vector<opus_int16> pcm = decodeFrame(frame.peer_id, frame.opus_data);
                 if (pcm.empty())
@@ -1000,7 +1020,6 @@ void VoiceChatManager::processPlaybackQueue()
                 // In a full implementation, each peer gets an OpenAL source
                 // and we buffer the decoded PCM data for playback.
         }
-        m_playback_queue.clear();
 }
 
 #endif // USE_VOICE_CHAT

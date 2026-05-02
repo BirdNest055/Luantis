@@ -74,6 +74,7 @@
 #include <algorithm>
 #include <sstream>
 #include <csignal>
+#include <utility> // Batch 35: std::swap
 
 class ClientNotFoundException : public BaseException
 {
@@ -352,7 +353,8 @@ Server::Server(
                         "minetest_core_map_edit_events",
                         "Number of map edit events");
 
-        m_lag_gauge->set(g_settings->getFloat("dedicated_server_step"));
+        // Batch 36: Clamp server step to > 0 to prevent zero/negative tick rate
+        m_lag_gauge->set(std::max(g_settings->getFloat("dedicated_server_step"), 0.001f));
 
         m_path_mod_data = porting::path_user + DIR_DELIM "mod_data";
         if (!fs::CreateDir(m_path_mod_data))
@@ -470,6 +472,12 @@ Server::~Server()
         while (!m_unsent_map_edit_queue.empty()) {
                 delete m_unsent_map_edit_queue.front();
                 m_unsent_map_edit_queue.pop();
+        }
+        // Batch 35: Swap-and-release for m_media — after processing delete_at_shutdown,
+        // the map is no longer needed. Swap with empty to immediately free memory.
+        {
+                std::unordered_map<std::string, MediaInfo> empty;
+                std::swap(m_media, empty);
         }
 }
 
@@ -601,8 +609,10 @@ void Server::init()
 
         // Those settings can be overwritten in world.mt, they are
         // intended to be cached after environment loading.
-        m_liquid_transform_every = g_settings->getFloat("liquid_update");
-        m_max_chatmessage_length = g_settings->getU16("chat_message_max_size");
+        // Batch 36: Clamp liquid_update interval to > 0 to prevent infinite loop
+        m_liquid_transform_every = std::max(g_settings->getFloat("liquid_update"), 0.1f);
+        // Batch 36: Clamp chat message max size to at least 1
+        m_max_chatmessage_length = std::max(g_settings->getU16("chat_message_max_size"), u16(1));
         m_csm_restriction_flags = g_settings->getU64("csm_restriction_flags");
         m_csm_restriction_noderange = g_settings->getU32("csm_restriction_noderange");
 }
@@ -1002,6 +1012,10 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                 for (auto &buffered_message : buffered_messages) {
                         delete buffered_message.second;
                 }
+                // Batch 35: Swap-and-release — frees map capacity immediately
+                // for the buffered messages map after deleting all entries.
+                std::unordered_map<u16, std::vector<ActiveObjectMessage> *> empty;
+                std::swap(buffered_messages, empty);
         }
 
         /*
@@ -1113,8 +1127,9 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
         {
                 float &counter = m_savemap_timer;
                 counter += dtime;
-                static thread_local const float save_interval =
-                        g_settings->getFloat("server_map_save_interval");
+                // Batch 36: Read save_interval each tick instead of caching as thread_local const,
+                // so runtime setting changes (e.g., via /set) take effect immediately.
+                float save_interval = std::max(g_settings->getFloat("server_map_save_interval"), 1.0f);
                 if (counter >= save_interval) {
                         counter = 0.0;
                         EnvAutoLock lock(this);
@@ -2216,17 +2231,16 @@ void Server::SendPlayerFormspecPrepend(session_t peer_id)
 
 void Server::SendActiveObjectRemoveAdd(RemoteClient *client, PlayerSAO *playersao)
 {
-        // Radius inside which objects are active
-        static thread_local const s16 radius =
-                g_settings->getS16("active_object_send_range_blocks") * MAP_BLOCKSIZE;
+        // Batch 36: Read these each call instead of caching as thread_local const,
+        // so runtime setting changes take effect immediately.
+        s16 radius = std::max(g_settings->getS16("active_object_send_range_blocks"), s16(1)) * MAP_BLOCKSIZE;
 
-        // Radius inside which players are active
-        static thread_local const bool is_transfer_limited =
+        bool is_transfer_limited =
                 g_settings->exists("unlimited_player_transfer_distance") &&
                 !g_settings->getBool("unlimited_player_transfer_distance");
 
-        static thread_local const s16 player_transfer_dist =
-                g_settings->getS16("player_transfer_distance") * MAP_BLOCKSIZE;
+        s16 player_transfer_dist =
+                std::max(g_settings->getS16("player_transfer_distance"), s16(0)) * MAP_BLOCKSIZE;
 
         s16 player_radius = player_transfer_dist == 0 && is_transfer_limited ?
                 radius : player_transfer_dist;

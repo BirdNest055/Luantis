@@ -449,6 +449,14 @@ void TouchControls::translateEvent(const SEvent &event)
         if (event.EventType != EET_TOUCH_INPUT_EVENT)
                 return;
 
+        // Batch 39: Validate touch coordinates are non-negative
+        if (event.TouchInput.X < 0 || event.TouchInput.Y < 0) {
+                warningstream << "TouchControls::translateEvent: ignoring touch with "
+                        "negative coordinates (" << event.TouchInput.X << ", "
+                        << event.TouchInput.Y << ")" << std::endl;
+                return;
+        }
+
         const s32 half_button_size = m_button_size / 2.0f;
         const s32 fixed_joystick_range_sq = half_button_size * half_button_size * 3 * 3;
         const s32 X = event.TouchInput.X;
@@ -459,7 +467,13 @@ void TouchControls::translateEvent(const SEvent &event)
         const v2s32 dir_fixed = touch_pos - fixed_joystick_center;
 
         if (event.TouchInput.Event == ETIE_PRESSED_DOWN) {
+                // Batch 39: Validate pointer ID is within reasonable range
                 size_t pointer_id = event.TouchInput.ID;
+                if (pointer_id > 256) {
+                        warningstream << "TouchControls::translateEvent: ignoring "
+                                "suspicious pointer ID: " << pointer_id << std::endl;
+                        return;
+                }
                 m_pointer_downpos[pointer_id] = touch_pos;
                 m_pointer_pos[pointer_id] = touch_pos;
 
@@ -586,8 +600,8 @@ void TouchControls::translateEvent(const SEvent &event)
                                         m_joystick_speed = 0.0f;
                                 } else {
                                         m_joystick_speed = distance / m_button_size;
-                                        if (m_joystick_speed > 1.0f)
-                                                m_joystick_speed = 1.0f;
+                                        // Batch 39: Clamp joystick speed to [0.0, 1.0]
+                                        m_joystick_speed = std::min(m_joystick_speed, 1.0f);
                                 }
 
                                 m_joystick_status_aux1 = distance > (half_button_size * 3);

@@ -1586,6 +1586,8 @@ void Game::processItemSelection(u16 *new_playeritem)
         /* Item selection using mouse wheel
          */
         s32 wheel = input->getMouseWheel();
+        // Batch 39: Clamp mouse wheel input for item selection
+        wheel = core::clamp(wheel, -10, 10);
         if (!m_enable_hotbar_mouse_wheel)
                 wheel = 0;
         if (m_invert_hotbar_mouse_wheel)
@@ -2071,6 +2073,8 @@ void Game::updateCameraOrientation(CameraOrientation *cam, float dtime)
 
         if (m_cache_enable_joysticks) {
                 f32 c = m_cache_joystick_frustum_sensitivity * dtime * sens_scale;
+                // Batch 39: Clamp joystick frustum sensitivity to prevent extreme camera jumps
+                c = core::clamp(c, 0.0f, 5.0f);
                 cam->camera_yaw -= input->joystick.getAxisWithoutDead(JA_FRUSTUM_HORIZONTAL) * c;
                 cam->camera_pitch += input->joystick.getAxisWithoutDead(JA_FRUSTUM_VERTICAL) * c;
         }

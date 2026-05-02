@@ -196,7 +196,10 @@ void ScriptApiBase::clientOpenLibs(lua_State *L)
                 { LUA_OSLIBNAME,   luaopen_os      },
                 { LUA_STRLIBNAME,  luaopen_string  },
                 { LUA_MATHLIBNAME, luaopen_math    },
-                { LUA_DBLIBNAME,   luaopen_debug   },
+                // Batch 38: Removed luaopen_debug from client libs to prevent
+                // client mods from using debug.sethook/debug.gethook for DoS
+                // or inspecting sensitive internal state. debug.traceback is
+                // still available via the secure wrapper in initializeSecurityClient.
 #if USE_LUAJIT
                 { LUA_JITLIBNAME,  luaopen_jit     },
 #endif
@@ -276,9 +279,15 @@ void ScriptApiBase::loadScript(const std::string &script_path)
                 const char *error_msg = lua_tostring(L, -1);
                 if (!error_msg)
                         error_msg = "(error object is not a string)";
+                // Batch 38: Only log full path to verbosestream, not to the exception message
+                // that could be sent to clients. Use basename in the exception.
+                std::string display_path = script_path;
+                size_t last_sep = display_path.find_last_of(DIR_DELIM_CHAR);
+                if (last_sep != std::string::npos)
+                        display_path = display_path.substr(last_sep + 1);
                 lua_pop(L, 2); // Pop error message and error handler
                 throw ModError("Failed to load and run script from " +
-                                script_path + ":\n" + error_msg);
+                                display_path + ":\n" + error_msg);
         }
         lua_pop(L, 1); // Pop error handler
 }

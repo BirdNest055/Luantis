@@ -61,11 +61,12 @@ RemoteClient::RemoteClient() :
         m_max_simul_sends(std::max<u16>(1,
                 g_settings->getU16("max_simultaneous_block_sends_per_client"))),
         m_min_time_from_building(
-                g_settings->getFloat("full_block_send_enable_min_time_from_building")),
-        m_max_send_distance(g_settings->getS16("max_block_send_distance")),
-        m_block_optimize_distance(g_settings->getS16("block_send_optimize_distance")),
-        m_block_cull_optimize_distance(g_settings->getS16("block_cull_optimize_distance")),
-        m_max_gen_distance(g_settings->getS16("max_block_generate_distance")),
+                std::max(g_settings->getFloat("full_block_send_enable_min_time_from_building"), 0.0f)),
+        // Batch 36: Clamp block distances to >= 1 to prevent zero-distance logic errors
+        m_max_send_distance(std::max(g_settings->getS16("max_block_send_distance"), s16(1))),
+        m_block_optimize_distance(std::max(g_settings->getS16("block_send_optimize_distance"), s16(0))),
+        m_block_cull_optimize_distance(std::max(g_settings->getS16("block_cull_optimize_distance"), s16(0))),
+        m_max_gen_distance(std::max(g_settings->getS16("max_block_generate_distance"), s16(1))),
         m_occ_cull(g_settings->getBool("server_side_occlusion_culling")),
         m_connection_time(porting::getTimeS())
 {
@@ -98,7 +99,7 @@ void RemoteClient::GetNextBlocks (
         m_nothing_to_send_pause_timer -= dtime;
         m_map_send_completion_timer += dtime;
 
-        if (m_map_send_completion_timer > g_settings->getFloat("server_unload_unused_data_timeout") * 0.8f) {
+        if (m_map_send_completion_timer > std::max(g_settings->getFloat("server_unload_unused_data_timeout"), 0.0f) * 0.8f) {
                 infostream << "Server: Player " << m_name << ", peer_id=" << peer_id
                                 << ": full map send is taking too long ("
                                 << m_map_send_completion_timer

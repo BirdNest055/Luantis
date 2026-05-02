@@ -339,6 +339,8 @@ int LuaItemStack::l_add_wear(lua_State *L)
         NO_MAP_LOCK_REQUIRED;
         LuaItemStack *o = checkObject<LuaItemStack>(L, 1);
         ItemStack &item = o->m_stack;
+        if (!lua_isnumber(L, 2)) // Batch 38: type check before lua_tointeger
+                throw LuaError("add_wear expects a number as second argument");
         int amount = lua_tointeger(L, 2);
         bool result = item.addWear(amount, getGameDef(L)->idef());
         lua_pushboolean(L, result);
@@ -430,7 +432,7 @@ int LuaItemStack::l_peek_item(lua_State *L)
         LuaItemStack *o = checkObject<LuaItemStack>(L, 1);
         ItemStack &item = o->m_stack;
         u32 peekcount = 1;
-        if(!lua_isnone(L, 2))
+        if(lua_isnumber(L, 2)) // Batch 38: type check before lua_tointeger
                 peekcount = lua_tointeger(L, 2);
         ItemStack peekaboo = item.peekItem(peekcount);
         create(L, peekaboo);

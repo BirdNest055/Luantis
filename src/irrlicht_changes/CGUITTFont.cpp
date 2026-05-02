@@ -44,6 +44,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <utility> // Batch 35: std::swap
 
 
 namespace gui
@@ -461,6 +462,10 @@ void CGUITTFont::reset_images()
         // Unload the glyph pages from video memory.
         for (u32 i = 0; i != Glyph_Pages.size(); ++i)
                 delete Glyph_Pages[i];
+        // Batch 35: Swap-and-release — frees array capacity immediately
+        // instead of keeping memory for page pointers allocated.
+        // Note: Glyph_Pages is core::array<>, not std::vector, so use clear()
+        // which Irrlicht's core::array supports.
         Glyph_Pages.clear();
 
         // Always update the internal FreeType loading flags after resetting.

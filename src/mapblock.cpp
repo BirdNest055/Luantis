@@ -390,6 +390,14 @@ void MapBlock::correctBlockNodeIds(const NameIdMapping *nimap, MapNode *nodes,
                                         "Could not allocate global id for node name \"" + name + "\"");
                         }
                 }
+                // Batch 37: Validate resolved content ID is within valid range
+                if (global_id > MAX_REGISTERED_CONTENT && global_id != CONTENT_IGNORE
+                                && global_id != CONTENT_AIR && global_id != CONTENT_UNKNOWN) {
+                        warningstream << "correctBlockNodeIds: content id " << global_id
+                                << " for \"" << name << "\" exceeds MAX_REGISTERED_CONTENT ("
+                                << MAX_REGISTERED_CONTENT << "), replacing with CONTENT_UNKNOWN" << std::endl;
+                        global_id = CONTENT_UNKNOWN;
+                }
                 nodes[i].setContent(global_id);
 
                 // Save previous node local_id & global_id result
@@ -534,14 +542,20 @@ void MapBlock::deSerialize(std::istream &in_compressed, u8 version, bool disk)
         std::istream &is = version >= 29 ? in_raw : in_compressed;
 
         u8 flags = readU8(is);
+        // Batch 37: Validate flags — mask out unknown/reserved bits
+        flags &= 0x0B; // bits 0,1,3 are defined; others reserved
         is_underground = (flags & 0x01) != 0;
         // IMPORTANT: when the version is bumped to 30 we can read m_is_air from here
         // m_is_air = (flags & 0x02) == 0;
 
         if (version < 27)
                 m_lighting_complete = 0xFFFF;
-        else
+        else {
                 m_lighting_complete = readU16(is);
+                // Batch 37: Validate lighting_complete — only 12 bits are used
+                // (6 directions * 2 banks). Mask off invalid upper bits.
+                m_lighting_complete &= 0x0FFF;
+        }
         m_generated = (flags & 0x08) == 0;
 
         NameIdMapping nimap;

@@ -367,22 +367,22 @@ aabb3f read_aabb3f(lua_State *L, int index, f32 scale)
         aabb3f box{-1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f};
         if(lua_istable(L, index)){
                 lua_rawgeti(L, index, 1);
-                box.MinEdge.X = lua_tonumber(L, -1) * scale;
+                box.MinEdge.X = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
                 lua_rawgeti(L, index, 2);
-                box.MinEdge.Y = lua_tonumber(L, -1) * scale;
+                box.MinEdge.Y = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
                 lua_rawgeti(L, index, 3);
-                box.MinEdge.Z = lua_tonumber(L, -1) * scale;
+                box.MinEdge.Z = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
                 lua_rawgeti(L, index, 4);
-                box.MaxEdge.X = lua_tonumber(L, -1) * scale;
+                box.MaxEdge.X = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
                 lua_rawgeti(L, index, 5);
-                box.MaxEdge.Y = lua_tonumber(L, -1) * scale;
+                box.MaxEdge.Y = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
                 lua_rawgeti(L, index, 6);
-                box.MaxEdge.Z = lua_tonumber(L, -1) * scale;
+                box.MaxEdge.Z = (lua_isnumber(L, -1) ? lua_tonumber(L, -1) : 0.0) * scale; // Batch 38: type check
                 lua_pop(L, 1);
         }
         box.repair();
@@ -409,6 +409,8 @@ void push_aabb3f(lua_State *L, aabb3f box, f32 divisor)
 std::vector<aabb3f> read_aabb3f_vector(lua_State *L, int index, f32 scale)
 {
         std::vector<aabb3f> boxes;
+        // Batch 38: Limit number of AABB boxes to prevent unbounded memory allocation
+        constexpr size_t MAX_AABB_VECTOR_SIZE = 10000;
         if(lua_istable(L, index)){
                 int n = lua_objlen(L, index);
                 // Check if it's a single box or a list of boxes
@@ -424,7 +426,7 @@ std::vector<aabb3f> read_aabb3f_vector(lua_State *L, int index, f32 scale)
                         boxes.push_back(read_aabb3f(L, index, scale));
                 } else {
                         // Read a list of boxes
-                        for(int i = 1; i <= n; i++){
+                        for(int i = 1; i <= n && boxes.size() < MAX_AABB_VECTOR_SIZE; i++){
                                 lua_rawgeti(L, index, i);
                                 boxes.push_back(read_aabb3f(L, -1, scale));
                                 lua_pop(L, 1);
@@ -449,11 +451,17 @@ size_t read_stringlist(lua_State *L, int index, std::vector<std::string> *result
         if (index < 0)
                 index = lua_gettop(L) + 1 + index;
 
+        // Batch 38: Limit the number of strings to prevent unbounded memory allocation
+        constexpr size_t MAX_STRINGLIST_SIZE = 100000;
         size_t num_strings = 0;
 
         if (lua_istable(L, index)) {
                 lua_pushnil(L);
                 while (lua_next(L, index)) {
+                        if (num_strings >= MAX_STRINGLIST_SIZE) {
+                                lua_pop(L, 2); // Pop key and value
+                                break;
+                        }
                         if (lua_isstring(L, -1)) {
                                 result->push_back(lua_tostring(L, -1));
                                 num_strings++;

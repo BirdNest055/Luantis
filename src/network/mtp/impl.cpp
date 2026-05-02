@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility> // Batch 35: std::swap
 #include "network/mtp/internal.h"
 #include "network/encryption_log.h"
 #include "network/crypto.h"
@@ -466,6 +467,10 @@ IncomingSplitBuffer::~IncomingSplitBuffer()
         for (auto &i : m_buf) {
                 delete i.second;
         }
+        // Batch 35: Swap-and-release — frees map capacity immediately
+        // instead of keeping memory allocated for split packet buffer.
+        std::map<u16, IncomingSplitPacket *> empty;
+        std::swap(m_buf, empty);
 }
 
 SharedBuffer<u8> IncomingSplitBuffer::insert(BufferedPacketPtr &p_ptr, bool reliable)

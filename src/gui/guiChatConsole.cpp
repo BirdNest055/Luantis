@@ -612,7 +612,14 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
                         const c8 *text = os_operator->getTextFromClipboard();
                         if (!text)
                                 return true;
-                        prompt.input(utf8_to_wide(text));
+                        // Batch 39: Limit clipboard paste length to prevent excessive input
+                        std::wstring wtext = utf8_to_wide(text);
+                        static const size_t MAX_CLIPBOARD_PASTE_LENGTH = 5000;
+                        if (wtext.size() > MAX_CLIPBOARD_PASTE_LENGTH) {
+                                wtext.resize(MAX_CLIPBOARD_PASTE_LENGTH);
+                                infostream << "GUIChatConsole: truncating long clipboard paste" << std::endl;
+                        }
+                        prompt.input(wtext);
                         return true;
                 }
                 else if(event.KeyInput.Key == KEY_KEY_X && event.KeyInput.Control)
@@ -669,7 +676,9 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
         {
                 if (event.MouseInput.Event == EMIE_MOUSE_WHEEL)
                 {
-                        s32 rows = myround(-GUITheme::Timing::MOUSE_WHEEL_SCROLL_MULTIPLIER * event.MouseInput.Wheel);
+                        // Batch 39: Clamp mouse wheel scroll to prevent extreme scroll jumps
+                        f32 wheel = core::clamp(event.MouseInput.Wheel, -10.0f, 10.0f);
+                        s32 rows = myround(-GUITheme::Timing::MOUSE_WHEEL_SCROLL_MULTIPLIER * wheel);
                         m_chat_backend->scroll(rows);
                 }
                 // Middle click or ctrl-click opens weblink, if enabled in config
@@ -677,6 +686,9 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
                 else if (event.MouseInput.Event == EMIE_MMOUSE_PRESSED_DOWN ||
                                 (event.MouseInput.Event == EMIE_LMOUSE_PRESSED_DOWN && m_is_ctrl_down))
                 {
+                        // Batch 39: Guard against division by zero in font size
+                        if (m_fontsize.X == 0 || m_fontsize.Y == 0)
+                                return true;
                         // If clicked within console output region
                         if (event.MouseInput.Y / m_fontsize.Y < (m_height / m_fontsize.Y) - 1 )
                         {
@@ -690,15 +702,32 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
                                         // Paste primary selection at cursor pos
                                         const c8 *text = Environment->getOSOperator()
                                                         ->getTextFromPrimarySelection();
-                                        if (text)
-                                                prompt.input(utf8_to_wide(text));
+                                        if (text) {
+                                                // Batch 39: Limit primary selection paste length
+                                                std::wstring wtext = utf8_to_wide(text);
+                                                static const size_t MAX_CLIPBOARD_PASTE_LENGTH = 5000;
+                                                if (wtext.size() > MAX_CLIPBOARD_PASTE_LENGTH) {
+                                                        wtext.resize(MAX_CLIPBOARD_PASTE_LENGTH);
+                                                        infostream << "GUIChatConsole: truncating long primary selection paste" << std::endl;
+                                                }
+                                                prompt.input(wtext);
+                                        }
                                 }
                         }
                 }
         }
         else if(event.EventType == EET_STRING_INPUT_EVENT)
         {
-                prompt.input(std::wstring(event.StringInput.Str->c_str()));
+                // Batch 39: Validate and limit string input event data
+                if (event.StringInput.Str) {
+                        std::wstring wstr(event.StringInput.Str->c_str());
+                        static const size_t MAX_STRING_INPUT_LENGTH = 5000;
+                        if (wstr.size() > MAX_STRING_INPUT_LENGTH) {
+                                wstr.resize(MAX_STRING_INPUT_LENGTH);
+                                infostream << "GUIChatConsole: truncating long string input" << std::endl;
+                        }
+                        prompt.input(wstr);
+                }
                 return true;
         }
         else if (event.EventType == EET_GUI_EVENT && event.GUIEvent.EventType == EGET_SCROLL_BAR_CHANGED &&

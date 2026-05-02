@@ -4,6 +4,7 @@
 
 #include "util/serialize.h" // serializeJsonString
 #include "util/pointedthing.h"
+#include <utility> // Batch 35: std::swap
 #include "client.h"
 #include "clientenvironment.h"
 #include "clientsimpleobject.h"
@@ -44,7 +45,12 @@ ClientEnvironment::~ClientEnvironment()
         for (auto &simple_object : m_simple_objects) {
                 delete simple_object;
         }
-        m_simple_objects.clear();
+        // Batch 35: Swap-and-release — frees vector capacity immediately
+        // instead of keeping memory for simple object pointers allocated.
+        {
+                std::vector<ClientSimpleObject *> empty;
+                std::swap(m_simple_objects, empty);
+        }
 
         m_map.reset();
 

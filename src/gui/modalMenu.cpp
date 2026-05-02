@@ -303,6 +303,9 @@ bool GUIModalMenu::preprocessEvent(const SEvent &event)
                 holder.grab(this); // keep this alive until return (it might be dropped downstream [?])
 
                 if (event.TouchInput.touchedCount == 1) {
+                        // Batch 39: Validate touch position is non-negative
+                        if (event.TouchInput.X < 0 || event.TouchInput.Y < 0)
+                                return true;
                         m_pointer = v2s32(event.TouchInput.X, event.TouchInput.Y);
 
                         gui::IGUIElement *hovered = Environment->getRootGUIElement()->getElementFromPoint(core::position2d<s32>(m_pointer));
@@ -338,8 +341,12 @@ bool GUIModalMenu::preprocessEvent(const SEvent &event)
                         focused->OnEvent(event);
                         m_second_touch = false;
                         return true;
+                } else if (event.TouchInput.touchedCount > 2) {
+                        // Batch 39: Ignore unreasonably high touch counts
+                        // (more than 2 simultaneous touches are not handled)
+                        return true;
                 } else {
-                        // Any other touch after the second touch is ignored.
+                        // touchedCount == 0 or invalid, ignore
                         return true;
                 }
         }

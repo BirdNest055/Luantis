@@ -4,11 +4,12 @@
 
 #pragma once
 #include <cassert>
+#include <algorithm>
 #include "config.h"
 #include "irrlichttypes.h"
 
 /*
-	Lower level lighting stuff
+        Lower level lighting stuff
 */
 
 // This directly sets the range of light.
@@ -41,9 +42,9 @@ extern const u8 *light_decode_table;
 // 0 <= return value <= 255
 inline u8 decode_light(u8 light)
 {
-	if (light > LIGHT_SUN)
-		light = LIGHT_SUN;
-	return light_decode_table[light];
+        if (light > LIGHT_SUN)
+                light = LIGHT_SUN;
+        return light_decode_table[light];
 }
 
 // 0.0 <= light <= 1.0
@@ -60,9 +61,12 @@ void set_light_curve(float gamma);
 // 0 <= return value <= LIGHT_SUN
 inline u8 blend_light(u32 daylight_factor, u8 lightday, u8 lightnight)
 {
-	u32 c = 1000;
-	u32 l = ((daylight_factor * lightday + (c - daylight_factor) * lightnight)) / c;
-	if (l > LIGHT_SUN)
-		l = LIGHT_SUN;
-	return l;
+        // Batch 37: Clamp input light values to valid range
+        lightday = std::min(lightday, static_cast<u8>(LIGHT_SUN));
+        lightnight = std::min(lightnight, static_cast<u8>(LIGHT_SUN));
+        u32 c = 1000;
+        u32 l = ((daylight_factor * lightday + (c - daylight_factor) * lightnight)) / c;
+        if (l > LIGHT_SUN)
+                l = LIGHT_SUN;
+        return l;
 }

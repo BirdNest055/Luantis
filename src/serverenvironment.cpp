@@ -183,10 +183,12 @@ ServerEnvironment::ServerEnvironment(std::unique_ptr<ServerMap> map,
         m_script(server->getScriptIface()),
         m_server(server)
 {
-        m_cache_active_block_mgmt_interval = g_settings->getFloat("active_block_mgmt_interval");
+        // Batch 36: Clamp active_block_mgmt_interval to > 0 to prevent busy-loop
+        m_cache_active_block_mgmt_interval = std::max(g_settings->getFloat("active_block_mgmt_interval"), 0.1f);
         m_cache_abm_interval = rangelim(g_settings->getFloat("abm_interval"), 0.1f, 30);
         m_cache_nodetimer_interval = rangelim(g_settings->getFloat("nodetimer_interval"), 0.1f, 1);
-        m_cache_abm_time_budget = g_settings->getFloat("abm_time_budget");
+        // Batch 36: Clamp abm_time_budget to [0.0, 1.0] — it's a fraction of step time
+        m_cache_abm_time_budget = rangelim(g_settings->getFloat("abm_time_budget"), 0.0f, 1.0f);
 
         m_step_time_counter = mb->addCounter(
                 "minetest_env_step_time", "Time spent in environment step (in microseconds)");
@@ -894,8 +896,9 @@ void ServerEnvironment::step(float dtime)
         // Update this one
         // NOTE: This is kind of funny on a singleplayer game, but doesn't
         // really matter that much.
-        static thread_local const float server_step =
-                        g_settings->getFloat("dedicated_server_step");
+        // Batch 36: Read dedicated_server_step each tick instead of caching as
+        // thread_local const, so runtime setting changes take effect immediately.
+        float server_step = std::max(g_settings->getFloat("dedicated_server_step"), 0.001f);
         m_recommended_send_interval = server_step;
 
         /*
@@ -935,10 +938,10 @@ void ServerEnvironment::step(float dtime)
                 */
                 // use active_object_send_range_blocks since that is max distance
                 // for active objects sent the client anyway
-                static thread_local const s16 active_object_range =
-                                g_settings->getS16("active_object_send_range_blocks");
-                static thread_local const s16 active_block_range =
-                                g_settings->getS16("active_block_range");
+                // Batch 36: Read these each tick instead of caching as thread_local const,
+                // so runtime setting changes take effect immediately.
+                s16 active_object_range = std::max(g_settings->getS16("active_object_send_range_blocks"), s16(1));
+                s16 active_block_range = std::max(g_settings->getS16("active_block_range"), s16(1));
                 std::set<v3s16> blocks_removed;
                 std::set<v3s16> blocks_added;
                 std::set<v3s16> extra_blocks_added;

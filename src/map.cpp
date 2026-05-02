@@ -16,6 +16,7 @@
 #include "rollback_interface.h"
 #include "environment.h"
 #include <queue>
+#include <utility> // Batch 35: std::swap
 
 /*
         Map
@@ -35,7 +36,12 @@ Map::~Map()
                 sector.second->deleteBlocks(&used);
                 delete sector.second;
         }
-        m_sectors.clear();
+        // Batch 35: Swap-and-release — frees map capacity immediately
+        // instead of keeping sector map memory allocated after destruction.
+        {
+                std::unordered_map<v2s16, MapSector *> empty;
+                std::swap(m_sectors, empty);
+        }
 
         if (used > 0) {
 #ifdef NDEBUG
@@ -132,6 +138,12 @@ bool Map::isValidPosition(v3s16 p)
 // Returns a CONTENT_IGNORE node if not found
 MapNode Map::getNode(v3s16 p, bool *is_valid_position)
 {
+        // Batch 37: Validate block coordinates are within world limits
+        if (blockpos_over_max_limit(getNodeBlockPos(p))) {
+                if (is_valid_position != NULL)
+                        *is_valid_position = false;
+                return {CONTENT_IGNORE};
+        }
         v3s16 blockpos = getNodeBlockPos(p);
         MapBlock *block = getBlockNoCreateNoEx(blockpos);
         if (block == NULL) {
@@ -166,7 +178,10 @@ static void set_node_in_block(const NodeDefManager *nodedef, MapBlock *block,
 // throws InvalidPositionException if not found
 void Map::setNode(v3s16 p, MapNode n)
 {
+        // Batch 37: Validate block coordinates before setting node
         v3s16 blockpos = getNodeBlockPos(p);
+        if (blockpos_over_max_limit(blockpos))
+                throw InvalidPositionException("setNode: position over max mapgen limit");
         MapBlock *block = getBlockNoCreate(blockpos);
         v3s16 relpos = p - blockpos*MAP_BLOCKSIZE;
         set_node_in_block(m_gamedef->ndef(), block, relpos, n);
@@ -445,12 +460,19 @@ void Map::unloadUnreferencedBlocks(std::vector<v3s16> *unloaded_blocks)
 void Map::deleteSectors(const std::vector<v2s16> &sectorList)
 {
         for (v2s16 j : sectorList) {
-                MapSector *sector = m_sectors[j];
+                // Batch 37: Validate sector exists before dereferencing
+                auto it = m_sectors.find(j);
+                if (it == m_sectors.end()) {
+                        warningstream << "Map::deleteSectors: sector ("
+                                << j.X << "," << j.Y << ") not found, skipping" << std::endl;
+                        continue;
+                }
+                MapSector *sector = it->second;
                 // If sector is in sector cache, remove it from there
                 if (m_sector_cache == sector)
                         m_sector_cache = nullptr;
                 // Remove from map and delete
-                m_sectors.erase(j);
+                m_sectors.erase(it);
                 delete sector;
         }
 }
@@ -565,6 +587,12 @@ NodeTimer Map::getNodeTimer(v3s16 p)
         }
         if(!block){
                 warningstream<<"Map::getNodeTimer(): Block not found"
+                                <<std::endl;
+                return NodeTimer();
+        }
+        // Batch 37: Validate relative position before accessing timer
+        if (!block->isValidPosition(p_rel)) {
+                warningstream<<"Map::getNodeTimer(): Invalid relative position"
                                 <<std::endl;
                 return NodeTimer();
         }

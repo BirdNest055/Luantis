@@ -16,26 +16,26 @@
 class ILogOutput;
 
 enum LogLevel {
-	LL_NONE, // Special level that is always printed
-	LL_ERROR,
-	LL_WARNING,
-	LL_ACTION,  // In-game actions
-	LL_INFO,
-	LL_VERBOSE,
-	LL_TRACE,
-	LL_MAX,
+        LL_NONE, // Special level that is always printed
+        LL_ERROR,
+        LL_WARNING,
+        LL_ACTION,  // In-game actions
+        LL_INFO,
+        LL_VERBOSE,
+        LL_TRACE,
+        LL_MAX,
 };
 
 enum LogColor : u8 {
-	LOG_COLOR_NEVER,
-	LOG_COLOR_ALWAYS,
-	LOG_COLOR_AUTO,
+        LOG_COLOR_NEVER,
+        LOG_COLOR_ALWAYS,
+        LOG_COLOR_AUTO,
 };
 
 enum LogTimestamp : u8 {
-	LOG_TIMESTAMP_NONE,
-	LOG_TIMESTAMP_WALL,
-	LOG_TIMESTAMP_RELATIVE
+        LOG_TIMESTAMP_NONE,
+        LOG_TIMESTAMP_WALL,
+        LOG_TIMESTAMP_RELATIVE
 };
 
 typedef u8 LogLevelMask;
@@ -43,159 +43,161 @@ typedef u8 LogLevelMask;
 
 class Logger {
 public:
-	void addOutput(ILogOutput *out);
-	void addOutput(ILogOutput *out, LogLevel lev);
-	void addOutputMasked(ILogOutput *out, LogLevelMask mask);
-	void addOutputMaxLevel(ILogOutput *out, LogLevel lev);
-	LogLevelMask removeOutput(ILogOutput *out);
-	void setLevelSilenced(LogLevel lev, bool silenced);
+        void addOutput(ILogOutput *out);
+        void addOutput(ILogOutput *out, LogLevel lev);
+        void addOutputMasked(ILogOutput *out, LogLevelMask mask);
+        void addOutputMaxLevel(ILogOutput *out, LogLevel lev);
+        LogLevelMask removeOutput(ILogOutput *out);
+        void setLevelSilenced(LogLevel lev, bool silenced);
 
-	void registerThread(std::string_view name);
-	void deregisterThread();
+        void registerThread(std::string_view name);
+        void deregisterThread();
 
-	void log(LogLevel lev, std::string_view text);
-	// Logs without a prefix
-	void logRaw(LogLevel lev, std::string_view text);
+        void log(LogLevel lev, std::string_view text);
+        // Logs without a prefix
+        void logRaw(LogLevel lev, std::string_view text);
 
-	static LogLevel stringToLevel(std::string_view name);
-	static const char *getLevelLabel(LogLevel lev);
+        static LogLevel stringToLevel(std::string_view name);
+        static const char *getLevelLabel(LogLevel lev);
 
-	bool hasOutput(LogLevel level) {
-		return m_has_outputs[level].load(std::memory_order_relaxed);
-	}
+        bool hasOutput(LogLevel level) {
+                return m_has_outputs[level].load(std::memory_order_relaxed);
+        }
 
-	bool isLevelSilenced(LogLevel level) {
-		return m_silenced_levels[level].load(std::memory_order_relaxed);
-	}
+        bool isLevelSilenced(LogLevel level) {
+                return m_silenced_levels[level].load(std::memory_order_relaxed);
+        }
 
-	static LogColor color_mode;
-	static LogTimestamp timestamp_mode;
+        static LogColor color_mode;
+        static LogTimestamp timestamp_mode;
 
 private:
-	void logToOutputsRaw(LogLevel, std::string_view line);
-	void logToOutputs(LogLevel, const std::string &combined,
-		const std::string &time, const std::string &thread_name,
-		std::string_view payload_text);
+        void logToOutputsRaw(LogLevel, std::string_view line);
+        void logToOutputs(LogLevel, const std::string &combined,
+                const std::string &time, const std::string &thread_name,
+                std::string_view payload_text);
 
-	const std::string &getThreadName();
-	static std::string getLogTimestamp();
+        // Batch 34: Changed return type from const std::string& to std::string
+        // to safely return a copy while holding the mutex (fixes race condition)
+        std::string getThreadName();
+        static std::string getLogTimestamp();
 
-	mutable std::mutex m_mutex;
-	std::vector<ILogOutput *> m_outputs[LL_MAX];
-	std::atomic<bool> m_has_outputs[LL_MAX];
-	std::atomic<bool> m_silenced_levels[LL_MAX];
-	std::map<std::thread::id, std::string> m_thread_names;
+        mutable std::mutex m_mutex;
+        std::vector<ILogOutput *> m_outputs[LL_MAX];
+        std::atomic<bool> m_has_outputs[LL_MAX];
+        std::atomic<bool> m_silenced_levels[LL_MAX];
+        std::map<std::thread::id, std::string> m_thread_names;
 };
 
 class ILogOutput {
 public:
-	virtual void logRaw(LogLevel, std::string_view line) = 0;
-	virtual void log(LogLevel, const std::string &combined,
-		const std::string &time, const std::string &thread_name,
-		std::string_view payload_text) = 0;
+        virtual void logRaw(LogLevel, std::string_view line) = 0;
+        virtual void log(LogLevel, const std::string &combined,
+                const std::string &time, const std::string &thread_name,
+                std::string_view payload_text) = 0;
 };
 
 class ICombinedLogOutput : public ILogOutput {
 public:
-	void log(LogLevel lev, const std::string &combined,
-		const std::string &time, const std::string &thread_name,
-		std::string_view payload_text)
-	{
-		logRaw(lev, combined);
-	}
+        void log(LogLevel lev, const std::string &combined,
+                const std::string &time, const std::string &thread_name,
+                std::string_view payload_text)
+        {
+                logRaw(lev, combined);
+        }
 };
 
 class StreamLogOutput : public ICombinedLogOutput {
 public:
-	StreamLogOutput(std::ostream &stream);
+        StreamLogOutput(std::ostream &stream);
 
-	void logRaw(LogLevel lev, std::string_view line);
+        void logRaw(LogLevel lev, std::string_view line);
 
 private:
-	std::ostream &m_stream;
-	bool is_tty = false;
+        std::ostream &m_stream;
+        bool is_tty = false;
 };
 
 class FileLogOutput : public ICombinedLogOutput {
 public:
-	void setFile(const std::string &filename, s64 file_size_max);
+        void setFile(const std::string &filename, s64 file_size_max);
 
-	void logRaw(LogLevel lev, std::string_view line)
-	{
-		m_stream << line << std::endl;
-	}
+        void logRaw(LogLevel lev, std::string_view line)
+        {
+                m_stream << line << std::endl;
+        }
 
 private:
-	std::ofstream m_stream;
+        std::ofstream m_stream;
 };
 
 struct LogEntry {
-	LogLevel level;
-	std::string timestamp;
-	std::string thread_name;
-	std::string text;
-	// "timestamp: level[thread_name]: text"
-	std::string combined;
+        LogLevel level;
+        std::string timestamp;
+        std::string thread_name;
+        std::string text;
+        // "timestamp: level[thread_name]: text"
+        std::string combined;
 };
 
 class CaptureLogOutput : public ILogOutput {
 public:
-	CaptureLogOutput() = delete;
-	DISABLE_CLASS_COPY(CaptureLogOutput);
+        CaptureLogOutput() = delete;
+        DISABLE_CLASS_COPY(CaptureLogOutput);
 
-	CaptureLogOutput(Logger &logger) : m_logger(logger)
-	{
-		m_logger.addOutput(this);
-	}
+        CaptureLogOutput(Logger &logger) : m_logger(logger)
+        {
+                m_logger.addOutput(this);
+        }
 
-	~CaptureLogOutput()
-	{
-		m_logger.removeOutput(this);
-	}
+        ~CaptureLogOutput()
+        {
+                m_logger.removeOutput(this);
+        }
 
-	void setLogLevel(LogLevel level)
-	{
-		m_logger.removeOutput(this);
-		m_logger.addOutputMaxLevel(this, level);
-	}
+        void setLogLevel(LogLevel level)
+        {
+                m_logger.removeOutput(this);
+                m_logger.addOutputMaxLevel(this, level);
+        }
 
-	void logRaw(LogLevel lev, std::string_view line) override
-	{
-		MutexAutoLock lock(m_mutex);
-		m_entries.emplace_back(LogEntry{lev, "", "", std::string(line), std::string(line)});
-	}
+        void logRaw(LogLevel lev, std::string_view line) override
+        {
+                MutexAutoLock lock(m_mutex);
+                m_entries.emplace_back(LogEntry{lev, "", "", std::string(line), std::string(line)});
+        }
 
-	void log(LogLevel lev, const std::string &combined,
-		const std::string &time, const std::string &thread_name,
-		std::string_view payload_text) override
-	{
-		MutexAutoLock lock(m_mutex);
-		m_entries.emplace_back(LogEntry{lev, time, thread_name, std::string(payload_text), combined});
-	}
+        void log(LogLevel lev, const std::string &combined,
+                const std::string &time, const std::string &thread_name,
+                std::string_view payload_text) override
+        {
+                MutexAutoLock lock(m_mutex);
+                m_entries.emplace_back(LogEntry{lev, time, thread_name, std::string(payload_text), combined});
+        }
 
-	// Take the log entries currently stored, clearing the buffer.
-	std::vector<LogEntry> take()
-	{
-		std::vector<LogEntry> entries;
-		MutexAutoLock lock(m_mutex);
-		std::swap(m_entries, entries);
-		return entries;
-	}
+        // Take the log entries currently stored, clearing the buffer.
+        std::vector<LogEntry> take()
+        {
+                std::vector<LogEntry> entries;
+                MutexAutoLock lock(m_mutex);
+                std::swap(m_entries, entries);
+                return entries;
+        }
 
 private:
-	Logger &m_logger;
-	// g_logger serializes calls to log/logRaw with a mutex, but that
-	// doesn't prevent take() from being called on top of it.
-	// This mutex prevents that.
-	std::mutex m_mutex;
-	std::vector<LogEntry> m_entries;
+        Logger &m_logger;
+        // g_logger serializes calls to log/logRaw with a mutex, but that
+        // doesn't prevent take() from being called on top of it.
+        // This mutex prevents that.
+        std::mutex m_mutex;
+        std::vector<LogEntry> m_entries;
 };
 
 
 #ifdef __ANDROID__
 class AndroidLogOutput : public ICombinedLogOutput {
 public:
-	void logRaw(LogLevel lev, std::string_view line);
+        void logRaw(LogLevel lev, std::string_view line);
 };
 #endif
 

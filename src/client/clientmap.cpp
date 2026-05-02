@@ -874,7 +874,8 @@ static u32 transformBuffersToDrawOrder(
          * results since HW buffers stick around and Irrlicht handles large amounts
          * inefficiently.
          */
-        const u32 target_min_vertices = g_settings->getU32("mesh_buffer_min_vertices");
+        // Batch 36: Clamp mesh_buffer_min_vertices to at least 0
+        const u32 target_min_vertices = rangelim(g_settings->getU32("mesh_buffer_min_vertices"), 0, 1000000);
 
         const auto draw_order_pre = draw_order.size();
         auto *driver = RenderingEngine::get_video_driver();

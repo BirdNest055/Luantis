@@ -297,17 +297,21 @@ void MeshUpdateQueue::fillDataFromMapBlocks(QueuedMeshUpdate *q)
 
         data->setCrack(q->crack_level, q->crack_pos);
         data->m_generate_minimap = !!m_client->getMinimap();
-        data->m_smooth_lighting = m_cache_smooth_lighting;
-        data->m_enable_water_reflections = m_cache_enable_water_reflections;
+        // Batch 34: Atomic load — these can be updated from any thread via settings callback
+        data->m_smooth_lighting = m_cache_smooth_lighting.load(std::memory_order_relaxed);
+        data->m_enable_water_reflections = m_cache_enable_water_reflections.load(std::memory_order_relaxed);
 }
 
 void MeshUpdateQueue::settingsChangedCallback(const std::string &name, void *data)
 {
         auto *self = static_cast<MeshUpdateQueue *>(data);
+        // Batch 34: Atomic store — this callback can fire from any thread
         if (name == "smooth_lighting")
-                self->m_cache_smooth_lighting = g_settings->getBool("smooth_lighting");
+                self->m_cache_smooth_lighting.store(g_settings->getBool("smooth_lighting"),
+                        std::memory_order_relaxed);
         else if (name == "enable_water_reflections")
-                self->m_cache_enable_water_reflections = g_settings->getBool("enable_water_reflections");
+                self->m_cache_enable_water_reflections.store(g_settings->getBool("enable_water_reflections"),
+                        std::memory_order_relaxed);
 }
 
 /*

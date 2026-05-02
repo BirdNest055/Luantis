@@ -138,7 +138,11 @@ bool MyEventReceiver::OnEvent(const SEvent &event)
                         LL_ERROR,   // ELL_ERROR
                         LL_NONE,    // ELL_NONE
                 };
-                assert(event.LogEvent.Level < ARRLEN(irr_loglev_conv));
+                // Batch 39: Validate log event level before array access
+                if (event.LogEvent.Level >= ARRLEN(irr_loglev_conv)) {
+                        g_logger.log(LL_WARNING, "Irrlicht: [invalid log level]");
+                        return true;
+                }
                 g_logger.log(irr_loglev_conv[event.LogEvent.Level],
                                 std::string("Irrlicht: ") + event.LogEvent.Text);
                 return true;
@@ -243,7 +247,8 @@ bool MyEventReceiver::OnEvent(const SEvent &event)
                         setKeyDown(KeyPress(event.MouseInput), false);
                         break;
                 case EMIE_MOUSE_WHEEL:
-                        mouse_wheel += event.MouseInput.Wheel;
+                        // Batch 39: Clamp mouse wheel delta to prevent extreme values
+                        mouse_wheel += core::clamp(event.MouseInput.Wheel, -10.0f, 10.0f);
                         break;
                 default:
                         break;
@@ -289,6 +294,13 @@ v2s32 RealInputHandler::getMousePos()
 
 void RealInputHandler::setMousePos(s32 x, s32 y)
 {
+        // Batch 39: Clamp mouse position to screen bounds
+        auto driver = RenderingEngine::get_raw_device()->getVideoDriver();
+        if (driver) {
+                auto screensize = driver->getScreenSize();
+                x = core::clamp(x, 0, (s32)screensize.Width);
+                y = core::clamp(y, 0, (s32)screensize.Height);
+        }
         auto control = RenderingEngine::get_raw_device()->getCursorControl();
         if (control) {
                 control->setPosition(x, y);
@@ -352,8 +364,9 @@ void RandomInputHandler::step(float dtime)
                 counterMovement -= dtime;
                 if (counterMovement < 0.0) {
                         counterMovement = 0.1 * Rand(1, 40);
-                        joystickSpeed = Rand(0,100)*0.01;
-                        joystickDirection = Rand(-100, 100)*0.01 * M_PI;
+                        // Batch 39: Clamp random joystick values to valid range
+                        joystickSpeed = core::clamp((float)(Rand(0,100)*0.01), 0.0f, 1.0f);
+                        joystickDirection = Rand(-100, 100)*0.01f * (float)M_PI;
                 }
         } else {
                 joystickSpeed = 0.0f;

@@ -55,9 +55,11 @@ AsyncEngine::~AsyncEngine()
                 delete workerThread;
         }
 
-        jobQueueMutex.lock();
-        jobQueue.clear();
-        jobQueueMutex.unlock();
+        // Batch 34: RAII lock guard — replaces manual lock/unlock
+        {
+                MutexAutoLock autolock(jobQueueMutex);
+                jobQueue.clear();
+        }
         workerThreads.clear();
 }
 
@@ -141,7 +143,9 @@ bool AsyncEngine::cancelAsyncJob(u32 id)
 bool AsyncEngine::getJob(LuaJobInfo *job)
 {
         jobQueueCounter.wait();
-        jobQueueMutex.lock();
+
+        // Batch 34: RAII lock guard — replaces manual lock/unlock
+        std::unique_lock<std::mutex> lock(jobQueueMutex);
 
         bool retval = false;
 
@@ -150,7 +154,6 @@ bool AsyncEngine::getJob(LuaJobInfo *job)
                 jobQueue.pop_front();
                 retval = true;
         }
-        jobQueueMutex.unlock();
 
         return retval;
 }
@@ -158,9 +161,11 @@ bool AsyncEngine::getJob(LuaJobInfo *job)
 /******************************************************************************/
 void AsyncEngine::putJobResult(LuaJobInfo &&result)
 {
-        resultQueueMutex.lock();
-        resultQueue.emplace_back(std::move(result));
-        resultQueueMutex.unlock();
+        // Batch 34: RAII lock guard — replaces manual lock/unlock
+        {
+                MutexAutoLock autolock(resultQueueMutex);
+                resultQueue.emplace_back(std::move(result));
+        }
 }
 
 /******************************************************************************/
@@ -178,10 +183,19 @@ void AsyncEngine::stepJobResults(lua_State *L)
 
         ScriptApiBase *script = ModApiBase::getScriptApiBase(L);
 
-        MutexAutoLock autolock(resultQueueMutex);
-        while (!resultQueue.empty()) {
-                LuaJobInfo j = std::move(resultQueue.front());
-                resultQueue.pop_front();
+        // Batch 34: Mutex scope reduction — copy entire queue under lock,
+        // then process Lua callbacks outside the lock to reduce contention.
+        // Lua callbacks (lua_pcall) can be slow, and holding the lock during
+        // them blocks worker threads from submitting new results.
+        std::deque<LuaJobInfo> local_queue;
+        {
+                MutexAutoLock autolock(resultQueueMutex);
+                std::swap(local_queue, resultQueue);
+        }
+
+        while (!local_queue.empty()) {
+                LuaJobInfo j = std::move(local_queue.front());
+                local_queue.pop_front();
 
                 lua_getfield(L, -1, "async_event_handler");
                 if (lua_isnil(L, -1))

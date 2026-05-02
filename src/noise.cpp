@@ -27,6 +27,7 @@
 #include "noise.h"
 #include <iostream>
 #include <cstring> // memset
+#include <algorithm> // Batch 35: std::fill_n
 #include "debug.h"
 #include "util/numeric.h"
 #include "util/string.h"
@@ -411,7 +412,15 @@ void Noise::allocBuffers()
                 size_t bufsize = sx * sy * sz;
                 this->persist_buf = NULL;
                 this->value_buf = new float[bufsize];
-                this->result = new float[bufsize];
+                // Batch 35: If result allocation throws, value_buf would leak.
+                // Use try-catch to clean up value_buf on failure.
+                try {
+                        this->result = new float[bufsize];
+                } catch (std::bad_alloc &) {
+                        delete[] value_buf;
+                        value_buf = NULL;
+                        throw;
+                }
         } catch (std::bad_alloc &e) {
                 throw InvalidNoiseParamsException();
         }
@@ -678,10 +687,12 @@ float *Noise::noiseMap2D(float x, float y, float *persistence_map)
         memset(result, 0, sizeof(float) * bufsize);
 
         if (persistence_map) {
-                if (!persist_buf)
+                // Batch 35: Use std::fill_n instead of manual loop for persist_buf
+                // initialization — more idiomatic and may be optimized better.
+                if (!persist_buf) {
                         persist_buf = new float[bufsize];
-                for (size_t i = 0; i != bufsize; i++)
-                        persist_buf[i] = 1.0;
+                }
+                std::fill_n(persist_buf, bufsize, 1.0f);
         }
 
         for (size_t oct = 0; oct < np.octaves; oct++) {
@@ -716,10 +727,12 @@ float *Noise::noiseMap3D(float x, float y, float z, float *persistence_map)
         memset(result, 0, sizeof(float) * bufsize);
 
         if (persistence_map) {
-                if (!persist_buf)
+                // Batch 35: Use std::fill_n instead of manual loop for persist_buf
+                // initialization — more idiomatic and may be optimized better.
+                if (!persist_buf) {
                         persist_buf = new float[bufsize];
-                for (size_t i = 0; i != bufsize; i++)
-                        persist_buf[i] = 1.0;
+                }
+                std::fill_n(persist_buf, bufsize, 1.0f);
         }
 
         for (size_t oct = 0; oct < np.octaves; oct++) {

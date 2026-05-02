@@ -29,13 +29,16 @@ ShadowRenderer::ShadowRenderer(IrrlichtDevice *device, Client *client) :
                 m_shadow_strength_gamma = 1.0f;
         m_shadow_strength_gamma = core::clamp(m_shadow_strength_gamma, 0.1f, 10.0f);
 
-        m_shadow_map_max_distance = g_settings->getFloat("shadow_map_max_distance");
+        // Batch 36: Clamp shadow_map_max_distance to positive value
+        m_shadow_map_max_distance = std::max(g_settings->getFloat("shadow_map_max_distance"), 1.0f);
 
-        m_shadow_map_texture_size = g_settings->getU32("shadow_map_texture_size");
+        // Batch 36: Clamp shadow_map_texture_size to power-of-two range [256, 8192]
+        m_shadow_map_texture_size = rangelim(g_settings->getU32("shadow_map_texture_size"), 256, 8192);
 
         m_shadow_map_texture_32bit = g_settings->getBool("shadow_map_texture_32bit");
         m_shadow_map_colored = g_settings->getBool("shadow_map_color");
-        m_map_shadow_update_frames = g_settings->getS16("shadow_update_frames");
+        // Batch 36: Clamp shadow_update_frames to [1, 64] to avoid stall or flicker
+        m_map_shadow_update_frames = rangelim(g_settings->getS16("shadow_update_frames"), 1, 64);
 
         m_screen_quad = new ShadowScreenQuad();
 

@@ -283,9 +283,10 @@ int ModApiEnv::l_get_node_raw(lua_State *L)
                         log_deprecated(L, "Y position is nil", 1, true);
                 if (lua_isnoneornil(L, 3))
                         log_deprecated(L, "Z position is nil", 1, true);
-                double x = lua_tonumber(L, 1);
-                double y = lua_tonumber(L, 2);
-                double z = lua_tonumber(L, 3);
+                // Batch 38: Type check before lua_tonumber — nil/wrong type returns 0
+                double x = lua_isnumber(L, 1) ? lua_tonumber(L, 1) : 0.0;
+                double y = lua_isnumber(L, 2) ? lua_tonumber(L, 2) : 0.0;
+                double z = lua_isnumber(L, 3) ? lua_tonumber(L, 3) : 0.0;
                 pos = doubleToInt(v3d(x, y, z), 1.0);
         }
         // Validate position within world bounds
@@ -547,7 +548,7 @@ int ModApiEnv::l_set_node_level(lua_State *L)
 
         v3s16 pos = read_v3s16(L, 1);
         u8 level = 1;
-        if(lua_isnumber(L, 2))
+        if(lua_isnumber(L, 2)) // Batch 38: explicit type check (was implicit via lua_tonumber)
                 level = lua_tonumber(L, 2);
         MapNode n = env->getMap().getNode(pos);
         lua_pushnumber(L, n.setLevel(env->getGameDef()->ndef(), level));
@@ -561,7 +562,7 @@ int ModApiEnv::l_add_node_level(lua_State *L)
 
         v3s16 pos = read_v3s16(L, 1);
         s16 level = 1;
-        if(lua_isnumber(L, 2))
+        if(lua_isnumber(L, 2)) // Batch 38: explicit type check (was implicit via lua_tonumber)
                 level = lua_tonumber(L, 2);
         MapNode n = env->getMap().getNode(pos);
         lua_pushnumber(L, n.addLevel(env->getGameDef()->ndef(), level));
@@ -1522,7 +1523,7 @@ int ModApiEnvVM::l_set_node_level(lua_State *L)
 
         v3s16 pos = read_v3s16(L, 1);
         u8 level = 1;
-        if (lua_isnumber(L, 2))
+        if (lua_isnumber(L, 2)) // Batch 38: explicit type check
                 level = lua_tonumber(L, 2);
         MapNode n = vm->getNodeNoExNoEmerge(pos);
         lua_pushnumber(L, n.setLevel(getGameDef(L)->ndef(), level));
@@ -1535,8 +1536,8 @@ int ModApiEnvVM::l_add_node_level(lua_State *L)
         GET_VM_PTR;
 
         v3s16 pos = read_v3s16(L, 1);
-        u8 level = 1;
-        if (lua_isnumber(L, 2))
+        s16 level = 1;
+        if (lua_isnumber(L, 2)) // Batch 38: explicit type check
                 level = lua_tonumber(L, 2);
         MapNode n = vm->getNodeNoExNoEmerge(pos);
         lua_pushnumber(L, n.addLevel(getGameDef(L)->ndef(), level));

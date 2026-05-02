@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "daynightratio.h"
 #include "emerge.h"
+#include "util/numeric.h" // Batch 36: for rangelim
 
 
 Environment::Environment(IGameDef *gamedef):
@@ -16,7 +17,8 @@ Environment::Environment(IGameDef *gamedef):
         m_day_count(0),
         m_gamedef(gamedef)
 {
-        m_time_of_day = g_settings->getU32("world_start_time");
+        // Batch 36: Clamp world_start_time to [0, 24000] — a full day cycle
+        m_time_of_day = rangelim(g_settings->getU32("world_start_time"), 0, 24000);
         m_time_of_day_f = (float)m_time_of_day / 24000.0f;
 }
 
@@ -30,7 +32,10 @@ u32 Environment::getDayNightRatio()
 
 void Environment::setTimeOfDaySpeed(float speed)
 {
-        m_time_of_day_speed = speed;
+        // Batch 34: Atomic store — m_time_of_day_speed is read by stepTimeOfDay()
+        // which runs on a different thread (ServerThread). Using atomic instead
+        // of plain write avoids data race on this shared variable.
+        m_time_of_day_speed.store(speed, std::memory_order_release);
 }
 
 void Environment::setDayNightRatioOverride(bool enable, u32 value)
@@ -283,9 +288,9 @@ void Environment::stepTimeOfDay(float dtime)
 {
         MutexAutoLock lock(this->m_time_lock);
 
-        // Cached in order to prevent the two reads we do to give
-        // different results (can be written by code not under the lock)
-        f32 cached_time_of_day_speed = m_time_of_day_speed;
+        // Batch 34: Use explicit atomic load since m_time_of_day_speed is std::atomic<float>.
+        // Cached to prevent inconsistent reads across multiple uses in this function.
+        f32 cached_time_of_day_speed = m_time_of_day_speed.load(std::memory_order_acquire);
 
         f32 speed = cached_time_of_day_speed * 24000. / (24. * 3600);
         m_time_conversion_skew += dtime;

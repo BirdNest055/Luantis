@@ -82,6 +82,7 @@
 #include <algorithm>
 #include <sstream>
 #include <cmath>
+#include <utility> // Batch 35: std::swap
 
 extern gui::IGUIEnvironment* guienv;
 
@@ -196,7 +197,9 @@ Client::Client(
                 m_minimap = std::make_unique<Minimap>(this);
         }
 
-        m_cache_save_interval = g_settings->getU16("server_map_save_interval");
+        // Batch 36: server_map_save_interval default is "5.3" (float) — use getFloat
+        // then round to u16 to avoid silently truncating the fractional part
+        m_cache_save_interval = (u16)std::round(g_settings->getFloat("server_map_save_interval"));
         m_mesh_grid = { g_settings->getU16("client_mesh_chunk") };
 
         m_sscsm_controller = SSCSMController::create();
@@ -457,6 +460,12 @@ Client::~Client()
         for (auto &m_detached_inventorie : m_detached_inventories) {
                 delete m_detached_inventorie.second;
         }
+        // Batch 35: Swap-and-release — frees map capacity immediately
+        // for detached inventories after deleting all entries.
+        {
+                std::unordered_map<std::string, Inventory *> empty;
+                std::swap(m_detached_inventories, empty);
+        }
 
         // cleanup 3d model meshes on client shutdown
         m_rendering_engine->cleanupMeshCache();
@@ -476,7 +485,12 @@ Client::~Client()
         // Free sound ids
         for (auto &csp : m_sounds_client_to_server)
                 m_sound->freeId(csp.first);
-        m_sounds_client_to_server.clear();
+        // Batch 35: Swap-and-release — frees map capacity immediately
+        // for sound mapping after freeing all ids.
+        {
+                std::unordered_map<sound_handle_t, s32> empty;
+                std::swap(m_sounds_client_to_server, empty);
+        }
 
 #if USE_VOICE_CHAT
         // v9.39: Clean up voice chat

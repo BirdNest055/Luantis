@@ -5,6 +5,7 @@
 #include "inventory.h"
 #include <algorithm>
 #include <sstream>
+#include <utility> // Batch 35: std::swap
 #include "log.h"
 #include "util/strfnd.h"
 #include "content_mapnode.h" // For loading legacy MaterialItems
@@ -498,8 +499,14 @@ InventoryList::InventoryList(const std::string &name, u32 size, IItemDefManager 
 
 void InventoryList::clearItems()
 {
-        m_items.clear();
-        m_items_modified.clear();
+        // Batch 35: Swap-and-release — frees vector capacity immediately
+        // instead of keeping memory for old items allocated during resize.
+        {
+                std::vector<ItemStack> empty_items;
+                std::swap(m_items, empty_items);
+                std::vector<bool> empty_mods;
+                std::swap(m_items_modified, empty_mods);
+        }
 
         for (u32 i=0; i < m_size; i++) {
                 m_items.emplace_back();

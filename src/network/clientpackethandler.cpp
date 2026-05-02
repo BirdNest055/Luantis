@@ -1478,8 +1478,9 @@ void Client::handleCommand_ShowFormSpec(NetworkPacket* pkt)
         ClientEvent *event = new ClientEvent(CE_SHOW_FORMSPEC);
         // pointer is required as event is a struct only!
         // adding a std:string to a struct isn't possible
-        event->show_formspec.formspec = new std::string(formspec);
-        event->show_formspec.formname = new std::string(formname);
+        // Batch 35: Use std::move to avoid copying form strings into the event
+        event->show_formspec.formspec = new std::string(std::move(formspec));
+        event->show_formspec.formname = new std::string(std::move(formname));
         m_client_event_queue.push(event);
 }
 
@@ -1492,7 +1493,8 @@ void Client::handleCommand_SpawnParticle(NetworkPacket* pkt)
         p.deSerialize(is, m_proto_ver);
 
         ClientEvent *event = new ClientEvent(CE_SPAWN_PARTICLE);
-        event->spawn_particle = new ParticleParameters(p);
+        // Batch 35: Use std::move to avoid copying particle parameters
+        event->spawn_particle = new ParticleParameters(std::move(p));
 
         m_client_event_queue.push(event);
 }

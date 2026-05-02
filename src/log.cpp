@@ -218,14 +218,19 @@ const char *Logger::getLevelLabel(LogLevel lev)
 
 LogColor Logger::color_mode = LOG_COLOR_AUTO;
 
-inline const std::string &Logger::getThreadName()
+inline std::string Logger::getThreadName()
 {
         std::thread::id id = std::this_thread::get_id();
 
-        auto it = m_thread_names.find(id);
-        if (it != m_thread_names.end())
-                return it->second;
+        // Batch 34: Race condition guard — protect m_thread_names access with mutex
+        {
+                MutexAutoLock lock(m_mutex);
+                auto it = m_thread_names.find(id);
+                if (it != m_thread_names.end())
+                        return it->second;
+        }
 
+        // Fallback for unregistered threads — no lock needed for thread_local
         thread_local std::string fallback_name;
         if (fallback_name.empty()) {
                 std::ostringstream os;
@@ -257,7 +262,13 @@ void Logger::log(LogLevel lev, std::string_view text)
         if (isLevelSilenced(lev))
                 return;
 
-        const std::string &thread_name = getThreadName();
+        // Batch 34: Double-checked locking — avoid expensive string formatting
+        // if there are no outputs for this log level (lock-free atomic check)
+        if (!hasOutput(lev))
+                return;
+
+        // Batch 34: getThreadName() now returns by value (was const ref)
+        const std::string thread_name = getThreadName();
         const char *label = getLevelLabel(lev);
         const std::string timestamp = getLogTimestamp();
 
@@ -273,6 +284,11 @@ void Logger::log(LogLevel lev, std::string_view text)
 void Logger::logRaw(LogLevel lev, std::string_view text)
 {
         if (isLevelSilenced(lev))
+                return;
+
+        // Batch 34: Double-checked locking — avoid mutex acquisition
+        // if there are no outputs for this log level (lock-free atomic check)
+        if (!hasOutput(lev))
                 return;
 
         logToOutputsRaw(lev, text);

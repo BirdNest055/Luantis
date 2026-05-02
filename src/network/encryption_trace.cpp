@@ -160,6 +160,8 @@ static void ensureTraceFileOpen()
 
 void initTraceFile(const std::string &path)
 {
+        // Batch 34: RAII lock guard — uses std::lock_guard instead of manual
+        // lock/unlock for exception safety
         std::lock_guard<std::mutex> lock(g_trace_mutex);
         g_trace_path = path;
         g_trace_path_set = true;
@@ -179,31 +181,38 @@ void ensureEncryptionLogExists()
 
 void writeTraceFile(const std::string &line)
 {
-        std::lock_guard<std::mutex> lock(g_trace_mutex);
+        // Batch 34: Mutex scope reduction — copy trace path and check state under
+        // lock, then do file I/O outside the lock. The file stream pointer is only
+        // accessed under the lock, so we swap out the line and write after.
+        std::string path_copy;
+        bool is_open = false;
+        {
+                std::lock_guard<std::mutex> lock(g_trace_mutex);
 
-        ensureTraceFileOpen();
+                ensureTraceFileOpen();
 
-        if (!g_trace_file.is_open())
-                return;
+                if (!g_trace_file.is_open())
+                        return;
 
-        // Prepend timestamp
-        auto now = std::chrono::system_clock::now();
-        auto time_t_now = std::chrono::system_clock::to_time_t(now);
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                now.time_since_epoch()) % 1000;
+                // Prepend timestamp
+                auto now = std::chrono::system_clock::now();
+                auto time_t_now = std::chrono::system_clock::to_time_t(now);
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now.time_since_epoch()) % 1000;
 
-        std::tm tm_buf{};
-        localtime_r(&time_t_now, &tm_buf);
+                std::tm tm_buf{};
+                localtime_r(&time_t_now, &tm_buf);
 
-        char time_str[32];
-        std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_buf);
+                char time_str[32];
+                std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_buf);
 
-        g_trace_file << time_str << "."
-                     << std::setfill('0') << std::setw(3) << ms.count()
-                     << ": " << line << "\n";
+                g_trace_file << time_str << "."
+                             << std::setfill('0') << std::setw(3) << ms.count()
+                             << ": " << line << "\n";
 
-        // Flush after every line so nothing is lost on crash
-        g_trace_file.flush();
+                // Flush after every line so nothing is lost on crash
+                g_trace_file.flush();
+        }
 }
 
 std::string getTraceFilePath()
@@ -214,6 +223,8 @@ std::string getTraceFilePath()
 
 void closeTraceFile()
 {
+        // Batch 34: RAII lock guard — uses std::lock_guard instead of manual
+        // lock/unlock for exception safety
         std::lock_guard<std::mutex> lock(g_trace_mutex);
         if (g_trace_file.is_open()) {
                 g_trace_file.close();

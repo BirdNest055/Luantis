@@ -19,6 +19,9 @@ bool JoystickButtonCmb::isTriggered(const SEvent::SJoystickEvent &ev) const
 
 bool JoystickAxisCmb::isTriggered(const SEvent::SJoystickEvent &ev) const
 {
+        // Batch 39: Validate axis index before accessing array
+        if (axis_to_compare >= SEvent::SJoystickEvent::NUMBER_OF_AXES)
+                return false;
         s16 ax_val = ev.Axis[axis_to_compare];
 
         return (ax_val * direction < -thresh);
@@ -293,6 +296,13 @@ bool JoystickController::handleEvent(const SEvent::SJoystickEvent &ev)
         if (ev.Joystick != m_joystick_id)
                 return false;
 
+        // Batch 39: Validate joystick event joystick ID
+        if (ev.Joystick < 0) {
+                warningstream << "JoystickController::handleEvent: "
+                        << "ignoring event with invalid joystick ID" << std::endl;
+                return false;
+        }
+
         m_internal_time = porting::getTimeMs() / 1000.f;
 
         std::bitset<KeyType::INTERNAL_ENUM_COUNT> keys_pressed;
@@ -332,8 +342,16 @@ bool JoystickController::handleEvent(const SEvent::SJoystickEvent &ev)
 
         for (size_t i = 0; i < JA_COUNT; i++) {
                 const JoystickAxisLayout &ax_la = m_layout.axes[i];
-                sanity_check(ax_la.axis_id < SEvent::SJoystickEvent::NUMBER_OF_AXES);
-                m_axes_vals[i] = ax_la.invert * ev.Axis[ax_la.axis_id];
+                // Batch 39: Replace sanity_check with graceful validation
+                if (ax_la.axis_id >= SEvent::SJoystickEvent::NUMBER_OF_AXES) {
+                        warningstream << "JoystickController::handleEvent: "
+                                << "axis_id " << ax_la.axis_id << " out of range, clamping" << std::endl;
+                        m_axes_vals[i] = 0;
+                        continue;
+                }
+                // Batch 39: Clamp axis value after inversion to prevent overflow
+                s32 raw_val = (s32)ax_la.invert * ev.Axis[ax_la.axis_id];
+                m_axes_vals[i] = (s16)core::clamp(raw_val, (s32)INT16_MIN, (s32)INT16_MAX);
         }
 
         return true;
@@ -350,6 +368,10 @@ void JoystickController::clear()
 
 float JoystickController::getAxisWithoutDead(JoystickAxis axis)
 {
+        // Batch 39: Validate axis index
+        if (axis < 0 || axis >= JA_COUNT)
+                return 0.0f;
+
         s16 v = m_axes_vals[axis];
 
         if (abs(v) < m_layout.axes_deadzone)
@@ -357,7 +379,9 @@ float JoystickController::getAxisWithoutDead(JoystickAxis axis)
 
         v += (v < 0 ? m_layout.axes_deadzone : -m_layout.axes_deadzone);
 
-        return (float)v / ((float)(INT16_MAX - m_layout.axes_deadzone));
+        float result = (float)v / ((float)(INT16_MAX - m_layout.axes_deadzone));
+        // Batch 39: Clamp output to [-1.0, 1.0]
+        return core::clamp(result, -1.0f, 1.0f);
 }
 
 float JoystickController::getMovementDirection()
@@ -370,7 +394,7 @@ float JoystickController::getMovementSpeed()
 {
         float speed = std::sqrt(std::pow(getAxisWithoutDead(JA_FORWARD_MOVE), 2) +
                         std::pow(getAxisWithoutDead(JA_SIDEWARD_MOVE), 2));
-        if (speed > 1.0f)
-                speed = 1.0f;
+        // Batch 39: Clamp speed to [0.0, 1.0] (was only clamped from above)
+        speed = core::clamp(speed, 0.0f, 1.0f);
         return speed;
 }

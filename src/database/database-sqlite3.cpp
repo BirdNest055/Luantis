@@ -333,6 +333,16 @@ void MapDatabaseSQLite3::loadBlock(const v3s16 &pos, std::string *block)
 {
         verifyDatabase();
 
+        // Batch 37: Validate block position coordinates before querying
+        if (pos.X < -32768 || pos.X > 32767 ||
+                pos.Y < -32768 || pos.Y > 32767 ||
+                pos.Z < -32768 || pos.Z > 32767) {
+                warningstream << "loadBlock: skipping out-of-range block position ("
+                        << pos.X << "," << pos.Y << "," << pos.Z << ")" << std::endl;
+                block->clear();
+                return;
+        }
+
         bindPos(m_stmt_read, pos);
 
         if (sqlite3_step(m_stmt_read) != SQLITE_ROW) {

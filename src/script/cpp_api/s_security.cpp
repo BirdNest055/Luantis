@@ -18,6 +18,7 @@
 #include <string>
 #include <algorithm>
 #include <iostream>
+#include <memory> // Batch 35: std::unique_ptr
 
 
 #define SECURE_API(lib, name) \
@@ -27,8 +28,14 @@
 
 // Do not use directly. This is a helper function for `copy_safe`!
 // Note: Circular references are not handled. `t_global` must be absolute.
-static void recursive_copy(lua_State *L, int idx, int t_global)
+// Batch 38: Added depth parameter to prevent stack overflow from deeply nested tables.
+static void recursive_copy(lua_State *L, int idx, int t_global, int depth = 0)
 {
+        // Batch 38: Guard against stack overflow from deeply nested table structures
+        constexpr int MAX_RECURSION_DEPTH = 64;
+        if (depth > MAX_RECURSION_DEPTH)
+                luaL_error(L, "table too deeply nested in recursive_copy (max depth: %d)", MAX_RECURSION_DEPTH);
+
         if (idx < 0) idx = lua_gettop(L) + idx + 1;
 
         switch (lua_type(L, idx)) {
@@ -48,7 +55,7 @@ static void recursive_copy(lua_State *L, int idx, int t_global)
                                         break;
                                 }
 
-                                recursive_copy(L, -1, t_global); // value
+                                recursive_copy(L, -1, t_global, depth + 1); // value
 
                                 lua_pushvalue(L, -2);
                                 lua_pushvalue(L, -2);
@@ -121,7 +128,9 @@ void ScriptApiSecurity::initializeSecurity()
         static const char *whitelist[] = {
                 "assert",
                 "core",
-                "collectgarbage",
+                // Batch 38: Removed "collectgarbage" from server whitelist to prevent
+                // mods from triggering GC storms or disabling GC to cause OOM.
+                // Mods should not control the garbage collector.
                 "DIR_DELIM",
                 "PLATFORM",
                 "error",
@@ -342,7 +351,8 @@ void ScriptApiSecurity::initializeSecurityClient()
         static const char *whitelist[] = {
                 "assert",
                 "core",
-                "collectgarbage",
+                // Batch 38: Removed "collectgarbage" from client whitelist to prevent
+                // mods from triggering GC storms or disabling GC to cause OOM.
                 "DIR_DELIM",
                 "error",
                 "ipairs",
@@ -470,7 +480,7 @@ void ScriptApiSecurity::initializeSecuritySSCSM()
         static const char *whitelist[] = {
                 "assert",
                 "core",
-                "collectgarbage",
+                // Batch 38: Removed "collectgarbage" from SSCSM whitelist too
                 "DIR_DELIM",
                 "error",
                 "ipairs",
@@ -665,12 +675,16 @@ bool ScriptApiSecurity::safeLoadString(lua_State *L, std::string_view code, cons
 bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char *display_name)
 {
         FILE *fp;
-        char *chunk_name;
+        // Batch 35: Use unique_ptr for heap-allocated chunk_name to prevent leak on
+        // early return paths (e.g. if fseek or fread fails). The old raw pointer
+        // required manual delete[] on every exit path.
+        std::unique_ptr<char[]> chunk_name_owned;
+        const char *chunk_name;
         if (!display_name)
                 display_name = path;
         if (!path) {
                 fp = stdin;
-                chunk_name = const_cast<char *>("=stdin");
+                chunk_name = "=stdin";
         } else {
                 fp = std::fopen(path, "rb");
                 if (!fp) {
@@ -678,8 +692,9 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
                         return false;
                 }
                 size_t len = strlen(display_name) + 2;
-                chunk_name = new char[len];
-                snprintf(chunk_name, len, "@%s", display_name);
+                chunk_name_owned.reset(new char[len]);
+                snprintf(chunk_name_owned.get(), len, "@%s", display_name);
+                chunk_name = chunk_name_owned.get();
         }
 
         size_t start = 0;
@@ -697,7 +712,6 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
                 lua_pushfstring(L, "%s: %s", path, strerror(errno));
                 if (path) {
                         std::fclose(fp);
-                        delete [] chunk_name;
                 }
                 return false;
         }
@@ -709,7 +723,6 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
                 lua_pushfstring(L, "%s: %s", path, strerror(errno));
                 if (path) {
                         std::fclose(fp);
-                        delete [] chunk_name;
                 }
                 return false;
         }
@@ -719,14 +732,10 @@ bool ScriptApiSecurity::safeLoadFile(lua_State *L, const char *path, const char 
                 std::fclose(fp);
         if (num_read != size) {
                 lua_pushliteral(L, "Error reading file to load.");
-                if (path)
-                        delete [] chunk_name;
                 return false;
         }
 
         bool result = safeLoadString(L, code, chunk_name);
-        if (path)
-                delete [] chunk_name;
         return result;
 }
 
@@ -930,13 +939,25 @@ int ScriptApiSecurity::sl_g_load(lua_State *L)
         std::string code;
         const char *chunk_name = "=(load)";
 
+        // Batch 38: Limit accumulated code size to prevent unbounded memory allocation
+        constexpr size_t MAX_LOAD_SIZE = 64 * 1024 * 1024; // 64 MB
+        // Batch 38: Limit number of loader iterations to prevent infinite loops
+        constexpr int MAX_LOAD_ITERATIONS = 100000;
+
         luaL_checktype(L, 1, LUA_TFUNCTION);
         if (!lua_isnone(L, 2)) {
                 luaL_checktype(L, 2, LUA_TSTRING);
                 chunk_name = lua_tostring(L, 2);
         }
 
+        int iterations = 0;
         while (true) {
+                if (++iterations > MAX_LOAD_ITERATIONS) {
+                        lua_pushnil(L);
+                        lua_pushliteral(L, "load: too many iterations (possible infinite loop)");
+                        return 2;
+                }
+
                 lua_pushvalue(L, 1);
                 lua_call(L, 0, 1);
                 int t = lua_type(L, -1);
@@ -950,6 +971,11 @@ int ScriptApiSecurity::sl_g_load(lua_State *L)
                         return 2;
                 }
                 buf = lua_tolstring(L, -1, &len);
+                if (code.size() + len > MAX_LOAD_SIZE) {
+                        lua_pushnil(L);
+                        lua_pushliteral(L, "load: accumulated code exceeds maximum size");
+                        return 2;
+                }
                 code += std::string(buf, len);
                 lua_pop(L, 1); // Pop return value
         }

@@ -1410,6 +1410,9 @@ MapNode readnode(lua_State *L, int index)
         lua_rawgeti(L, LUA_REGISTRYINDEX, CUSTOM_RIDX_READ_NODE);
         lua_insert(L, -2);
         lua_call(L, 1, 3);
+        // Batch 38: Validate return types from read_node to prevent silent type coercion
+        if (!lua_isnumber(L, -3) || !lua_isnumber(L, -2) || !lua_isnumber(L, -1))
+                throw LuaError("readnode: expected three numbers from read_node");
         content_t content = lua_tointeger(L, -3);
         u8 param1 = lua_tointeger(L, -2);
         u8 param2 = lua_tointeger(L, -1);
@@ -2310,8 +2313,15 @@ void read_json_value(lua_State *L, Json::Value &root, int index, u16 max_depth)
         } else if (type == LUA_TTABLE) {
                 // Reserve two slots for key and value.
                 lua_checkstack(L, 2);
+                // Batch 38: Limit the number of table entries to prevent memory exhaustion
+                // from malicious mods passing huge tables to write_json
+                constexpr size_t MAX_JSON_TABLE_ENTRIES = 1000000;
+                size_t entry_count = 0;
                 lua_pushnil(L);
                 while (lua_next(L, index)) {
+                        if (++entry_count > MAX_JSON_TABLE_ENTRIES)
+                                throw SerializationError("JSON table has too many entries (max: "
+                                        + std::to_string(MAX_JSON_TABLE_ENTRIES) + ")");
                         // Key is at -2 and value is at -1
                         Json::Value value;
                         read_json_value(L, value, lua_gettop(L), max_depth - 1);

@@ -327,7 +327,8 @@ void OpenALSoundManager::pauseAll()
                 PlayingSound &snd = *snd_p.second;
                 snd.pause();
         }
-        m_is_paused = true;
+        // Batch 34: Use atomic store for m_is_paused (now std::atomic<bool>)
+        m_is_paused.store(true, std::memory_order_release);
 }
 
 void OpenALSoundManager::resumeAll()
@@ -336,7 +337,8 @@ void OpenALSoundManager::resumeAll()
                 PlayingSound &snd = *snd_p.second;
                 snd.resume();
         }
-        m_is_paused = false;
+        // Batch 34: Use atomic store for m_is_paused (now std::atomic<bool>)
+        m_is_paused.store(false, std::memory_order_release);
 }
 
 void OpenALSoundManager::updateListener(const v3f &pos_, const v3f &vel_,

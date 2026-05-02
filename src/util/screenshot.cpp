@@ -51,8 +51,12 @@ bool takeScreenshot(video::IVideoDriver *driver, std::string &filename_out)
                         << screenshot_dir << std::endl;
         }
 
-        u32 quality = (u32)g_settings->getS32("screenshot_quality");
-        quality = rangelim(quality, 0, 100) / 100.0f * 255;
+        // Batch 36: Use getU32 for screenshot_quality instead of casting getS32 to u32
+        // which could wrap negative values to large positive values. The quality value
+        // is in the 0-100 range as expected by the Irrlicht image writer.
+        u32 quality = rangelim(g_settings->getU32("screenshot_quality"), 0, 100);
+        // Convert 0-100 range to 0-255 range for the image writer
+        quality = quality * 255 / 100;
 
         // Try to find a unique filename
         std::string filename;

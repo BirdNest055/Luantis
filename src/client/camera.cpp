@@ -586,7 +586,8 @@ void Camera::update(LocalPlayer* player, f32 frametime, f32 tool_reload_ratio)
 
 void Camera::updateViewingRange()
 {
-        f32 viewing_range = g_settings->getFloat("viewing_range");
+        // Batch 36: Clamp viewing_range to positive value to prevent near-zero render distance
+        f32 viewing_range = std::max(g_settings->getFloat("viewing_range"), 1.0f);
 
         m_cameranode->setNearValue(0.1f * BS);
 
