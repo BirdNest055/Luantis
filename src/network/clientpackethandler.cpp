@@ -1045,8 +1045,7 @@ void Client::handleCommand_HP(NetworkPacket *pkt)
 
         if (hp < oldhp) {
                 // Add to ClientEvent queue
-                ClientEvent *event = new ClientEvent();
-                event->type = CE_PLAYER_DAMAGE;
+                ClientEvent *event = new ClientEvent(CE_PLAYER_DAMAGE);
                 event->player_damage.amount = oldhp - hp;
                 event->player_damage.effect = damage_effect;
                 m_client_event_queue.push(event);
@@ -1089,8 +1088,7 @@ void Client::handleCommand_MovePlayer(NetworkPacket* pkt)
                 it would just force the pitch and yaw values to whatever
                 the camera points to.
         */
-        ClientEvent *event = new ClientEvent();
-        event->type = CE_PLAYER_FORCE_MOVE;
+        ClientEvent *event = new ClientEvent(CE_PLAYER_FORCE_MOVE);
         event->player_force_move.pitch = pitch;
         event->player_force_move.yaw = yaw;
         m_client_event_queue.push(event);
@@ -1109,8 +1107,7 @@ void Client::handleCommand_MovePlayerRel(NetworkPacket *pkt)
 
 void Client::handleCommand_DeathScreenLegacy(NetworkPacket* pkt)
 {
-        ClientEvent *event = new ClientEvent();
-        event->type = CE_DEATHSCREEN_LEGACY;
+        ClientEvent *event = new ClientEvent(CE_DEATHSCREEN_LEGACY);
         m_client_event_queue.push(event);
 }
 
@@ -1461,8 +1458,7 @@ void Client::handleCommand_ShowFormSpec(NetworkPacket* pkt)
 
         *pkt >> formname;
 
-        ClientEvent *event = new ClientEvent();
-        event->type = CE_SHOW_FORMSPEC;
+        ClientEvent *event = new ClientEvent(CE_SHOW_FORMSPEC);
         // pointer is required as event is a struct only!
         // adding a std:string to a struct isn't possible
         event->show_formspec.formspec = new std::string(formspec);
@@ -1478,8 +1474,7 @@ void Client::handleCommand_SpawnParticle(NetworkPacket* pkt)
         ParticleParameters p;
         p.deSerialize(is, m_proto_ver);
 
-        ClientEvent *event = new ClientEvent();
-        event->type           = CE_SPAWN_PARTICLE;
+        ClientEvent *event = new ClientEvent(CE_SPAWN_PARTICLE);
         event->spawn_particle = new ParticleParameters(p);
 
         m_client_event_queue.push(event);
@@ -1500,8 +1495,7 @@ void Client::handleCommand_SpawnParticleBatch(NetworkPacket *pkt)
                         p->deSerialize(particle_data, m_proto_ver);
                 }
 
-                ClientEvent *event = new ClientEvent();
-                event->type = CE_SPAWN_PARTICLE;
+                ClientEvent *event = new ClientEvent(CE_SPAWN_PARTICLE);
                 event->spawn_particle = p.release();
 
                 m_client_event_queue.push(event);
@@ -1632,8 +1626,7 @@ void Client::handleCommand_AddParticleSpawner(NetworkPacket* pkt)
                 p.size.end = p.size.start;
         }
 
-        auto event = new ClientEvent();
-        event->type                            = CE_ADD_PARTICLESPAWNER;
+        auto event = new ClientEvent(CE_ADD_PARTICLESPAWNER);
         event->add_particlespawner.p           = new ParticleSpawnerParameters(p);
         event->add_particlespawner.attached_id = attached_id;
         event->add_particlespawner.id          = server_id;
@@ -1647,8 +1640,7 @@ void Client::handleCommand_DeleteParticleSpawner(NetworkPacket* pkt)
         u32 server_id;
         *pkt >> server_id;
 
-        ClientEvent *event = new ClientEvent();
-        event->type = CE_DELETE_PARTICLESPAWNER;
+        ClientEvent *event = new ClientEvent(CE_DELETE_PARTICLESPAWNER);
         event->delete_particlespawner.id = server_id;
 
         m_client_event_queue.push(event);
@@ -1702,8 +1694,7 @@ void Client::handleCommand_HudAdd(NetworkPacket* pkt)
                 *pkt >> style;
         } while (0);
 
-        ClientEvent *event = new ClientEvent();
-        event->type              = CE_HUDADD;
+        ClientEvent *event = new ClientEvent(CE_HUDADD);
         event->hudadd            = new ClientEventHudAdd();
         event->hudadd->server_id = server_id;
         event->hudadd->type      = type;
@@ -1730,8 +1721,7 @@ void Client::handleCommand_HudRemove(NetworkPacket* pkt)
 
         *pkt >> server_id;
 
-        ClientEvent *event = new ClientEvent();
-        event->type     = CE_HUDRM;
+        ClientEvent *event = new ClientEvent(CE_HUDRM);
         event->hudrm.id = server_id;
         m_client_event_queue.push(event);
 }
@@ -1782,8 +1772,7 @@ void Client::handleCommand_HudChange(NetworkPacket* pkt)
                         break;
         }
 
-        ClientEvent *event = new ClientEvent();
-        event->type                 = CE_HUDCHANGE;
+        ClientEvent *event = new ClientEvent(CE_HUDCHANGE);
         event->hudchange            = new ClientEventHudChange();
         event->hudchange->id        = server_id;
         event->hudchange->stat      = static_cast<HudElementStat>(stat);
@@ -1882,23 +1871,19 @@ void Client::handleCommand_HudSetSky(NetworkPacket* pkt)
                 }
 
                 // Skybox, sun, moon and stars ClientEvents:
-                ClientEvent *sky_event = new ClientEvent();
-                sky_event->type = CE_SET_SKY;
+                ClientEvent *sky_event = new ClientEvent(CE_SET_SKY);
                 sky_event->set_sky = new SkyboxParams(skybox);
                 m_client_event_queue.push(sky_event);
 
-                ClientEvent *sun_event = new ClientEvent();
-                sun_event->type = CE_SET_SUN;
+                ClientEvent *sun_event = new ClientEvent(CE_SET_SUN);
                 sun_event->sun_params = new SunParams(sun);
                 m_client_event_queue.push(sun_event);
 
-                ClientEvent *moon_event = new ClientEvent();
-                moon_event->type = CE_SET_MOON;
+                ClientEvent *moon_event = new ClientEvent(CE_SET_MOON);
                 moon_event->moon_params = new MoonParams(moon);
                 m_client_event_queue.push(moon_event);
 
-                ClientEvent *star_event = new ClientEvent();
-                star_event->type = CE_SET_STARS;
+                ClientEvent *star_event = new ClientEvent(CE_SET_STARS);
                 star_event->star_params = new StarParams(stars);
                 m_client_event_queue.push(star_event);
                 return;
@@ -1945,8 +1930,7 @@ void Client::handleCommand_HudSetSky(NetworkPacket* pkt)
                 *pkt >> skybox.auto_dim_skybox;
         } while (0);
 
-        ClientEvent *event = new ClientEvent();
-        event->type = CE_SET_SKY;
+        ClientEvent *event = new ClientEvent(CE_SET_SKY);
         event->set_sky = new SkyboxParams(skybox);
         m_client_event_queue.push(event);
 }
@@ -1958,8 +1942,7 @@ void Client::handleCommand_HudSetSun(NetworkPacket *pkt)
         *pkt >> sun.visible >> sun.texture>> sun.tonemap
                 >> sun.sunrise >> sun.sunrise_visible >> sun.scale;
 
-        ClientEvent *event = new ClientEvent();
-        event->type        = CE_SET_SUN;
+        ClientEvent *event = new ClientEvent(CE_SET_SUN);
         event->sun_params  = new SunParams(sun);
         m_client_event_queue.push(event);
 }
@@ -1971,8 +1954,7 @@ void Client::handleCommand_HudSetMoon(NetworkPacket *pkt)
         *pkt >> moon.visible >> moon.texture
                 >> moon.tonemap >> moon.scale;
 
-        ClientEvent *event = new ClientEvent();
-        event->type        = CE_SET_MOON;
+        ClientEvent *event = new ClientEvent(CE_SET_MOON);
         event->moon_params = new MoonParams(moon);
         m_client_event_queue.push(event);
 }
@@ -1995,8 +1977,7 @@ void Client::handleCommand_HudSetStars(NetworkPacket *pkt)
                 *pkt >> stars.star_seed;
         } while (0);
 
-        ClientEvent *event = new ClientEvent();
-        event->type        = CE_SET_STARS;
+        ClientEvent *event = new ClientEvent(CE_SET_STARS);
         event->star_params = new StarParams(stars);
 
         m_client_event_queue.push(event);
@@ -2020,8 +2001,7 @@ void Client::handleCommand_CloudParams(NetworkPacket* pkt)
                 *pkt >> color_shadow;
         }
 
-        ClientEvent *event = new ClientEvent();
-        event->type                       = CE_CLOUD_PARAMS;
+        ClientEvent *event = new ClientEvent(CE_CLOUD_PARAMS);
         event->cloud_params.density       = density;
         // use the underlying u32 representation, because we can't
         // use struct members with constructors here, and this way
@@ -2046,8 +2026,7 @@ void Client::handleCommand_OverrideDayNightRatio(NetworkPacket* pkt)
 
         float day_night_ratio_f = (float)day_night_ratio_u / 65536;
 
-        ClientEvent *event = new ClientEvent();
-        event->type                                 = CE_OVERRIDE_DAY_NIGHT_RATIO;
+        ClientEvent *event = new ClientEvent(CE_OVERRIDE_DAY_NIGHT_RATIO);
         event->override_day_night_ratio.do_override = do_override;
         event->override_day_night_ratio.ratio_f     = day_night_ratio_f;
         m_client_event_queue.push(event);

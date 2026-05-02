@@ -15,19 +15,19 @@
 // show_formspec(formspec)
 int ModApiClientCommon::l_show_formspec(lua_State *L)
 {
-	ClientEvent *event = new ClientEvent();
-	event->type = getScriptApiBase(L)->getType() == ScriptingType::PauseMenu
-			? CE_SHOW_PAUSE_MENU_FORMSPEC
-			: CE_SHOW_CSM_FORMSPEC;
-	event->show_formspec.formname = new std::string(luaL_checkstring(L, 1));
-	event->show_formspec.formspec = new std::string(luaL_checkstring(L, 2));
-	getClient(L)->pushToEventQueue(event);
-	lua_pushboolean(L, true);
-	return 1;
+        ClientEventType ce_type = getScriptApiBase(L)->getType() == ScriptingType::PauseMenu
+                        ? CE_SHOW_PAUSE_MENU_FORMSPEC
+                        : CE_SHOW_CSM_FORMSPEC;
+        ClientEvent *event = new ClientEvent(ce_type);
+        event->show_formspec.formname = new std::string(luaL_checkstring(L, 1));
+        event->show_formspec.formspec = new std::string(luaL_checkstring(L, 2));
+        getClient(L)->pushToEventQueue(event);
+        lua_pushboolean(L, true);
+        return 1;
 }
 
 
 void ModApiClientCommon::Initialize(lua_State *L, int top)
 {
-	API_FCT(show_formspec);
+        API_FCT(show_formspec);
 }

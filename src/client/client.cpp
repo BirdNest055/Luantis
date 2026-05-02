@@ -656,7 +656,7 @@ void Client::step(float dtime)
                         << m_last_packet_received_time << "s" << std::endl;
                 m_access_denied = true;
                 m_access_denied_reason = "Connection timed out (no packets received for 30s)";
-                m_state = LC_Initialized; // trigger disconnect handling
+                m_state = LC_Init; // trigger disconnect handling
                 return;
         }
 
@@ -803,8 +803,7 @@ void Client::step(float dtime)
                                 sendDamage(damage);
 
                         // Add to ClientEvent queue
-                        ClientEvent *event = new ClientEvent();
-                        event->type = CE_PLAYER_DAMAGE;
+                        ClientEvent *event = new ClientEvent(CE_PLAYER_DAMAGE);
                         event->player_damage.amount = damage;
                         event->player_damage.effect = true;
                         m_client_event_queue.push(event);

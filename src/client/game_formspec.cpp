@@ -252,7 +252,7 @@ void GameFormSpec::showFormSpec(const std::string &formspec, const std::string &
                 &m_input->joystick, fs_src, txt_dst, m_client->getFormspecPrepend(),
                 m_client->getSoundManager());
         m_formspec->setName(formname);
-
+}
 
 void GameFormSpec::showCSMFormSpec(const std::string &formspec, const std::string &formname)
 {
