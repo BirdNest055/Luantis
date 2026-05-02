@@ -517,7 +517,16 @@ void Client::connect(const Address &address, const std::string &address_name)
 
         m_con->Connect(address);
 
-        initLocalMapSaving(address, m_address_name);
+        try {
+                initLocalMapSaving(address, m_address_name);
+        } catch (const std::exception &e) {
+                // If local map saving init fails, reset connection to avoid
+                // a partially-initialized state.
+                errorstream << "Client::connect: initLocalMapSaving failed: "
+                                << e.what() << std::endl;
+                m_con.reset();
+                throw;
+        }
 }
 
 bool Client::isEncryptionActive() const

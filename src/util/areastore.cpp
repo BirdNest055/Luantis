@@ -211,6 +211,13 @@ bool VectorAreaStore::insertArea(Area *a)
         return true;
 }
 
+VectorAreaStore::~VectorAreaStore()
+{
+        // Clear dangling pointers before base class destroys areas_map.
+        // Area objects are owned by areas_map and will be freed automatically.
+        m_areas.clear();
+}
+
 bool VectorAreaStore::removeArea(u32 id)
 {
         AreaMap::iterator it = areas_map.find(id);

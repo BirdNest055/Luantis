@@ -116,6 +116,7 @@ private:
 
 class VectorAreaStore : public AreaStore {
 public:
+        ~VectorAreaStore() override;
         virtual void reserve(size_t count) { m_areas.reserve(count); }
         virtual bool insertArea(Area *a);
         virtual bool removeArea(u32 id);

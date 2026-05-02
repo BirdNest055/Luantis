@@ -451,13 +451,21 @@ Server::~Server()
 
         // Delete the rest in the reverse order of creation
         delete m_game_settings;
+        m_game_settings = nullptr;
         delete m_banmanager;
+        m_banmanager = nullptr;
         delete m_mod_storage_database;
+        m_mod_storage_database = nullptr;
         delete m_rollback;
+        m_rollback = nullptr;
         delete m_itemdef;
+        m_itemdef = nullptr;
         delete m_nodedef;
+        m_nodedef = nullptr;
         delete m_craftdef;
+        m_craftdef = nullptr;
         delete m_thread;
+        m_thread = nullptr;
 
         while (!m_unsent_map_edit_queue.empty()) {
                 delete m_unsent_map_edit_queue.front();

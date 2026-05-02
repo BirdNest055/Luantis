@@ -106,6 +106,7 @@ UDPSocket::~UDPSocket()
 #else
                 close(m_handle);
 #endif
+                m_handle = -1; // Mark as closed to prevent double-close
         }
 }
 
@@ -165,6 +166,12 @@ void UDPSocket::Bind(Address addr)
 
 void UDPSocket::Send(const Address &destination, const void *data, int size)
 {
+        // Crash guard: zero-length sends can hang on some platforms
+        if (size <= 0) {
+                warningstream << "UDPSocket::Send(): attempted to send zero-length packet, ignoring." << std::endl;
+                return;
+        }
+
         bool dumping_packet = false; // for INTERNET_SIMULATOR
 
         if (INTERNET_SIMULATOR)

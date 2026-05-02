@@ -211,6 +211,7 @@ TextureSource::~TextureSource()
                 assert(it.second.image);
                 it.second.image->drop();
         }
+        m_image_cache.clear();
 
         for (const auto &iter : m_textureinfo_cache) {
                 if (iter.texture)
@@ -221,6 +222,7 @@ TextureSource::~TextureSource()
         for (auto t : m_texture_trash) {
                 driver->removeTexture(t);
         }
+        m_texture_trash.clear();
 
         infostream << "~TextureSource() before cleanup: " << textures_before
                         << " after: " << driver->getTextureCount() << std::endl;

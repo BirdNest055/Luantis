@@ -37,15 +37,19 @@ ClientEnvironment::ClientEnvironment(irr_ptr<ClientMap> map,
 
 ClientEnvironment::~ClientEnvironment()
 {
+        // Remove all client-side active objects (and their scene nodes)
+        // before the scene manager is destroyed.
         m_ao_manager.clear();
 
         for (auto &simple_object : m_simple_objects) {
                 delete simple_object;
         }
+        m_simple_objects.clear();
 
         m_map.reset();
 
         delete m_local_player;
+        m_local_player = nullptr;
 }
 
 Map &ClientEnvironment::getMap()

@@ -290,7 +290,16 @@ void ServerEnvironment::deactivateBlocksAndObjects()
 ServerEnvironment::~ServerEnvironment()
 {
         m_script = nullptr;
-        assert(m_active_blocks.size() == 0); // deactivateBlocksAndObjects does this
+
+        // Safety: ensure all active objects are cleared before the map is destroyed.
+        // Normally deactivateBlocksAndObjects() is called before destruction,
+        // but this provides a safety net if that was skipped.
+        if (!m_active_blocks.empty()) {
+                warningstream << "~ServerEnvironment: Active blocks not empty ("
+                        << m_active_blocks.size() << "), clearing" << std::endl;
+                m_active_blocks.clear();
+        }
+        m_ao_manager.clear();
 
         // Drop/delete map
         m_map.reset();

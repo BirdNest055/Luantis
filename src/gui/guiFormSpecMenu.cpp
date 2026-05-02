@@ -115,6 +115,16 @@ GUIFormSpecMenu::~GUIFormSpecMenu()
 {
         removeAll();
 
+        // Explicitly drop the tooltip element if it hasn't been removed already.
+        // This is a child of the GUI environment, not of this form, so it won't
+        // be caught by removeAll(). We need both remove() and drop() because
+        // the element was grabbed() after creation.
+        if (m_tooltip_element) {
+                m_tooltip_element->remove();
+                m_tooltip_element->drop();
+                m_tooltip_element = nullptr;
+        }
+
         delete m_form_src;
         delete m_text_dst;
 }

@@ -102,15 +102,12 @@ EmergeManager::EmergeManager(Server *server, MetricsBackend *mb)
 
 EmergeManager::~EmergeManager()
 {
+        // Safety: ensure all mapgen threads are stopped and joined before
+        // destroying the manager, regardless of m_threads_active state.
+        stopThreads();
+
         for (u32 i = 0; i != m_threads.size(); i++) {
                 EmergeThread *thread = m_threads[i];
-
-                if (m_threads_active) {
-                        thread->stop();
-                        thread->signal();
-                        thread->wait();
-                }
-
                 delete thread;
 
                 // Mapgen init might not be finished if there is an error during startup.

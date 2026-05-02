@@ -207,6 +207,9 @@ RenderingEngine::RenderingEngine(MyEventReceiver *receiver)
 	params.OGLES2ShaderPath = (porting::path_share + DIR_DELIM + rel_path + DIR_DELIM).c_str();
 
 	m_device = createDevice(params, driverType);
+	// Crash guard: device creation can fail if no video driver is available
+	if (!m_device)
+		throw BaseException("Failed to create Irrlicht device");
 	driver = m_device->getVideoDriver();
 	verbosestream << "Using the " << getVideoDriverName(driver->getDriverType()) << " video driver" << std::endl;
 

@@ -467,7 +467,7 @@ protected:
                 Event *event = nullptr;
         };
 
-        CURLM *m_multi;
+        CURLM *m_multi = nullptr;
         MutexedQueue<Request> m_requests;
         size_t m_parallel_limit;
 
@@ -483,6 +483,21 @@ public:
                         m_parallel_limit = parallel_limit;
                 else
                         m_parallel_limit = 1;
+        }
+
+        ~CurlFetchThread() override
+        {
+                // Ensure all CURL easy handles are cleaned up via their
+                // destructors (which return handles to the pool).
+                m_all_ongoing.clear();
+                m_queued_fetches.clear();
+
+                // Ensure the multi handle is cleaned up if the thread didn't
+                // exit cleanly (e.g., was killed during destruction).
+                if (m_multi) {
+                        curl_multi_cleanup(m_multi);
+                        m_multi = nullptr;
+                }
         }
 
         void requestFetch(const HTTPFetchRequest &fetch_request)
@@ -722,6 +737,7 @@ protected:
                                 <<" returned error code "<<mres
                                 <<std::endl;
                 }
+                m_multi = nullptr;
 
                 return NULL;
         }

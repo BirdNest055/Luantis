@@ -202,6 +202,7 @@ Database_SQLite3::~Database_SQLite3()
         FINALIZE_STATEMENT(end)
 
         SQLOK_ERRSTREAM(sqlite3_close(m_database), "Failed to close database");
+        m_database = nullptr;
 }
 
 /*
