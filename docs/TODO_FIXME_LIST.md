@@ -57,6 +57,13 @@ Generated automatically from code comments.
 | FIX | 29 (v9.57 batch 32 — client rendering & UI safety improvements) |
 | FIX | 20 (v9.57 batch 33 — protocol & network hardening) |
 | FIX | 6 (v9.57 client build fix — LC_Init, ClientEvent ctor, missing brace, SEVENT typo) |
+| FIX | 20 (v9.57 batch 34 — thread safety & concurrency improvements) |
+| FIX | 23 (v9.57 batch 35 — resource cleanup & destructor safety) |
+| FIX | 24 (v9.57 batch 36 — configuration & settings validation) |
+| FIX | 25 (v9.57 batch 37 — map & world data integrity) |
+| FIX | 20 (v9.57 batch 38 — script API hardening) |
+| FIX | 27 (v9.57 batch 39 — client input & event safety) |
+| FIX | 8 (v9.57 build fix — std::min/max type mismatches, missing includes, container type fixes) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
