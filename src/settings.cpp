@@ -119,8 +119,6 @@ Settings::~Settings()
 }
 
 
-Settings &Settings::operator=(const Settings &other) = delete;
-
 
 bool Settings::checkNameValid(std::string_view name)
 {
