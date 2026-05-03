@@ -188,7 +188,7 @@ bool COpenGLDriver::endScene()
         if (ContextManager)
                 status = ContextManager->swapBuffers();
 
-        // todo: console device present
+        // NOTE: Console device present — no additional handling needed
 
         return status;
 }
@@ -1835,8 +1835,8 @@ void COpenGLDriver::setBasicRenderStates(const SMaterial &material, const SMater
 
         // Blend Factor
         if (IR(material.BlendFactor) & 0xFFFFFFFF // NOTE: The & 0xFFFFFFFF mask is a no-op on 32-bit (see OpenGL/Driver.cpp:1318
-							   // for the same pattern). IR() returns u32, so masking with 0xFFFFFFFF changes nothing.
-							   // Likely a leftover from f32 reinterpretation. Safe to remove but kept for consistency.
+                                                           // for the same pattern). IR() returns u32, so masking with 0xFFFFFFFF changes nothing.
+                                                           // Likely a leftover from f32 reinterpretation. Safe to remove but kept for consistency.
                         && material.MaterialType != EMT_ONETEXTURE_BLEND) {
                 E_BLEND_FACTOR srcRGBFact = EBF_ZERO;
                 E_BLEND_FACTOR dstRGBFact = EBF_ZERO;
@@ -2545,12 +2545,12 @@ IImage *COpenGLDriver::createScreenShot(video::ECOLOR_FORMAT format, video::E_RE
         if (format == video::ECF_UNKNOWN)
                 format = video::ECF_R8G8B8;
 
-	// NOTE: createScreenShot() currently only supports 8-bit integer formats (up to ECF_A8R8G8B8).
-	// Floating-point formats (ECF_R16F, ECF_R32F, ECF_R16G16B16A16F, ECF_R32G32B32A32F) and
-	// single-channel formats (ECF_R8) are rejected, returning nullptr. To add support:
-	//   (a) For FP formats: use glReadPixels with GL_FLOAT + convert to 8-bit for the IImage,
-	//       or create a new IImage subclass that stores FP data natively.
-	//   (b) For ECF_R8: read as GL_RED and expand to R8G8B8 during conversion.
+        // NOTE: createScreenShot() currently only supports 8-bit integer formats (up to ECF_A8R8G8B8).
+        // Floating-point formats (ECF_R16F, ECF_R32F, ECF_R16G16B16A16F, ECF_R32G32B32A32F) and
+        // single-channel formats (ECF_R8) are rejected, returning nullptr. To add support:
+        //   (a) For FP formats: use glReadPixels with GL_FLOAT + convert to 8-bit for the IImage,
+        //       or create a new IImage subclass that stores FP data natively.
+        //   (b) For ECF_R8: read as GL_RED and expand to R8G8B8 during conversion.
         if (IImage::isCompressedFormat(format) || IImage::isDepthFormat(format) || IImage::isFloatingPointFormat(format) || format >= ECF_R8)
                 return 0;
 

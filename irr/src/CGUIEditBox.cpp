@@ -15,9 +15,9 @@
 #include <cwctype> // std::iswspace, std::iswpunct, std::iswalnum
 
 /*
-        todo:
-        optional? dragging selected text
-        numerical
+        NOTE: Future enhancements:
+        - Optional dragging of selected text
+        - Numerical input mode
 */
 
 namespace gui
