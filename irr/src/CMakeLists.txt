@@ -211,7 +211,20 @@ else()
                 endforeach()
         endforeach()
         list(REMOVE_DUPLICATES _IRR_EXTRA_INCLUDES)
-        set(CMAKE_REQUIRED_INCLUDES ${SDL2_INCLUDE_DIRS} ${_IRR_EXTRA_INCLUDES})
+        # Debian-specific: _real_SDL_config.h lives in an arch-specific directory
+        # (e.g., /usr/include/x86_64-linux-gnu/SDL2/) which must be searched
+        # before /usr/include/SDL2/ so the #include <SDL2/_real_SDL_config.h>
+        # indirection resolves correctly. Build the include list with arch dirs first.
+        set(_IRR_SDL2_INCLUDES "")
+        foreach(_dir ${SDL2_INCLUDE_DIRS} ${_IRR_EXTRA_INCLUDES})
+                get_filename_component(_parent ${_dir} DIRECTORY)
+                if(EXISTS "${_parent}/x86_64-linux-gnu/SDL2")
+                        list(APPEND _IRR_SDL2_INCLUDES "${_parent}/x86_64-linux-gnu")
+                        list(APPEND _IRR_SDL2_INCLUDES "${_parent}/x86_64-linux-gnu/SDL2")
+                endif()
+        endforeach()
+        list(APPEND _IRR_SDL2_INCLUDES ${SDL2_INCLUDE_DIRS} ${_IRR_EXTRA_INCLUDES})
+        set(CMAKE_REQUIRED_INCLUDES ${_IRR_SDL2_INCLUDES})
         unset(CHECK_SDL_VERSION CACHE)
         check_cxx_source_compiles("#include <SDL_version.h>\n\
 #if !SDL_VERSION_ATLEAST(2, 0, 10)\n\
@@ -264,6 +277,9 @@ set(link_includes
         "${JPEG_INCLUDE_DIR}"
         "${PNG_INCLUDE_DIR}"
         "$<$<NOT:$<BOOL:${USE_SDL3}>>:${SDL2_INCLUDE_DIRS}>"
+
+        # Debian-specific: arch-specific SDL2 dir for _real_SDL_config.h
+        "$<$<NOT:$<BOOL:${USE_SDL3}>>:${_IRR_SDL2_INCLUDES}>"
 
         ${OPENGL_INCLUDE_DIR}
         ${EGL_INCLUDE_DIR}

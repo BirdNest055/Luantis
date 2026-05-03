@@ -114,6 +114,8 @@ inline std::unique_ptr<ISSCSMRequest> deserializeSSCSMRequest(SerializedSSCSMReq
 enum class SSCSMRequestType : u16
 {
         SetLighting = 1,
+        Print = 100,
+        Log = 101,
         // Future request types get incrementing IDs.
 };
 
@@ -132,7 +134,12 @@ struct SSCSMRequestSetLighting : public ISSCSMRequest
 
         SerializedSSCSMAnswer exec(Client *client) override
         {
-                // TODO: implement actual lighting update via client
+                // NOTE: Lighting update via SSCSM is not yet wired to the client.
+                // The fields (sun_intensity, moon_intensity, etc.) are defined and
+                // serializable, but the Client/SkyRendering API does not yet expose
+                // methods to set these per-player lighting parameters from SSCSM.
+                // Implementation requires adding setter methods to the sky renderer
+                // and wiring them through the client environment.
                 return serializeSSCSMAnswer(Answer{});
         }
 

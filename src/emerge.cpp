@@ -389,8 +389,11 @@ int EmergeManager::getSpawnLevelAtPoint(v2s16 p)
 //
 // Migration stub: When ServerMap::isBlockUnderground() becomes available,
 // this method should delegate to it and eventually be removed.
-// TODO: After ServerMap::isBlockUnderground() is implemented:
-//   return m_map->isBlockUnderground(blockpos);
+// NOTE: ServerMap::isBlockUnderground() is not yet implemented. The current
+// heuristic (blockpos.Y * (MAP_BLOCKSIZE + 1) <= water_level) works for
+// typical worlds but may be inaccurate for mountainous terrain or custom
+// water levels. The ServerMap version would have access to actual terrain
+// height data for more accurate results.
 bool EmergeManager::isBlockUnderground(v3s16 blockpos)
 {
         // Use a simple heuristic

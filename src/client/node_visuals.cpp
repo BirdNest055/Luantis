@@ -635,17 +635,25 @@ void NodeVisuals::fillNodeVisuals(NodeDefManager *ndef, Client *client, void *pr
                 v->updateTextures(tsrc, shdsrc, client, &plt, tsettings);
                 v->updateMesh(client, tsettings);
 
-                // Consistency check: if the mesh is loaded but the visual hasn't
-                // been applied yet (e.g., mesh_ptr is set but textures haven't
-                // been bound to materials), apply it immediately. This can happen
-                // if updateMesh() succeeds but updateTextures() misses a mesh node.
-                // TODO: implement visual-applied tracking flag if this becomes an issue.
-                // For now, just verify mesh and tiles are consistent:
+                // Consistency check: verify mesh nodes have their textures applied.
+                // This catches the race between updateMesh() and updateTextures()
+                // where a mesh is loaded but materials haven't been bound yet.
                 if (v->mesh_ptr && f.drawtype == NDT_MESH) {
-                        // Mesh is loaded; ensure tiles have been properly applied
-                        // by checking that at least the first tile has a texture.
-                        // If not, the visual was not applied.
-                        // This is a safety net — normally updateTextures() handles this.
+                        scene::IMesh *mesh = v->mesh_ptr;
+                        bool textures_applied = false;
+                        for (u32 mi = 0; mi < mesh->getMeshBufferCount(); mi++) {
+                                scene::IMeshBuffer *buf = mesh->getMeshBuffer(mi);
+                                if (buf && buf->getMaterial().getTexture(0)) {
+                                        textures_applied = true;
+                                        break;
+                                }
+                        }
+                        if (!textures_applied && mesh->getMeshBufferCount() > 0) {
+                                // Mesh exists but no textures bound — apply a retry hint
+                                warningstream << "NodeVisuals: mesh for "
+                                        << f.name << " has no textures applied after update"
+                                        << std::endl;
+                        }
                 }
 
                 v->collectMaterials(ndef->m_leaves_materials);

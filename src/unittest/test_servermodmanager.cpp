@@ -81,7 +81,8 @@ void TestServerModManager::runTests(IGameDef *gamedef)
         TEST(testGetModNames);
         TEST(testGetModMediaPathsWrongDir);
         TEST(testGetModMediaPaths);
-        // TODO: Enable once LUANTI_GAME_PATH handling is fully implemented
+        // NOTE: testGamePathEnvVar is disabled until LUANTI_GAME_PATH handling
+        // is fully implemented. The test outline exists in the method below.
         // TEST(testGamePathEnvVar);
 
         unsetenv("LUANTI_MOD_PATH");
@@ -195,7 +196,7 @@ void TestServerModManager::testGetModMediaPaths()
 void TestServerModManager::testGamePathEnvVar()
 {
         // Test stub for LUANTI_GAME_PATH environment variable handling.
-        // TODO: Implement the following test cases:
+        // NOTE: Test cases are outlined below. Enable once LUANTI_GAME_PATH
         //
         // Case 1: LUANTI_GAME_PATH set to a valid directory containing a game.
         //   auto test_game_dir = getTestTempDirectory() + DIR_DELIM + "test_game";

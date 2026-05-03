@@ -16,7 +16,6 @@
 // MeshGeneratorUpdateListener: registers with g_settings to listen for
 // changes to mesh generation settings (smooth_lighting, water reflections,
 // mesh generation interval) and updates cached values accordingly.
-// TODO: implement full callback registration with g_settings->registerChangedCallback().
 class MeshGeneratorUpdateListener
 {
         bool m_smooth_lighting = false;
@@ -46,25 +45,21 @@ public:
                 m_enable_water_reflections = g_settings->getBool("enable_water_reflections");
                 m_generation_interval = g_settings->getU16("mesh_generation_interval");
 
-                // TODO: Register callbacks once the listener is owned by
-                // MeshUpdateQueue or MeshUpdateManager:
-                // g_settings->registerChangedCallback("smooth_lighting", settingsCallback, this);
-                // g_settings->registerChangedCallback("enable_water_reflections", settingsCallback, this);
-                // g_settings->registerChangedCallback("mesh_generation_interval", settingsCallback, this);
+                g_settings->registerChangedCallback("smooth_lighting", settingsCallback, this);
+                g_settings->registerChangedCallback("enable_water_reflections", settingsCallback, this);
+                g_settings->registerChangedCallback("mesh_generation_interval", settingsCallback, this);
         }
 
         ~MeshGeneratorUpdateListener()
         {
-                // TODO: g_settings->deregisterAllChangedCallbacks(this);
+                if (g_settings)
+                        g_settings->deregisterAllChangedCallbacks(this);
         }
 
         bool getSmoothLighting() const { return m_smooth_lighting; }
         bool getEnableWaterReflections() const { return m_enable_water_reflections; }
         u16 getGenerationInterval() const { return m_generation_interval; }
 };
-
-// TODO: Instantiate MeshGeneratorUpdateListener in MeshUpdateQueue and use
-// it instead of the direct g_settings reads in fillDataFromMapBlocks().
 
 /*
         QueuedMeshUpdate

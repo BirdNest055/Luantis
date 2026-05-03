@@ -1748,10 +1748,11 @@ void GenericCAO::processMessage(const std::string &data)
                                 // (1) adding ObjectProperties::death_effect (ParticleParams
                                 // or similar), (2) sending it to the client in TOBJECTDATA,
                                 // (3) using it here instead of the hardcoded createSmokePuff().
-                                // For now, check m_prop.death_effect if it exists, otherwise
-                                // use the fallback smoke puff.
-                                // TODO: once death_effect is in ObjectProperties, check it here:
-                                // if (m_prop.death_effect) { trigger custom particle effect; }
+                                // NOTE: death_effect is not yet in ObjectProperties.
+                                // Once added (requires protocol change in TOBJECTDATA),
+                                // this code should check m_prop.death_effect and trigger
+                                // a custom particle effect. Currently uses createSmokePuff()
+                                // as the hardcoded fallback.
                                 ClientSimpleObject *simple = createSmokePuff(
                                                 m_smgr, m_env, m_position,
                                                 v2f(m_prop.visual_size.X, m_prop.visual_size.Y) * BS);
@@ -1824,8 +1825,8 @@ bool GenericCAO::directReportPunch(v3f dir, const ItemStack *punchitem,
                         // effect immediately rather than waiting for the next server
                         // update. See the analogous NOTE in checkStep()'s damage handler
                         // for the proposed ObjectProperties::death_effect enhancement.
-                        // TODO: once death_effect is in ObjectProperties, check it here:
-                        // if (m_prop.death_effect) { trigger custom particle effect; }
+                        // NOTE: death_effect is not yet in ObjectProperties; uses
+                        // createSmokePuff() as fallback until protocol change is made.
                         ClientSimpleObject *simple = createSmokePuff(
                                         m_smgr, m_env, m_position,
                                         v2f(m_prop.visual_size.X, m_prop.visual_size.Y) * BS);

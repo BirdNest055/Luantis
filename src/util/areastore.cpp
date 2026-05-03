@@ -55,32 +55,16 @@ void AreaStore::serialize(std::ostream &os) const
         // After 5.1.0-dev:  version >= 5 throws SerializationError
         // Forwards-compatibility is assumed before version 5.
 
-        // Compression option stub: check for COMPRESSION_ZSTD availability.
-        // When compression is requested, we would use zstd to compress the
-        // serialized data. This is not yet implemented, but the version/format
-        // is reserved for future use.
-        // TODO: Implement compression with the following format:
+        // NOTE: AreaStore compression is reserved for a future version 2 format:
         //   Version 2: [version:u8=2] [compression:u8] [uncompressed_size:u32] [compressed_data]
         //   compression=0 means uncompressed (same as version 1)
         //   compression=1 means zstd compressed
         //   compression=2 means zlib compressed (fallback if zstd unavailable)
-#if !defined(USE_ZSTD)
-        // If compression is ever requested but zstd is not available, log a warning.
-        // This is a stub — the actual compression flag would come from a parameter.
-        // For now, we always write version 0 (uncompressed).
-#endif
-
-        writeU8(os, 0); // Serialization version
-
-        // NOTE: AreaStore serialization is currently uncompressed, which is
-        // wasteful for large area stores (e.g., protector mods with thousands of
-        // areas). Proposed implementation:
-        // 1. Add a version 2 serialization format with a compression flag byte
-        // 2. When writing: if data > 1KB, compress with zstd (preferred) or zlib
-        // 3. When reading: check version byte, decompress if flag is set
-        // 4. Keep version 1 as fallback for backwards compatibility
         // Compression ratio for typical area data is ~5-10x, making this
-        // worthwhile for any store with > 100 areas.
+        // worthwhile for any store with > 100 areas. Currently always writes
+        // version 0 (uncompressed) for backwards compatibility.
+
+        writeU8(os, 0); // Serialization version (0 = uncompressed)
         writeU16(os, areas_map.size());
         for (const auto &it : areas_map) {
                 const Area &a = it.second;

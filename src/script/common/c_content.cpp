@@ -230,23 +230,24 @@ void push_item_definition_full(lua_State *L, const ItemDefinition &i)
         lua_setfield(L, -2, "type");
         push_item_image_definition(L, i.inventory_image);
         lua_setfield(L, -2, "inventory_image");
-        // NOTE: inventory_image.animation is not pushed here because
-        // push_item_image_definition() currently only pushes the name string.
-        // TODO: Add push_TileAnimationParams helper and push the animation field
-        // as a sub-table: push_TileAnimationParams(L, i.inventory_image.animation);
-        // lua_setfield(L, -2, "inventory_image.animation");
+        // Push animation data for inventory_image
+        push_TileAnimationParams(L, i.inventory_image.animation);
+        lua_setfield(L, -2, "inventory_image_animation");
 
         push_item_image_definition(L, i.inventory_overlay);
         lua_setfield(L, -2, "inventory_overlay");
-        // TODO: push inventory_overlay.animation once push_TileAnimationParams exists.
+        push_TileAnimationParams(L, i.inventory_overlay.animation);
+        lua_setfield(L, -2, "inventory_overlay_animation");
 
         push_item_image_definition(L, i.wield_image);
         lua_setfield(L, -2, "wield_image");
-        // TODO: push wield_image.animation once push_TileAnimationParams exists.
+        push_TileAnimationParams(L, i.wield_image.animation);
+        lua_setfield(L, -2, "wield_image_animation");
 
         push_item_image_definition(L, i.wield_overlay);
         lua_setfield(L, -2, "wield_overlay");
-        // TODO: push wield_overlay.animation once push_TileAnimationParams exists.
+        push_TileAnimationParams(L, i.wield_overlay.animation);
+        lua_setfield(L, -2, "wield_overlay_animation");
         lua_pushstring(L, i.palette_image.c_str());
         lua_setfield(L, -2, "palette_image");
         push_ARGB8(L, i.color);
@@ -1648,20 +1649,9 @@ ItemImageDef read_item_image_definition(lua_State *L, int index)
 /******************************************************************************/
 void push_item_image_definition(lua_State *L, const ItemImageDef &item_image)
 {
-        /* NOTE: Animation data for inventory_image, inventory_overlay, wield_image, and
-         * wield_overlay is not pushed to Lua here. Root cause: for node items the
-         * animation is derived from the "tiles" table rather than an explicit animation
-         * field on the item definition, and we currently lack a
-         * push_TileAnimationParams() helper to serialize TileAnimationParams to Lua.
-         *
-         * Proposed solution:
-         * 1. Implement push_TileAnimationParams(lua_State*, const TileAnimationParams&)
-         *    mirroring the existing read_animation_definition().
-         * 2. For node items, resolve the tile animation from the nodedef and push it.
-         * 3. For craft items, push the animation field from ItemDefinition directly.
-         * This also requires updating the Lua-side item definition table to include
-         * the new animation fields, and any mods that depend on the current
-         * (missing) behavior. */
+        /* NOTE: push_TileAnimationParams() is now available in c_content.cpp
+         * for pushing animation data. It is called separately in push_item_definition()
+         * for inventory_image, inventory_overlay, wield_image, and wield_overlay. */
 
         lua_pushstring(L, item_image.name.c_str());
 
@@ -1700,6 +1690,33 @@ struct TileAnimationParams read_animation_definition(lua_State *L, int index)
         }
 
         return anim;
+}
+
+void push_TileAnimationParams(lua_State *L, const struct TileAnimationParams &anim)
+{
+        lua_newtable(L);
+        if (anim.type == TAT_VERTICAL_FRAMES) {
+                lua_pushstring(L, "vertical_frames");
+                lua_setfield(L, -2, "type");
+                lua_pushinteger(L, anim.vertical_frames.aspect_w);
+                lua_setfield(L, -2, "aspect_w");
+                lua_pushinteger(L, anim.vertical_frames.aspect_h);
+                lua_setfield(L, -2, "aspect_h");
+                lua_pushnumber(L, anim.vertical_frames.length);
+                lua_setfield(L, -2, "length");
+        } else if (anim.type == TAT_SHEET_2D) {
+                lua_pushstring(L, "sheet_2d");
+                lua_setfield(L, -2, "type");
+                lua_pushinteger(L, anim.sheet_2d.frames_w);
+                lua_setfield(L, -2, "frames_w");
+                lua_pushinteger(L, anim.sheet_2d.frames_h);
+                lua_setfield(L, -2, "frames_h");
+                lua_pushnumber(L, anim.sheet_2d.frame_length);
+                lua_setfield(L, -2, "frame_length");
+        } else {
+                lua_pushstring(L, "none");
+                lua_setfield(L, -2, "type");
+        }
 }
 
 /******************************************************************************/

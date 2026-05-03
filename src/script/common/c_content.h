@@ -83,6 +83,7 @@ void push_hit_params(lua_State *L, const HitParams &params);
 ItemStack read_item(lua_State *L, int index, IItemDefManager *idef);
 
 struct TileAnimationParams read_animation_definition(lua_State *L, int index);
+void push_TileAnimationParams(lua_State *L, const struct TileAnimationParams &anim);
 
 ItemImageDef read_item_image_definition(lua_State *L, int index);
 void push_item_image_definition(lua_State *L, const ItemImageDef &item_image);

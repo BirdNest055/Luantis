@@ -146,3 +146,77 @@ Stage Summary:
 - 3 documentation files updated
 - All 7 compiler warnings from CI now fixed
 - 5 FIXME entries resolved, 4 upgraded to TODO with improved documentation
+
+---
+Task ID: 7a
+Agent: Main Agent
+Task: Batch 42 — Thread-safe DB wrappers + MeshGeneratorUpdateListener callbacks
+
+Work Log:
+- Added thread-safe wrapper methods to MapDatabaseAccessor in servermap.h:
+  - saveBlock(v3s16, const std::string&) — acquires mutex internally
+  - deleteBlock(v3s16) — acquires mutex internally
+  - listAllLoadableBlocks(vector<v3s16>&) — acquires mutex internally
+  - Also added mutex acquisition to existing loadBlock() for consistency
+  - Removed the old TODO comment (lines 43-49), replaced with brief description
+- Implemented all new MapDatabaseAccessor methods in servermap.cpp
+- Updated all ServerMap callers to use the new wrappers instead of manual locking:
+  - ServerMap::listAllLoadableBlocks() — now calls m_db.listAllLoadableBlocks()
+  - ServerMap::saveBlock(MapBlock*) — now calls m_db.saveBlock()
+  - ServerMap::loadBlock(v3s16) — removed manual MutexAutoLock (loadBlock now locks internally)
+  - ServerMap::deleteBlock(v3s16) — now calls m_db.deleteBlock()
+- Activated MeshGeneratorUpdateListener callbacks in mesh_generator_thread.cpp:
+  - Uncommented 3 g_settings->registerChangedCallback() calls in constructor
+  - Uncommented g_settings->deregisterAllChangedCallbacks(this) in destructor
+  - Added null guard (if g_settings) in destructor for static destruction order safety
+  - Removed TODO comments about callback registration and instantiation
+- Populated m_spawner_clients for particle spawner tracking in server.cpp:
+  - Added m_spawner_clients[id].insert(peer_id) in SendAddParticleSpawner before Send()
+  - Rewrote SendDeleteParticleSpawner to use targeted sending via m_spawner_clients
+    with fallback broadcast when no tracking data exists
+  - Removed the NOTE comment block in deleteParticleSpawner() about missing tracking
+- Updated m_spawner_clients comment in server.h from TODO stub to active documentation
+- Verified compilation: servermap.cpp.o and server.cpp.o built successfully
+  (mesh_generator_thread.cpp is client-only and not in server target)
+
+Stage Summary:
+- 4 source files modified: servermap.h, servermap.cpp, mesh_generator_thread.cpp, server.cpp, server.h
+- MapDatabaseAccessor now provides complete thread-safe DB access pattern
+- MeshGeneratorUpdateListener now actively registers/deregisters settings callbacks
+- Particle spawner tracking is now functional with targeted delete distribution
+
+---
+Task ID: 7b
+Agent: Main Agent
+Task: Batch 43 — SSCSM deSerialize implementations + PointedThing reader + TileAnimationParams pusher
+
+Work Log:
+- Implemented SSCSMRequestPrint::deSerialize() in sscsm_requests.h:
+  Reads text_len (u16) then text bytes from stream, mirroring serialize() format
+- Implemented SSCSMRequestLog::deSerialize() in sscsm_requests.h:
+  Reads level (u8 as LogLevel) then text_len (u16) then text bytes, matching serialize() format
+- Added SSCSMRequestType enum values Print=100 and Log=101 in sscsm_irequest.h,
+  matching the type tags used in their respective serialize() methods
+- Added push_TileAnimationParams() declaration in c_content.h (next to read_animation_definition)
+- Implemented push_TileAnimationParams() in c_content.cpp after read_animation_definition():
+  Handles TAT_VERTICAL_FRAMES, TAT_SHEET_2D, and TAT_NONE with proper Lua table construction
+- Replaced 4 TODO comments in push_item_definition_full() (c_content.cpp) with actual
+  push_TileAnimationParams() calls for inventory_image_animation, inventory_overlay_animation,
+  wield_image_animation, and wield_overlay_animation
+- Updated NOTE comment in push_item_image_definition() to reflect that push_TileAnimationParams now exists
+- Implemented read_pointed_thing_from_lua() in l_env.cpp:
+  Replaces the commented-out stub with a working implementation that handles
+  "node" type (reads under/above as v3s16), "object" type (with fallback object_id=0),
+  and "nothing" type
+- Added visual-applied tracking check in node_visuals.cpp:
+  Replaced empty if-block with actual texture binding check that iterates mesh buffers
+  and emits warningstream if no textures are found on any buffer
+- Verified compilation: luantiserver target builds successfully (no errors)
+
+Stage Summary:
+- 6 source files modified: sscsm_requests.h, sscsm_irequest.h, c_content.h, c_content.cpp, l_env.cpp, node_visuals.cpp
+- SSCSM IPC now has complete serialize/deSerialize pairs for Print and Log requests
+- TileAnimationParams can now be pushed to Lua (reverse of read_animation_definition)
+- PointedThing can be read from Lua tables (reverse of push_pointed_thing)
+- Node visual consistency check now actively detects missing textures instead of being a no-op
+

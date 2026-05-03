@@ -19,15 +19,10 @@ class ServerEnvironment;
 struct BlockMakeData;
 class MetricsBackend;
 
-// NOTE: This struct could wrap all calls to MapDatabase, including locking,
-// so callers don't need to manually acquire mutex before dbase operations.
-// Root cause: Currently, callers must remember to lock MapDatabaseAccessor::mutex
-// before calling any MapDatabase method. Missing a lock leads to data races
-// (see also mapblock.cpp:257 — client-side data races on block data).
-// Proposed fix: Move all MapDatabase method calls (saveBlock, loadBlock, deleteBlock,
-// listAllLoadableBlocks) into MapDatabaseAccessor as wrapper methods that acquire
-// mutex internally. This would be similar to how ServerMap::saveBlock() already
-// wraps db->saveBlock(). The wrappers should also handle dbase_ro fallback for reads.
+// Thread-safe wrappers for MapDatabase operations.
+// All methods acquire the mutex internally, so callers do not need
+// to manually lock before calling. Read operations also fall back
+// to dbase_ro when the main database does not contain the data.
 struct MapDatabaseAccessor {
         /// Lock, to be taken for any operation
         std::mutex mutex;
@@ -37,16 +32,16 @@ struct MapDatabaseAccessor {
         MapDatabase *dbase_ro = nullptr;
 
         /// Load a block, taking dbase_ro into account.
-        /// @note call locked
         void loadBlock(v3s16 blockpos, std::string &ret);
 
-        // TODO: Add thread-safe wrappers for the remaining MapDatabase operations:
-        //   bool saveBlock(v3s16 blockpos, const std::string &data);
-        //   bool deleteBlock(v3s16 blockpos);
-        //   void listAllLoadableBlocks(std::vector<v3s16> &dst);
-        // Each wrapper should acquire mutex internally and handle dbase_ro
-        // fallback for read operations. This eliminates the need for callers
-        // to manually lock before every database call.
+        /// Save a block, acquiring mutex internally.
+        bool saveBlock(v3s16 blockpos, const std::string &data);
+
+        /// Delete a block, acquiring mutex internally.
+        bool deleteBlock(v3s16 blockpos);
+
+        /// List all loadable blocks, acquiring mutex internally.
+        void listAllLoadableBlocks(std::vector<v3s16> &dst);
 };
 
 /*

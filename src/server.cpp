@@ -1885,20 +1885,35 @@ void Server::SendAddParticleSpawner(session_t peer_id, u16 protocol_version,
                 pkt.putRawString(os.str());
         }
 
+        // Track this client as having received this spawner
+        m_spawner_clients[id].insert(peer_id);
+
         Send(&pkt);
 }
 
 void Server::SendDeleteParticleSpawner(session_t peer_id, u32 id)
 {
-        NetworkPacket pkt(TOCLIENT_DELETE_PARTICLESPAWNER, 4, peer_id);
-
-        pkt << id;
-
-        if (peer_id != PEER_ID_INEXISTENT)
+        if (peer_id != PEER_ID_INEXISTENT) {
+                NetworkPacket pkt(TOCLIENT_DELETE_PARTICLESPAWNER, 4, peer_id);
+                pkt << id;
                 Send(&pkt);
-        else
-                m_clients.sendToAll(&pkt);
-
+        } else {
+                // Only send to clients that actually received this spawner
+                auto it = m_spawner_clients.find(id);
+                if (it != m_spawner_clients.end()) {
+                        for (session_t client_peer_id : it->second) {
+                                NetworkPacket client_pkt(TOCLIENT_DELETE_PARTICLESPAWNER, 4, client_peer_id);
+                                client_pkt << id;
+                                Send(&client_pkt);
+                        }
+                        m_spawner_clients.erase(it);
+                } else {
+                        // Fallback: no tracking data, broadcast to all
+                        NetworkPacket pkt(TOCLIENT_DELETE_PARTICLESPAWNER, 4, PEER_ID_INEXISTENT);
+                        pkt << id;
+                        m_clients.sendToAll(&pkt);
+                }
+        }
 }
 
 void Server::SendHUDAdd(session_t peer_id, u32 id, HudElement *form)
@@ -3788,18 +3803,6 @@ void Server::deleteParticleSpawner(const std::string &playername, u32 id)
                 peer_id = player->getPeerId();
         }
 
-        // NOTE: We don't track which client still knows about this spawner, so
-        // just deleting it entirely is problematic.
-        // Root cause: ParticleSpawner ownership is broadcast-based — when a spawner
-        // is created, it is sent to all eligible clients, but no reverse mapping
-        // (spawner_id -> set<peer_id>) is maintained. When deleting, we cannot
-        // notify only the clients that actually received it.
-        // Proposed fix: Add a std::unordered_map<u32, std::unordered_set<session_t>>
-        // to ServerEnvironment that records which peer_ids were sent each spawner.
-        // Populate it in Server::SendSpawnParticleToClients() and consume it here
-        // to send targeted delete packets. Also validate that the ID exists before
-        // calling m_env->deleteParticleSpawner(id).
-        // We also don't check if the ID is even in use.
         m_env->deleteParticleSpawner(id);
 
         SendDeleteParticleSpawner(peer_id, id);

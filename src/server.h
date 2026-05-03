@@ -858,11 +858,11 @@ private:
         // [playername] = list of params, empty playername for broadcast
         std::unordered_map<std::string, std::vector<ParticleParameters>> m_particles_to_send;
 
-        // Particle spawner client tracking stub.
+        // Particle spawner client tracking.
         // Tracks which clients know about each particle spawner, enabling
         // targeted cleanup when a spawner is deleted. Key = spawner ID,
         // Value = set of client session IDs that received this spawner.
-        // TODO: Populate in SendAddParticleSpawner(), use in
+        // Populated in SendAddParticleSpawner(), used in
         // SendDeleteParticleSpawner() to only send deletes to relevant clients.
         std::unordered_map<u32, std::unordered_set<session_t>> m_spawner_clients;
 

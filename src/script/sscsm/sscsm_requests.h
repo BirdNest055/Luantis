@@ -79,7 +79,14 @@ struct SSCSMRequestPrint final : public ISSCSMRequest
                 return std::vector<u8>(data.begin(), data.end());
         }
 
-        // TODO: implement deSerialize
+        static SSCSMRequestPrint deSerialize(std::istream &is)
+        {
+                SSCSMRequestPrint req;
+                u16 text_len = readU16(is);
+                req.text.resize(text_len);
+                is.read(&req.text[0], text_len);
+                return req;
+        }
 };
 
 // core.log(level, text)
@@ -122,7 +129,15 @@ struct SSCSMRequestLog final : public ISSCSMRequest
                 return std::vector<u8>(data.begin(), data.end());
         }
 
-        // TODO: implement deSerialize
+        static SSCSMRequestLog deSerialize(std::istream &is)
+        {
+                SSCSMRequestLog req;
+                req.level = static_cast<LogLevel>(readU8(is));
+                u16 text_len = readU16(is);
+                req.text.resize(text_len);
+                is.read(&req.text[0], text_len);
+                return req;
+        }
 };
 
 // core.get_node(pos)

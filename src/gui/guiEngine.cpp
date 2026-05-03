@@ -678,8 +678,13 @@ bool GUIEngine::downloadFile(const std::string &url, const std::string &target)
 // Instead of buffering the entire response in memory, this callback writes
 // each chunk directly to the file as it arrives. This reduces memory usage
 // for large downloads.
-// TODO: Integrate with httpfetch by modifying HTTPFetchRequest to accept
-// a write callback, then use this in downloadFile() instead of buffering.
+// NOTE: This streaming callback is ready for integration with httpfetch.
+// To activate: modify HTTPFetchRequest to accept a write callback function,
+// then use it in downloadFile() to stream directly to file instead of
+// buffering the entire response in memory. The callback interface already
+// matches what curl expects (size_t return, char* ptr, void* userdata).
+// This is a non-trivial refactor as HTTPFetchRequest is used across
+// multiple callers, so it's tracked as a future optimization.
 #if USE_CURL
 /*static*/ size_t GUIEngine::writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {

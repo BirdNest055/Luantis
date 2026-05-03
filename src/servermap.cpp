@@ -45,10 +45,31 @@
 
 void MapDatabaseAccessor::loadBlock(v3s16 blockpos, std::string &ret)
 {
+        MutexAutoLock lock(mutex);
         ret.clear();
         dbase->loadBlock(blockpos, &ret);
         if (ret.empty() && dbase_ro)
                 dbase_ro->loadBlock(blockpos, &ret);
+}
+
+bool MapDatabaseAccessor::saveBlock(v3s16 blockpos, const std::string &data)
+{
+        MutexAutoLock lock(mutex);
+        return dbase->saveBlock(blockpos, data);
+}
+
+bool MapDatabaseAccessor::deleteBlock(v3s16 blockpos)
+{
+        MutexAutoLock lock(mutex);
+        return dbase->deleteBlock(blockpos);
+}
+
+void MapDatabaseAccessor::listAllLoadableBlocks(std::vector<v3s16> &dst)
+{
+        MutexAutoLock lock(mutex);
+        dbase->listAllLoadableBlocks(dst);
+        if (dbase_ro)
+                dbase_ro->listAllLoadableBlocks(dst);
 }
 
 /*
@@ -592,10 +613,7 @@ void ServerMap::save(ModifiedState save_level)
 
 void ServerMap::listAllLoadableBlocks(std::vector<v3s16> &dst)
 {
-        MutexAutoLock dblock(m_db.mutex);
-        m_db.dbase->listAllLoadableBlocks(dst);
-        if (m_db.dbase_ro)
-                m_db.dbase_ro->listAllLoadableBlocks(dst);
+        m_db.listAllLoadableBlocks(dst);
 }
 
 void ServerMap::listAllLoadedBlocks(std::vector<v3s16> &dst)
@@ -713,9 +731,8 @@ bool ServerMap::saveBlock(MapBlock *block)
                 return false;
         }
 
-        // Save under mutex
-        MutexAutoLock dblock(m_db.mutex);
-        bool ret = m_db.dbase->saveBlock(p3d, serialized);
+        // Save using thread-safe wrapper
+        bool ret = m_db.saveBlock(p3d, serialized);
         if (ret) {
                 block->resetModified();
         }
@@ -885,7 +902,6 @@ MapBlock* ServerMap::loadBlock(v3s16 blockpos)
         std::string data;
         {
                 ScopeProfiler sp(g_profiler, "ServerMap: load block - sync (sum)");
-                MutexAutoLock dblock(m_db.mutex);
                 m_db.loadBlock(blockpos, data);
         }
 
@@ -896,8 +912,7 @@ MapBlock* ServerMap::loadBlock(v3s16 blockpos)
 
 bool ServerMap::deleteBlock(v3s16 blockpos)
 {
-        MutexAutoLock dblock(m_db.mutex);
-        if (!m_db.dbase->deleteBlock(blockpos))
+        if (!m_db.deleteBlock(blockpos))
                 return false;
 
         MapBlock *block = getBlockNoCreateNoEx(blockpos);
