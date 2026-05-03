@@ -108,6 +108,14 @@ core.item_drop = function(itemstack, dropper, pos)
         log("\ton drop", itemstack:to_string())
 
         assert(not itemstack:is_empty())
+        -- NOTE: Checking dropped count here validates that the engine's drop action
+        -- produces a correctly-sized stack. The assertion verifies the count equals
+        -- the stack max (full stack drop) or is at most 99 (partial/overflow drop).
+        -- To extend: also assert that itemstack:get_count() matches the expected
+        -- count from the original held stack before dropping. This would require
+        -- capturing the pre-drop stack count in a test-local variable (e.g., via
+        -- a wrapper around core.item_drop or a field on the test player object)
+        -- and comparing it here. Currently we only check bounds, not exact counts.
         -- Check that the dropped item count matches the original stack count
         assert(itemstack:get_count() == itemstack:get_stack_max()
                 or itemstack:get_count() <= 99,

@@ -45,12 +45,21 @@
 filterlist = {}
 
 --------------------------------------------------------------------------------
+--- Re-fetches the raw data list and reprocesses (filter + sort).
+-- @param self filterlist instance
 function filterlist.refresh(self)
         self.m_raw_list = self.m_raw_list_fct(self.m_fetch_param)
         filterlist.process(self)
 end
 
 --------------------------------------------------------------------------------
+--- Creates a new filterlist instance.
+-- @param raw_fct       (mandatory) function() → table of elements to filter
+-- @param compare_fct   (mandatory) function(a, b) → bool, true if a and b are the same element
+-- @param uid_match_fct (optional)  function(element, uid) → bool, true if uid belongs to element
+-- @param filter_fct    (optional)  function(element, criteria) → bool, true if element passes filter
+-- @param fetch_param   (optional)  parameter passed to raw_fct when fetching data
+-- @return filterlist instance
 function filterlist.create(raw_fct,compare_fct,uid_match_fct,filter_fct,fetch_param)
 
         assert((raw_fct ~= nil) and (type(raw_fct) == "function"))
@@ -92,11 +101,20 @@ function filterlist.create(raw_fct,compare_fct,uid_match_fct,filter_fct,fetch_pa
 end
 
 --------------------------------------------------------------------------------
+--- Registers a custom sort mechanism that can be activated by name.
+-- @param self filterlist instance
+-- @param name unique name for the sort mode (used with set_sortmode)
+-- @param fct  function(self) that sorts self.m_processed_list in-place
 function filterlist.add_sort_mechanism(self,name,fct)
         self.m_sort_list[name] = fct
 end
 
 --------------------------------------------------------------------------------
+--- Sets the filter criteria and reprocesses the list.
+-- Skips reprocessing if criteria is unchanged (non-table values only;
+-- table values are always reprocessed since they may have mutated).
+-- @param self     filterlist instance
+-- @param criteria value passed to the filter function for each element
 function filterlist.set_filtercriteria(self,criteria)
         if criteria == self.m_filtercriteria and
                 type(criteria) ~= "table" then
@@ -107,12 +125,18 @@ function filterlist.set_filtercriteria(self,criteria)
 end
 
 --------------------------------------------------------------------------------
+--- Returns the current filter criteria.
+-- @param self filterlist instance
+-- @return current criteria value (may be nil)
 function filterlist.get_filtercriteria(self)
         return self.m_filtercriteria
 end
 
 --------------------------------------------------------------------------------
---supported sort mode "alphabetic|none"
+--- Sets the sort mode and reprocesses the list.
+-- @param self filterlist instance
+-- @param mode "none" for no sorting, "alphabetic" for alphabetical,
+--             or a custom name registered via add_sort_mechanism
 function filterlist.set_sortmode(self,mode)
         if (mode == self.m_sortmode) then
                 return
@@ -122,16 +146,25 @@ function filterlist.set_sortmode(self,mode)
 end
 
 --------------------------------------------------------------------------------
+--- Returns the current filtered and sorted list.
+-- @param self filterlist instance
+-- @return table of elements after filtering and sorting
 function filterlist.get_list(self)
         return self.m_processed_list
 end
 
 --------------------------------------------------------------------------------
+--- Returns the unfiltered raw data list.
+-- @param self filterlist instance
+-- @return table of all raw elements (no filter or sort applied)
 function filterlist.get_raw_list(self)
         return self.m_raw_list
 end
 
 --------------------------------------------------------------------------------
+--- Returns a single element from the raw list by 1-based index.
+-- @param self filterlist instance
+-- @param idx  1-based index (string or number); returns nil if out of range
 function filterlist.get_raw_element(self,idx)
         if type(idx) ~= "number" then
                 idx = tonumber(idx)
@@ -145,6 +178,10 @@ function filterlist.get_raw_element(self,idx)
 end
 
 --------------------------------------------------------------------------------
+--- Maps a processed-list index back to the corresponding raw-list index.
+-- @param self       filterlist instance
+-- @param listindex  1-based index into the processed (filtered/sorted) list
+-- @return raw-list index (1-based), or 0 if not found
 function filterlist.get_raw_index(self,listindex)
         assert(self.m_processed_list ~= nil)
 
@@ -164,6 +201,10 @@ function filterlist.get_raw_index(self,listindex)
 end
 
 --------------------------------------------------------------------------------
+--- Maps a raw-list index to the corresponding processed-list index.
+-- @param self       filterlist instance
+-- @param listindex  1-based index into the raw list
+-- @return processed-list index (1-based), or 0 if the element is filtered out
 function filterlist.get_current_index(self,listindex)
         assert(self.m_processed_list ~= nil)
 
@@ -183,6 +224,11 @@ function filterlist.get_current_index(self,listindex)
 end
 
 --------------------------------------------------------------------------------
+--- Applies the current filter and sort to produce m_processed_list.
+-- When no filter and no sort are active, m_processed_list is set to the raw
+-- list directly (no copy). Otherwise, elements passing the filter are collected
+-- and then sorted by the active sort mechanism.
+-- @param self filterlist instance
 function filterlist.process(self)
         assert(self.m_raw_list ~= nil)
 
@@ -213,6 +259,9 @@ function filterlist.process(self)
 end
 
 --------------------------------------------------------------------------------
+--- Returns the number of elements in the filtered/sorted list.
+-- @param self filterlist instance
+-- @return count of elements (0 if not yet processed)
 function filterlist.size(self)
         if self.m_processed_list == nil then
                 return 0
@@ -222,6 +271,10 @@ function filterlist.size(self)
 end
 
 --------------------------------------------------------------------------------
+--- Checks whether an element with the given UID exists in the raw list.
+-- @param self filterlist instance
+-- @param uid  unique identifier to search for
+-- @return true if found, false otherwise
 function filterlist.uid_exists_raw(self,uid)
         for i,v in ipairs(self.m_raw_list) do
                 if self.m_uid_match_fct(v,uid) then
@@ -232,6 +285,10 @@ function filterlist.uid_exists_raw(self,uid)
 end
 
 --------------------------------------------------------------------------------
+--- Finds the raw-list index of the element matching the given UID.
+-- @param self filterlist instance
+-- @param uid  unique identifier to search for
+-- @return 1-based index in the raw list, or 0 if not found or ambiguous
 function filterlist.raw_index_by_uid(self, uid)
         local elementcount = 0
         local elementidx = 0
@@ -262,6 +319,11 @@ end
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
+--- Compares two world definitions for equality by path, name, and gameid.
+-- Used as the compare_fct for world filterlists.
+-- @param world1 first world table
+-- @param world2 second world table
+-- @return true if both worlds have the same path, name, and gameid
 function compare_worlds(world1,world2)
         if world1.path ~= world2.path then
                 return false
@@ -279,6 +341,9 @@ function compare_worlds(world1,world2)
 end
 
 --------------------------------------------------------------------------------
+--- Sorts the processed world list alphabetically by name (case-insensitive).
+-- Nil entries are pushed to the end (see issue #857).
+-- @param self filterlist instance (sorts self.m_processed_list in-place)
 function sort_worlds_alphabetic(self)
 
         table.sort(self.m_processed_list, function(a, b)
@@ -296,6 +361,9 @@ function sort_worlds_alphabetic(self)
 end
 
 --------------------------------------------------------------------------------
+--- Sorts the processed mod list with game mods at the bottom, modpacks
+-- grouped together, and names in alphabetical order within each group.
+-- @param self filterlist instance (sorts self.m_processed_list in-place)
 function sort_mod_list(self)
 
         table.sort(self.m_processed_list, function(a, b)

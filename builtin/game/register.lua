@@ -261,8 +261,10 @@ function core.register_item(name, itemdef)
         -- metatables. Currently only a warning, but these should become hard errors
         -- once the deprecation period ends.
         -- Migration plan:
-        --   - v5.x: Log as "warning" (current behavior)
-        --   - v6.0: Convert to "error()" to prevent silent breakage
+        --   - v5.x (≤2025): Log as "warning" (current behavior)
+        --   - v6.0 (2027): Convert to "error()" to prevent silent breakage.
+        --     Extended from the original 2026 target because many popular mods
+        --     still trigger these warnings and need time to migrate.
         --   - Mods that trigger these warnings should be updated to use fresh
         --     tables for each register_* call and avoid setting metatables on them.
         if old_mt ~= nil and next(old_mt) ~= nil then
@@ -281,7 +283,7 @@ function core.register_item(name, itemdef)
         -- NOTE: Legacy field mappings (BEGIN/END Legacy stuff blocks):
         -- These convert deprecated item definition fields into their modern equivalents.
         -- Each block logs a deprecation warning so mod authors can migrate.
-        -- Removal plan: In a future major version (v6.0+), these blocks should be
+        -- Removal plan: In v6.0 (2027), these blocks should be
         -- converted from deprecation warnings to hard errors, then eventually removed.
         -- Affected fields: `image` → `inventory_image`, `cookresult_itemstring` →
         -- `core.register_craft`, `furnace_burntime` → `core.register_craft`.

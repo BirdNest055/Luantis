@@ -584,9 +584,11 @@ void TextureSource::rebuildImagesAndTextures()
                 rebuildTexture(driver, ti);
         }
 
-        // Rebuild palettes — they may reference stale texture data
+        // Fixed: Rebuild palettes — they may reference stale texture data
         // after a video driver reset. Clear the cache so getPalette()
-        // will regenerate them on next access.
+        // will regenerate them on next access. (Originally FIXME: palettes
+        // were not rebuilt on video driver reset, causing stale/missing
+        // palette textures after a device reset.)
         m_palettes.clear();
 }
 
