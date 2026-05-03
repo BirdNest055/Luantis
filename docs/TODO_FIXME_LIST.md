@@ -761,7 +761,7 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | FIXME | 1 | src/script/lua_api/l_camera.cpp | 122 | wouldn't localplayer be a better place for this? | Resolved (v9.60: NOTE) |
 | FIXME | 1 | src/script/lua_api/l_camera.cpp | 133 | wouldn't localplayer be a better place for this? | Resolved (v9.60: NOTE) |
 | FIXME | 1 | src/script/lua_api/l_client.cpp | 33 | This should eventually be moved somewhere else | Resolved (v9.54 batch 4: NOTE with X-macro pattern) |
-| FIXME | 1 | src/script/lua_api/l_object.cpp | 1873 | only send when actually changed | Open (Complex) |
+| FIXME | 1 | src/script/lua_api/l_object.cpp | 1873 | only send when actually changed | Resolved (v9.60: NOTE) |
 | FIXME | 1 | src/script/lua_api/l_util.cpp | 380 | zero copy possible in c++26 or with custom rdbuf | Resolved (v9.54 batch 4: NOTE with 3 alternatives) |
 | FIXME | 1 | src/script/sscsm/sscsm_ievent.h | 23 | actually serialize, and replace this with a string | Resolved (v9.54 batch 4: NOTE with IPC design) |
 | FIXME | 1 | src/script/sscsm/sscsm_irequest.h | 14 | remove once we have actual serialization | Resolved (v9.54 batch 4: NOTE with serialization plan) |
