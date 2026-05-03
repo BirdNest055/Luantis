@@ -70,6 +70,13 @@ Generated automatically from code comments.
 | FIX | 4 (v9.57 batch 43 — type safety & casting: reinterpret_cast→static_cast, C-style cast→static_cast, OBJDEF_INVALID_INDEX) |
 | FIX | 15 (v9.57 batch 44 — logging & diagnostic improvements: wrong log levels, LOG() macro removal, derr_con→dout_con) |
 | FIX | 4 (v9.57 batch 45 — additional safety: RAII porting.cpp, encryption_trace catch cleanup, rollback destructor, servermap logging) |
+| FIX | 14 (v9.58 batch 34 — memory safety & RAII: unsigned wraparound guards, empty container checks, bounds-checked array access, circular parent chain depth limit, null pointer guards, sqlite3_column_text null check, atoi→strtol, packet command bounds check, dynamic_cast null check and reuse, distance guard, OpenAL source RAII cleanup, volume NaN/infinity validation) |
+| FIX | 7 (v9.58 batch 35-36 — thread safety & resource leak prevention: RollbackManager actor mutex, stream validity check, getNode is_valid_position, database null guards, settings clamping, getClientNoEx lifetime warning) |
+| FIX | 5 (v9.58 batch 37-38 — input validation & bounds checking: schematic nodecount OOM limit, inventory getItem runtime bounds, named anticheat constant, settings timer clamp, EmergeManager destructor docs) |
+| FIX | 8 (v9.58 batch 39 — game/lua/mapgen safety: divide-by-zero guard, null checks for player/dynamic_cast/getPlayer, off-by-one bug fix in l_set_local_animation, biome null checks, csize overflow validation) |
+| FIX | 20 (v9.58 batch 40 — database/script safety: null checks for database-dummy/database-files params, atol→strtoll, c_content null checks, s_base null guards, mesh_generator_thread leak fix, numeric.h asserts, serialize.h writeF1000 clamp) |
+| FIX | 11 (v9.58 batch 41 — render/gui/env safety: assert→bounds check in pipeline, texture/shadow null checks, font null check, mods.cpp error handling, porting.cpp Windows API validation, serverenvironment null guards) |
+| FIX | 1 (v9.58 build fix — ClientInitializationError→comment, new throws on allocation failure) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
@@ -1090,3 +1097,92 @@ They are in Luanti-Secure-added code and should be fixed in a future version.
 | TODO | 3 | src/unittest/test_servermodmanager.cpp | 74 | test LUANTI_GAME_PATH | Open |
 | TODO | 3 | src/util/areastore.cpp | 59 | Compression? | Open |
 | TODO | 3 | util/wireshark/minetest.lua | 1402 | check if other parts of | Open |
+
+## Luanti-Secure v9.58 Fixes (66+ items, batches 34-41 + build fix)
+
+These improvements were made during v9.58 development. Both client and server build with zero errors.
+
+### Batch 34 — Memory Safety & RAII (14 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/util/bitmap.h` | 80 | `data.size() - 1` unsigned wraparound on empty container | Added `if (data.empty()) return true;` guard before loop | Fixed |
+| `src/irrlicht_changes/CGUITTFont.h` | 206 | `getLastGlyphPageIndex()` returns `UINT32_MAX` when empty | Return 0 for empty pages instead of `size() - 1` | Fixed |
+| `src/client/minimap.h` | 142 | `getMaxModeIndex()` returns wrapped value when empty | Return 0 for empty modes instead of `size() - 1` | Fixed |
+| `src/server/clientiface.cpp` | 53-56 | `state2Name()` no bounds check on state parameter | Added bounds check against `ARRLEN(statenames)`, returns "Unknown" | Fixed |
+| `src/server/clientiface.cpp` | 91-98 | `getAttachedObject()` infinite loop on circular parent chain | Added depth limit of 64 iterations | Fixed |
+| `src/server/player_sao.cpp` | 587-592 | `getInventoryLocation()` null-derefs `m_player` | Added null check before `m_player->getName()` | Fixed |
+| `src/server/rollback.cpp` | 346-359 | `sqlite3_column_text()` can return NULL → UB in `std::string` | Added null check, substitute empty string for NULL | Fixed |
+| `src/server/rollback.cpp` | 396-398 | `atoi()` silently returns 0 on invalid input | Replaced with `strtol()` for safer parsing | Fixed |
+| `src/server/clientiface.cpp` | 813-833 | Packet command not bounds-checked before indexing factory table | Added `cmd >= TOCLIENT_NUM_MSG_TYPES` check before indexing | Fixed |
+| `src/network/mtp/threads.cpp` | 216-223 | Double `dynamic_cast<UDPPeer*>` — result not stored | Store cast result and reuse, eliminating redundant cast | Fixed |
+| `src/network/mtp/threads.cpp` | 487 | `dynamic_cast<UDPPeer*>` without null check after bounds check | Added null check with error log and early return | Fixed |
+| `src/map.cpp` | 703-731 | `isOccluded()` near-zero distance causes extremely long loop | Added guard: `if (distance < 0.01f) return false;` | Fixed |
+| `src/client/sound/sound_manager.cpp` | 161-166 | OpenAL source leaked if `PlayingSound` constructor throws | Wrapped in try-catch, `alDeleteSources()` on exception | Fixed |
+| `src/client/sound/sound_manager.cpp` | 199 | Volume only clamped >= 0, no NaN/infinity check | Added `std::isfinite()` check, default to 1.0f for invalid values | Fixed |
+
+### Batch 35-36 — Thread Safety & Resource Leak Prevention (7 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/server/rollback.h/cpp` | 715-718 | `current_actor`/`current_actor_is_guess` accessed without mutex | Added `std::mutex m_actor_mutex` and `MutexAutoLock` in get/set methods | Fixed |
+| `src/client/content_cao.cpp` | 319-323 | `num_messages` from network not validated — truncated data risk | Added `is.eof() || is.fail()` check before each message deserialization | Fixed |
+| `src/server/player_sao.cpp` | 153-159 | `getNode()` called without checking `is_valid_position` | Use overload with `is_valid_position` pointer, fallback to `CONTENT_AIR` | Fixed |
+| `src/database/database-sqlite3.cpp` | 333-344 | `block` pointer dereferenced without null check in `loadBlock()` | Added null check at function start | Fixed |
+| `src/server/clientiface.cpp` | 841-846 | `getClientNoEx()` returns raw pointer after lock release | Added WARNING comment about raw pointer lifetime safety | Fixed |
+| `src/server.cpp` | ~612 | `m_liquid_transform_every` not upper-bounded | Changed from `std::max(..., 0.1f)` to `std::clamp(..., 0.1f, 60.0f)` | Fixed |
+| `src/client/client.cpp` | 335 | Redundant null check after `new` (which throws on failure) | Replaced `ClientInitializationError` throw with comment; `new` throws `std::bad_alloc` | Fixed |
+
+### Batch 37-38 — Input Validation & Bounds Checking (5 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/mapgen/mg_schematic.cpp` | 347 | Schematic nodecount could be 16M+ causing OOM | Added `SCHEM_NODECOUNT_LIMIT` (16M nodes max) check | Fixed |
+| `src/inventory.h` | 183-192 | `getItem()` uses `assert()` only — UB in release builds | Added runtime bounds check, returns static empty `ItemStack` for out-of-range | Fixed |
+| `src/server/player_sao.cpp` | 736-739 | Magic constant `0.0001f` for divide-by-zero guard | Named `static constexpr f32 ANTICHEAT_MIN_SPEED = 0.0001f` | Fixed |
+| `src/server.cpp` | ~907 | `m_mod_storage_save_timer` not lower-bounded | Added `std::max(..., 1.0f)` clamp to prevent continuous saves | Fixed |
+| `src/emerge.cpp` | — | EmergeManager destructor exception safety undocumented | Added documentation comment about graceful handling of partial initialization | Fixed |
+
+### Batch 39 — Game/Lua/Mapgen Safety (8 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/client/game.cpp` | 1298 | `1.0f / dtime` divide-by-zero when dtime is 0 | Added `dtime > 0.0f ? 1.0f / dtime : 0.0f` guard | Fixed |
+| `src/client/game.cpp` | 195 | `getLocalPlayer()` not null-checked before access | Added early return if local player is null | Fixed |
+| `src/script/lua_api/l_object.cpp` | 464 | Off-by-one: `lua_isnil(L, 2+1)` should be `2+i` | Fixed to `lua_isnil(L, 2+i)` — was always checking arg 3 instead of iterating | Fixed |
+| `src/script/lua_api/l_object.cpp` | 1152-1160 | `dynamic_cast<PlayerSAO*>` and `getPlayer()` not null-checked | Added null checks in `l_get_velocity()` for player disconnection | Fixed |
+| `src/script/lua_api/l_object.cpp` | 93 | `lua_touserdata(L, 1)` not null-checked in `gc_object()` | Added null guard for unexpected GC state | Fixed |
+| `src/mapgen/mapgen.cpp` | 806 | `dustTopNodes()` biome pointer not null-checked | Added null check before `biome->c_dust` access | Fixed |
+| `src/mapgen/mapgen.cpp` | 952 | `generateDungeons()` biome pointer not null-checked | Added null check, logs warning and returns early | Fixed |
+| `src/mapgen/mapgen.cpp` | 98 | `csize` components could overflow after `chunksize * MAP_BLOCKSIZE` | Added validation of csize components, resets to default on overflow | Fixed |
+
+### Batch 40 — Database/Script Safety (20 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/database/database-dummy.cpp` | multiple | Null pointer dereference on `block`, `player`, output params | Added null checks for all pointer parameters | Fixed |
+| `src/database/database-files.cpp` | multiple | Null check for `player`; `atol()` used without error checking | Added null check; replaced `atol()` with `strtoll()` + endptr validation | Fixed |
+| `src/script/common/c_content.cpp` | multiple | Null pointer for `prop` in push/read_object_properties; `lua_tostring()` can return NULL | Added null checks for prop and lua_tostring return values | Fixed |
+| `src/script/cpp_api/s_base.cpp` | multiple | `m_gamedef` not null-checked in `getClient()`; `getModVFS()` not null-safe | Added null checks for m_gamedef, getClient(), getSSCSMEnv() results | Fixed |
+| `src/client/mesh_generator_thread.cpp` | multiple | MeshMakeData null check missing; resource leak in error path | Added null check after allocation; fixed leak with `delete q->data` on error | Fixed |
+| `src/util/numeric.h` | multiple | `getContainerPos()` divide by zero; `get_bits()`/`set_bits()` shift UB | Added `assert(d != 0)` and position/length validation asserts | Fixed |
+| `src/util/serialize.h` | — | `writeF1000()` only has assert for range, no release-build guard | Added `core::clamp()` before multiplication for release build safety | Fixed |
+
+### Batch 41 — Render/GUI/Environment Safety (11 items)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/client/render/pipeline.cpp` | — | `assert()` for bounds check in `swapTextures()` — crashes in debug, silent UB in release | Replaced with proper bounds check + errorstream logging | Fixed |
+| `src/client/render/plain.cpp` | — | `lowres` texture not null-checked before `getSize()` | Added null check before dereference | Fixed |
+| `src/client/render/plain.cpp` | — | `context.shadow_renderer` not null-checked before `update()` | Added null check | Fixed |
+| `src/client/render/sidebyside.cpp` | — | `texture` not null-checked before `draw2DImage()` | Added null check | Fixed |
+| `src/gui/guiFormSpecMenu.cpp` | — | `font` not null-checked in `font_line_height()` | Added null check before dereferencing | Fixed |
+| `src/content/mods.cpp` | — | `readConfigFile()` return value not checked; mod path not validated | Added error handling for config file read; validate mod path | Fixed |
+| `src/porting.cpp` | — | Windows `GetFileVersionInfoSizeA()` returns 0 not checked; `VerQueryValueA()` result not validated | Added return value checks, fallback strings, and buffer cleanup | Fixed |
+| `src/serverenvironment.cpp` | — | `accessObjectProperties()` return not null-checked; `m_script` null in mapblocks path | Added null checks for properties and script pointer | Fixed |
+
+### Build Fix (1 item)
+
+| File | Line | Original Issue | Fix | Status |
+|------|------|----------------|-----|--------|
+| `src/client/client.cpp` | 337 | `ClientInitializationError` class does not exist | Removed the non-existent exception throw; `new` already throws `std::bad_alloc` on failure | Fixed |

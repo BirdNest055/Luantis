@@ -1,7 +1,7 @@
 # AI Codebase Reference — Luanti-Secure Project
 
 > **Purpose:** This file gives any AI agent a complete, self-contained picture of the current codebase state, all modifications made, key files, architecture, and how things connect. Read this first before working on any task.
-> **Last Updated:** 2026-05-03 | **Project Version:** v9.57
+> **Last Updated:** 2026-05-03 | **Project Version:** v9.58
 
 ---
 
@@ -22,7 +22,7 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 11. ECDH X25519 forward secrecy with TDD, wire protocol, test bug fixes (v9.11)
 
 **Repository:** https://github.com/BirdNest055/Luantis
-**Current branch:** `clawtest-v9.57-fix-todo-items-b22-27`
+**Current branch:** `clawtest-v9.58-batches-34-41`
 **Upstream:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 
 ---
@@ -43,7 +43,8 @@ This is **Luanti-Secure** — a fork of the **Luanti** (formerly Minetest) voxel
 - **`clawtest-v9.54-fix-todo-items` branch:** 140+ TODO/FIXME/compiler-warning/HACK fixes across 9 batches
 - **`clawtest-v9.55-fix-todo-items-2` branch:** 124 more TODO/FIXME/HACK fixes across 6 batches (10-15), zero TODO/FIXME/HACK markers remain in src/
 - **`clawtest-v9.56-fix-todo-items-b16-21` branch:** 120+ improvements across batches 16-21: null safety, const-correctness, dead code cleanup, serialization, error handling, network safety. Build tested: server compiles cleanly.
-- **`clawtest-v9.57-fix-todo-items-b22-27` branch:** Current — 340+ improvements across batches 22-45: crash prevention, memory safety/RAII, protocol robustness, Lua API safety, mapgen correctness, I/O hardening, string safety, container bounds, integer overflow, rendering safety, network hardening, thread safety, resource cleanup, settings validation, map integrity, script hardening, input safety, RAII/smart pointers (MapgenV7 unique_ptr, FileCloser, ALLOW_CLASS_MOVE noexcept), exception safety (assert→FATAL_ERROR, catch-all handler, destructor safety), deadlock prevention (Settings::operator= std::lock), type safety (reinterpret_cast→static_cast), LOG() macro removal (82 sites), log level fixes. Build tested: both client AND server compile with zero errors.
+- **`clawtest-v9.57-fix-todo-items-b22-27` branch:** 340+ improvements across batches 22-45: crash prevention, memory safety/RAII, protocol robustness, Lua API safety, mapgen correctness, I/O hardening, string safety, container bounds, integer overflow, rendering safety, network hardening, thread safety, resource cleanup, settings validation, map integrity, script hardening, input safety, RAII/smart pointers (MapgenV7 unique_ptr, FileCloser, ALLOW_CLASS_MOVE noexcept), exception safety (assert→FATAL_ERROR, catch-all handler, destructor safety), deadlock prevention (Settings::operator= std::lock), type safety (reinterpret_cast→static_cast), LOG() macro removal (82 sites), log level fixes. Build tested: both client AND server compile with zero errors.
+- **`clawtest-v9.58-batches-34-41` branch:** Current — 66+ improvements across batches 34-41: memory safety & RAII (unsigned wraparound guards, empty container checks, dynamic_cast null checks), thread safety (RollbackManager mutex), resource leak prevention (OpenAL source RAII, mesh generator leak fix), input validation (schematic nodecount OOM limit, inventory runtime bounds, atoi→strtol), game/lua/mapgen safety (divide-by-zero guards, off-by-one bug fix in l_set_local_animation, biome null checks), database/script safety (null guards across database and script APIs, strtoll validation), render/gui/env safety (assert→bounds check, texture/shadow/font null checks, Windows API validation). Build tested: both client AND server compile with zero errors.
 
 **Commit on clawtest-v9.57:**
 ```
@@ -341,6 +342,7 @@ Fully automated Linux build script with interactive menus. Supports Debian/Ubunt
 | v9.55 | `clawtest-v9.55-fix-todo-items-2` | 124 more TODO/FIXME/HACK fixes across batches 10-15 — script API, server, builtin/ Lua, irr/ Irrlicht, android, shaders, docs, games, util |
 | v9.56 | `clawtest-v9.56-fix-todo-items-b16-21` | 120+ improvements across batches 16-21 — null safety, const-correct overloads, dead code cleanup, serialization/safety, error handling, network safety, Wireshark dissector; build fix for const-correctness |
 | v9.57 | `clawtest-v9.57-fix-todo-items-b22-27` | 340+ improvements across batches 22-45 — crash prevention/null deref hardening, memory safety/RAII, protocol robustness/race conditions, Lua API safety/input validation, mapgen correctness/world integrity, I/O hardening/rendering safety, string safety/format validation, container bounds/iterator safety, integer overflow/arithmetic safety, file I/O error handling, client rendering/UI safety, protocol/network hardening, thread safety/concurrency, resource cleanup/destructor safety, configuration/settings validation, map/world data integrity, script API hardening, client input/event safety, RAII/smart pointers (MapgenV7 unique_ptr, FileCloser), exception safety (assert→FATAL_ERROR, catch-all handler), deadlock prevention (Settings::operator= std::lock), type safety (reinterpret_cast→static_cast, C-style→static_cast), LOG() macro removal, log level fixes; client+server build testing (both compile with zero errors) |
+| v9.58 | `clawtest-v9.58-batches-34-41` | 66+ improvements across batches 34-41 — memory safety/RAII (unsigned wraparound guards, empty container checks, bounds-checked array access, circular parent chain depth limits, null pointer guards, sqlite3_column_text null safety, atoi→strtol, packet command bounds, dynamic_cast null checks and reuse, distance guards, OpenAL source RAII cleanup, volume NaN/infinity validation), thread safety (RollbackManager actor mutex, stream validity checks, getNode is_valid_position, database null guards, settings clamping), input validation (schematic nodecount OOM limit, inventory getItem runtime bounds, named anticheat constants), game/lua/mapgen safety (divide-by-zero guards, null checks for player/dynamic_cast/getPlayer, off-by-one bug fix in l_set_local_animation, biome null checks, csize overflow validation), database/script safety (null checks for database params, atol→strtoll, c_content/s_base null guards, mesh_generator_thread leak fix, numeric.h asserts, serialize.h writeF1000 clamp), render/gui/env safety (assert→bounds check in pipeline, texture/shadow/font null checks, mods.cpp error handling, porting.cpp Windows API validation, serverenvironment null guards); client+server build testing (both compile with zero errors) |
 
 ### v9.3 Feature Summary
 - `EncryptionConfig` namespace — centralized encryption policy manager
