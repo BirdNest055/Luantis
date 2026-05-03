@@ -80,10 +80,7 @@ thread_local LogStream actionstream(action_target);
 thread_local LogStream infostream(info_target);
 thread_local LogStream verbosestream(verbose_target);
 thread_local LogStream tracestream(trace_target);
-#ifndef DISABLE_DEPRECATED_LOG_STREAMS
-thread_local LogStream derr_con(verbose_target);
-thread_local LogStream dout_con(trace_target);
-#endif
+
 
 // Android
 #ifdef __ANDROID__

@@ -193,20 +193,9 @@ extern thread_local LogStream actionstream;
 extern thread_local LogStream infostream;
 extern thread_local LogStream verbosestream;
 extern thread_local LogStream tracestream;
-// DEPRECATED: derr_con and dout_con are legacy connection debug streams.
-// Replace with warningstream/verbosestream/tracestream as appropriate.
-// derr_con → warningstream or errorstream (for errors/warnings)
-// dout_con → verbosestream or tracestream (for debug output)
-// Migration: search all call sites and replace derr_con/dout_con with the
-// appropriate stream. Once all references are removed, delete these externs
-// and their definitions in log.cpp. Blocked on: no current consumer audit.
-// Remaining users: src/network/mtp/threads.cpp, src/network/mtp/impl.cpp
-// (~70 call sites total). Define DISABLE_DEPRECATED_LOG_STREAMS to compile
-// them out once migration is complete.
-#ifndef DISABLE_DEPRECATED_LOG_STREAMS
-extern thread_local LogStream derr_con;
-extern thread_local LogStream dout_con;
-#endif
+// DEPRECATED: derr_con and dout_con were legacy connection debug streams.
+// Migrated in v9.60 to warningstream/tracestream in src/network/mtp/.
+// The externs and definitions have been removed.
 
 #define TRACESTREAM(x) do {     \
         if (tracestream) {      \
