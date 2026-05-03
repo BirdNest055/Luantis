@@ -118,13 +118,14 @@
 | `clawtest-v9.56-fix-todo-items-b16-21` | Code quality round 3 (120+ items, batches 16-21 — null safety, const-correctness, dead code, serialization, error handling) | `clawtest-v9.55-fix-todo-items-2` |
 | `clawtest-v9.57-fix-todo-items-b22-27` | Security & robustness round 4 (340+ items, batches 22-45 — crash prevention, memory safety, protocol robustness, Lua API safety, mapgen correctness, I/O hardening, string safety, container bounds, integer overflow, rendering safety, network hardening, thread safety, resource cleanup, settings validation, map integrity, script hardening, input safety, RAII/smart pointers, error handling, lock ordering, type safety, logging improvements) + client+server build testing | `clawtest-v9.56-fix-todo-items-b16-21` |
 | `clawtest-v9.58-batches-34-41` | Comprehensive functional safety (66+ items, batches 34-41 — memory safety/RAII, unsigned wraparound guards, container empty checks, circular parent chain depth limits, null pointer guards, sqlite3_column_text null safety, atoi→strtol, packet command bounds, dynamic_cast null checks, distance guards, OpenAL source RAII cleanup, volume NaN validation, RollbackManager mutex, stream validity, getNode is_valid_position, database null guards, settings clamping, schematic nodecount OOM limit, inventory runtime bounds, anticheat named constants, divide-by-zero guards, off-by-one bug fix in l_set_local_animation, biome null checks, database/script null checks, mesh generator leak fix, numeric asserts, render/gui/env null checks, Windows API validation) + client+server build testing | `clawtest-v9.57-fix-todo-items-b22-27` |
+| `clawtest-v9.59-fix-todo-items-b42-plus` | Resolve all remaining TODO items (17 items, batches 42-44 — thread-safe MapDatabaseAccessor wrappers, MeshGeneratorUpdateListener callback registration, particle spawner client tracking with targeted delete, SSCSMRequestPrint/Log deSerialize, push_TileAnimationParams Lua helper, read_pointed_thing_from_lua, InteractSound class implementation, lifecycle/documentation cleanup) + client+server build testing + irr SDL2 Debian build fix | `clawtest-v9.58-batches-34-41` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
 - Branch names include the version: `clawtest-v9.3`, `clawtest-v9.5`, `clawtest-v9.7`, `clawtest-v9.11`
 - Each version branch contains a self-contained, buildable state
 - Never merge forward until the current version is stable and tested
-- The current branch is `clawtest-v9.58-batches-34-41`
+- The current branch is `clawtest-v9.59-fix-todo-items-b42-plus`
 
 ### 3.2 Commit Conventions
 
@@ -319,11 +320,11 @@ When adding a new feature to this project, ensure ALL of these are done:
 ## 10. Repository Information
 
 - **GitHub URL:** https://github.com/BirdNest055/Luantis
-- **Current branch:** `clawtest-v9.58-batches-34-41`
+- **Current branch:** `clawtest-v9.59-fix-todo-items-b42-plus`
 - **Previous branch:** `clawtest-v9.57-fix-todo-items-b22-27`
 - **Upstream Luanti:** https://github.com/luanti-org/luanti (version 5.16.0-dev)
 - **License:** LGPL 2.1 (same as upstream Luanti)
-- **Current version:** v9.58
+- **Current version:** v9.59
 
 ---
 

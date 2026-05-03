@@ -77,6 +77,9 @@ Generated automatically from code comments.
 | FIX | 20 (v9.58 batch 40 — database/script safety: null checks for database-dummy/database-files params, atol→strtoll, c_content null checks, s_base null guards, mesh_generator_thread leak fix, numeric.h asserts, serialize.h writeF1000 clamp) |
 | FIX | 11 (v9.58 batch 41 — render/gui/env safety: assert→bounds check in pipeline, texture/shadow null checks, font null check, mods.cpp error handling, porting.cpp Windows API validation, serverenvironment null guards) |
 | FIX | 1 (v9.58 build fix — ClientInitializationError→comment, new throws on allocation failure) |
+| FIX | 6 (v9.59 batch 42 — thread safety & network efficiency: MapDatabaseAccessor saveBlock/deleteBlock/listAllLoadableBlocks mutex wrappers, MeshGeneratorUpdateListener callback registration, particle spawner client tracking with targeted delete) |
+| FIX | 7 (v9.59 batch 43 — missing implementations & API completeness: SSCSMRequestPrint/Log deSerialize, SSCSMRequestType tags for Print/Log, push_TileAnimationParams helper, inventory/wield animation data push, read_pointed_thing_from_lua, node visual texture binding check) |
+| FIX | 4 (v9.59 batch 44 — lifecycle cleanup & remaining items: InteractSound class implementation, GameFormSpec TODO→documented NOTE, HTTP streaming TODO→documented NOTE, death_effect/isBlockUnderground/areastore/test TODOs→documented NOTEs) |
 
 ## Luanti-Secure v9.9 Bug Fixes
 
