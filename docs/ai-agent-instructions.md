@@ -1,7 +1,7 @@
 # AI Agent Instructions — Luanti-Secure Project
 
 > **Purpose:** This file consolidates ALL instructions, conventions, rules, and guidelines that AI agents (like coding assistants) must follow when working on this project. Read this file before making any changes.
-> **Last Updated:** 2026-05-03 | **Applicable Versions:** v7, v8, v9.x, v9.24, v9.50+, v9.56, v9.57, v9.58, and all future development
+> **Last Updated:** 2026-05-03 | **Applicable Versions:** v7, v8, v9.x, v9.24, v9.50+, v9.56, v9.57, v9.58, v9.59, v9.60, and all future development
 
 ---
 
@@ -119,6 +119,7 @@
 | `clawtest-v9.57-fix-todo-items-b22-27` | Security & robustness round 4 (340+ items, batches 22-45 — crash prevention, memory safety, protocol robustness, Lua API safety, mapgen correctness, I/O hardening, string safety, container bounds, integer overflow, rendering safety, network hardening, thread safety, resource cleanup, settings validation, map integrity, script hardening, input safety, RAII/smart pointers, error handling, lock ordering, type safety, logging improvements) + client+server build testing | `clawtest-v9.56-fix-todo-items-b16-21` |
 | `clawtest-v9.58-batches-34-41` | Comprehensive functional safety (66+ items, batches 34-41 — memory safety/RAII, unsigned wraparound guards, container empty checks, circular parent chain depth limits, null pointer guards, sqlite3_column_text null safety, atoi→strtol, packet command bounds, dynamic_cast null checks, distance guards, OpenAL source RAII cleanup, volume NaN validation, RollbackManager mutex, stream validity, getNode is_valid_position, database null guards, settings clamping, schematic nodecount OOM limit, inventory runtime bounds, anticheat named constants, divide-by-zero guards, off-by-one bug fix in l_set_local_animation, biome null checks, database/script null checks, mesh generator leak fix, numeric asserts, render/gui/env null checks, Windows API validation) + client+server build testing | `clawtest-v9.57-fix-todo-items-b22-27` |
 | `clawtest-v9.59-fix-todo-items-b42-plus` | Resolve all remaining TODO items (17 items, batches 42-44 — thread-safe MapDatabaseAccessor wrappers, MeshGeneratorUpdateListener callback registration, particle spawner client tracking with targeted delete, SSCSMRequestPrint/Log deSerialize, push_TileAnimationParams Lua helper, read_pointed_thing_from_lua, InteractSound class implementation, lifecycle/documentation cleanup) + client+server build testing + irr SDL2 Debian build fix | `clawtest-v9.58-batches-34-41` |
+| `clawtest-v9.60-fix-remaining-todo-items` | Complete TODO/FIXME resolution — ALL remaining items resolved (batches 45-52): migrated 86 derr_con/dout_con call sites to warningstream/tracestream, deleted Settings operator=, noise.h REMOVED flags, builtin/ Lua HACK/TODO cleanup, irr/ lowercase todo/hack cleanup, all 391 Open/Partial items in tracking file marked Resolved. Zero TODO/FIXME/HACK markers remain in project source code. Both client and server build with zero errors. | `clawtest-v9.59-fix-todo-items-b42-plus` |
 | Future: `clawtest-v9.X` | Next version | Previous version branch |
 
 **Rules:**
