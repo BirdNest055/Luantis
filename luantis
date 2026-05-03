@@ -56,6 +56,9 @@
 
 set -uo pipefail
 
+# Enable pipefail so pipeline exit code reflects the failing command
+set -o pipefail
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -66,6 +69,15 @@ BIN_DIR="${SCRIPT_DIR}/bin"
 WORLD_BASE_DIR="${SCRIPT_DIR}/worlds"
 LOG_FILE="${SCRIPT_DIR}/luantis.log"
 DEPS_MANIFEST="${SCRIPT_DIR}/.build_deps_installed"
+
+# User-space prefix for locally-installed libraries (no root needed)
+# Checks: local-prefix/ next to script, then build/prefix/ (legacy)
+LOCAL_PREFIX=""
+if [[ -d "${SCRIPT_DIR}/local-prefix" ]]; then
+    LOCAL_PREFIX="${SCRIPT_DIR}/local-prefix"
+elif [[ -d "${BUILD_DIR}/prefix" ]]; then
+    LOCAL_PREFIX="${BUILD_DIR}/prefix"
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COLORS & STYLING
@@ -132,6 +144,18 @@ stop_spinner() {
 # TUI COMPONENTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Repeat a character N times (handles multibyte/Unicode correctly)
+# tr ' ' '─' breaks UTF-8 because tr works byte-by-byte
+repeat_char() {
+    local char="$1"
+    local count="$2"
+    local i result=""
+    for ((i=0; i<count; i++)); do
+        result+="${char}"
+    done
+    printf '%s' "$result"
+}
+
 # Clear screen
 clear_screen() {
     printf "\033[2J\033[H"
@@ -142,7 +166,7 @@ draw_hr() {
     local width="${1:-60}"
     local char="${2:-${HZ}}"
     local color="${3:-${DIM}}"
-    echo -e "${color}$(printf '%*s' "$width" '' | tr ' ' "$char")${NC}"
+    echo -e "${color}$(repeat_char "$char" "$width")${NC}"
 }
 
 # Draw a box with title
@@ -151,20 +175,20 @@ draw_box() {
     local width="${2:-60}"
     local color="${3:-${CYAN}}"
     
-    echo -e "${color}${TL}$(printf '%*s' "$((width-2))" '' | tr ' ' "$HZ")${TR}${NC}"
+    echo -e "${color}${TL}$(repeat_char "$HZ" $((width-2)))${TR}${NC}"
     if [[ -n "$title" ]]; then
         local pad=$(( (width - ${#title} - 4) / 2 ))
         [[ $pad -lt 0 ]] && pad=0
         local rpad=$(( width - ${#title} - 4 - pad ))
         echo -e "${color}${VT}${NC}$(printf '%*s' "$pad" '') ${BOLD}${title}${NC} $(printf '%*s' "$rpad" '')${color}${VT}${NC}"
-        echo -e "${color}${LT}$(printf '%*s' "$((width-2))" '' | tr ' ' "$HZ")${RT}${NC}"
+        echo -e "${color}${LT}$(repeat_char "$HZ" $((width-2)))${RT}${NC}"
     fi
 }
 
 draw_box_end() {
     local width="${1:-60}"
     local color="${2:-${CYAN}}"
-    echo -e "${color}${BL}$(printf '%*s' "$((width-2))" '' | tr ' ' "$HZ")${BR}${NC}"
+    echo -e "${color}${BL}$(repeat_char "$HZ" $((width-2)))${BR}${NC}"
 }
 
 # Print a menu item
@@ -213,7 +237,7 @@ progress_bar() {
     [[ $pct -lt 50 ]] && bar_color="${YELLOW}"
     [[ $pct -lt 25 ]] && bar_color="${RED}"
     
-    printf "  ${label} ${bar_color}$(printf '%*s' "$filled" '' | tr ' ' '█')${DIM}$(printf '%*s' "$empty" '' | tr ' ' '░')${NC} ${BOLD}%3d%%${NC}\n" "$pct"
+    printf "  ${label} ${bar_color}$(repeat_char '█' "$filled")${DIM}$(repeat_char '░' "$empty")${NC} ${BOLD}%3d%%${NC}\n" "$pct"
 }
 
 # Confirmation prompt
@@ -301,6 +325,25 @@ detect_distro() {
 }
 
 DISTRO="$(detect_distro)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# USER-SPACE PREFIX HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Augment PKG_CONFIG_PATH with any user-space prefix .pc directories
+# so that deps --check and CMake can find locally-installed libraries
+setup_pkg_config_path() {
+    local -a pc_dirs=()
+    for d in "${LOCAL_PREFIX}/lib/pkgconfig" "${LOCAL_PREFIX}/usr/lib/x86_64-linux-gnu/pkgconfig" "${LOCAL_PREFIX}/lib/x86_64-linux-gnu/pkgconfig"; do
+        [[ -d "$d" ]] && pc_dirs+=("$d")
+    done
+    if [[ "${#pc_dirs[@]}" -gt 0 ]]; then
+        local joined_pc
+        joined_pc="$(IFS=:; echo "${pc_dirs[*]}")"
+        export PKG_CONFIG_PATH="${joined_pc}:${PKG_CONFIG_PATH:-}"
+    fi
+}
+setup_pkg_config_path
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PACKAGE MANAGEMENT
@@ -396,9 +439,39 @@ CORE_DEPS_LIBS=(zlib libzstd sqlite3 gmp openssl jsoncpp luajit)
 CLIENT_DEPS_TOOLS=()
 CLIENT_DEPS_LIBS=(freetype2 gl sdl2 openal vorbis ogg jpeg png curl)
 
-# Server-only dependencies
+# Server-only dependencies (curl is shared with client; listed here for server-only builds)
 SERVER_DEPS_TOOLS=()
 SERVER_DEPS_LIBS=(curl ncurses)
+
+# Map logical lib name to pkg-config name
+# (Some .pc files use different names: curl→libcurl, png→libpng, jpeg→libjpeg)
+lib_to_pc() {
+    local lib="$1"
+    case "$lib" in
+        curl)       echo "libcurl" ;;
+        png)        echo "libpng" ;;
+        jpeg)       echo "libjpeg" ;;
+        ncurses)    echo "ncursesw" ;;
+        *)          echo "$lib" ;;
+    esac
+}
+
+# Check if a library is available via pkg-config (tries both logical and mapped name)
+pc_exists() {
+    local lib="$1"
+    local pc_name
+    pc_name="$(lib_to_pc "$lib")"
+    # Try the mapped name first, then the raw name as fallback
+    pkg-config --exists "$pc_name" 2>/dev/null || pkg-config --exists "$lib" 2>/dev/null
+}
+
+# Get the modversion of a library via pkg-config
+pc_modversion() {
+    local lib="$1"
+    local pc_name
+    pc_name="$(lib_to_pc "$lib")"
+    pkg-config --modversion "$pc_name" 2>/dev/null || pkg-config --modversion "$lib" 2>/dev/null || echo "?"
+}
 
 # Map logical lib name to distro package name
 lib_to_pkg() {
@@ -555,6 +628,10 @@ deps_check() {
     echo ""
     kv "Distribution" "$DISTRO"
     kv "Target" "$target"
+    # Show if user-space prefix is active
+    if [[ -d "${LOCAL_PREFIX}" ]]; then
+        kv "User Prefix" "${LOCAL_PREFIX}"
+    fi
     echo ""
     draw_hr 60
     echo ""
@@ -585,9 +662,9 @@ deps_check() {
     echo -e "  ${BOLD}Core Libraries:${NC}"
     for lib in "${CORE_DEPS_LIBS[@]}"; do
         total=$((total + 1))
-        if pkg-config --exists "$lib" 2>/dev/null; then
+        if pc_exists "$lib" 2>/dev/null; then
             local ver
-            ver="$(pkg-config --modversion "$lib" 2>/dev/null || echo "?")"
+            ver="$(pc_modversion "$lib")"
             echo -e "    ${BGREEN}✓${NC} ${lib}  ${DIM}${ver}${NC}"
             found=$((found + 1))
         else
@@ -605,9 +682,9 @@ deps_check() {
         echo -e "  ${BOLD}Client Libraries:${NC}"
         for lib in "${CLIENT_DEPS_LIBS[@]}"; do
             total=$((total + 1))
-            if pkg-config --exists "$lib" 2>/dev/null; then
+            if pc_exists "$lib" 2>/dev/null; then
                 local ver
-                ver="$(pkg-config --modversion "$lib" 2>/dev/null || echo "?")"
+                ver="$(pc_modversion "$lib")"
                 echo -e "    ${BGREEN}✓${NC} ${lib}  ${DIM}${ver}${NC}"
                 found=$((found + 1))
             else
@@ -626,9 +703,9 @@ deps_check() {
         echo -e "  ${BOLD}Server Libraries:${NC}"
         for lib in "${SERVER_DEPS_LIBS[@]}"; do
             total=$((total + 1))
-            if pkg-config --exists "$lib" 2>/dev/null; then
+            if pc_exists "$lib" 2>/dev/null; then
                 local ver
-                ver="$(pkg-config --modversion "$lib" 2>/dev/null || echo "?")"
+                ver="$(pc_modversion "$lib")"
                 echo -e "    ${BGREEN}✓${NC} ${lib}  ${DIM}${ver}${NC}"
                 found=$((found + 1))
             else
@@ -656,7 +733,16 @@ deps_check() {
         echo -e "  ${CYAN}./luantis deps --install${NC}"
         echo ""
         if [[ "${#missing_list[@]}" -gt 0 ]]; then
-            echo -e "  ${DIM}Missing packages: ${missing_list[*]}${NC}"
+            # De-duplicate missing packages (e.g., curl in both client/server deps)
+            declare -A seen_missing
+            local -a unique_missing=()
+            for pkg in "${missing_list[@]}"; do
+                if [[ -z "${seen_missing[$pkg]:-}" ]]; then
+                    seen_missing[$pkg]=1
+                    unique_missing+=("$pkg")
+                fi
+            done
+            echo -e "  ${DIM}Missing packages: ${unique_missing[*]}${NC}"
         fi
     fi
     
@@ -686,7 +772,7 @@ deps_install() {
     done
     
     for lib in "${CORE_DEPS_LIBS[@]}"; do
-        if ! pkg-config --exists "$lib" 2>/dev/null; then
+        if ! pc_exists "$lib" 2>/dev/null; then
             local pkg
             pkg="$(lib_to_pkg "$lib")"
             [[ -n "$pkg" ]] && missing_pkgs+=("$pkg")
@@ -695,7 +781,7 @@ deps_install() {
     
     if [[ "$target" == "client" || "$target" == "both" ]]; then
         for lib in "${CLIENT_DEPS_LIBS[@]}"; do
-            if ! pkg-config --exists "$lib" 2>/dev/null; then
+            if ! pc_exists "$lib" 2>/dev/null; then
                 local pkg
                 pkg="$(lib_to_pkg "$lib")"
                 [[ -n "$pkg" ]] && missing_pkgs+=("$pkg")
@@ -705,7 +791,7 @@ deps_install() {
     
     if [[ "$target" == "server" || "$target" == "both" ]]; then
         for lib in "${SERVER_DEPS_LIBS[@]}"; do
-            if ! pkg-config --exists "$lib" 2>/dev/null; then
+            if ! pc_exists "$lib" 2>/dev/null; then
                 local pkg
                 pkg="$(lib_to_pkg "$lib")"
                 [[ -n "$pkg" ]] && missing_pkgs+=("$pkg")
@@ -718,6 +804,17 @@ deps_install() {
         draw_box_end 60 "${GREEN}"
         return 0
     fi
+    
+    # De-duplicate package list (e.g., curl appears in both client and server deps)
+    local -a unique_pkgs=()
+    declare -A seen_pkgs
+    for pkg in "${missing_pkgs[@]}"; do
+        if [[ -z "${seen_pkgs[$pkg]:-}" ]]; then
+            seen_pkgs[$pkg]=1
+            unique_pkgs+=("$pkg")
+        fi
+    done
+    missing_pkgs=("${unique_pkgs[@]}")
     
     echo -e "  ${BOLD}Packages to install (${#missing_pkgs[@]}):${NC}"
     echo ""
@@ -922,14 +1019,14 @@ cmd_build() {
             fi
         done
         for lib in "${CORE_DEPS_LIBS[@]}"; do
-            if ! pkg-config --exists "$lib" 2>/dev/null; then
+            if ! pc_exists "$lib" 2>/dev/null; then
                 missing=$((missing + 1))
             fi
         done
         
         if [[ "$target" == "client" || "$target" == "both" ]]; then
             for lib in "${CLIENT_DEPS_LIBS[@]}"; do
-                if ! pkg-config --exists "$lib" 2>/dev/null; then
+                if ! pc_exists "$lib" 2>/dev/null; then
                     missing=$((missing + 1))
                 fi
             done
@@ -937,7 +1034,7 @@ cmd_build() {
         
         if [[ "$target" == "server" || "$target" == "both" ]]; then
             for lib in "${SERVER_DEPS_LIBS[@]}"; do
-                if ! pkg-config --exists "$lib" 2>/dev/null; then
+                if ! pc_exists "$lib" 2>/dev/null; then
                     missing=$((missing + 1))
                 fi
             done
@@ -981,18 +1078,47 @@ cmd_build() {
     
     # Local prefix for user-space deps
     if [[ -z "$local_prefix" ]]; then
-        # Auto-detect
-        if [[ -d "${BUILD_DIR}/prefix" ]]; then
-            local_prefix="${BUILD_DIR}/prefix"
+        # Use the globally detected LOCAL_PREFIX (which checks local-prefix/ then build/prefix/)
+        if [[ -n "${LOCAL_PREFIX}" ]]; then
+            local_prefix="${LOCAL_PREFIX}"
         fi
     fi
     
     if [[ -n "$local_prefix" ]]; then
+        # Collect all library directories from the prefix (handles both lib/ and usr/lib/... layouts)
+        local -a prefix_lib_dirs=()
+        for d in "${local_prefix}/lib" "${local_prefix}/usr/lib/x86_64-linux-gnu" "${local_prefix}/lib/x86_64-linux-gnu"; do
+            [[ -d "$d" ]] && prefix_lib_dirs+=("$d")
+        done
+
+        local linker_lib_flags=""
+        for d in "${prefix_lib_dirs[@]}"; do
+            linker_lib_flags+=" -L${d}"
+        done
+
+        # CMAKE_PREFIX_PATH needs to include both the prefix root and usr/ subdirectory
+        # (deb-extracted packages put headers in usr/include and libs in usr/lib/)
+        local cmake_prefix_path="$local_prefix"
+        if [[ -d "${local_prefix}/usr" ]]; then
+            cmake_prefix_path="${local_prefix}/usr;${local_prefix}"
+        fi
+
         cmake_args+=(
-            -DCMAKE_PREFIX_PATH="$local_prefix"
-            -DCMAKE_EXE_LINKER_FLAGS="-L/usr/lib/x86_64-linux-gnu -L${local_prefix}/lib -Wl,--no-as-needed -lbrotlidec -lbrotlicommon"
+            -DCMAKE_PREFIX_PATH="${cmake_prefix_path}"
+            -DCMAKE_EXE_LINKER_FLAGS="-L/usr/lib/x86_64-linux-gnu${linker_lib_flags} -Wl,--no-as-needed -lbrotlidec -lbrotlicommon"
             -DUSE_SHARED_FREETYPE=ON
         )
+
+        # Also set PKG_CONFIG_PATH so CMake's FindPkgConfig can locate prefix .pc files
+        local -a pc_dirs=()
+        for d in "${prefix_lib_dirs[@]}"; do
+            [[ -d "${d}/pkgconfig" ]] && pc_dirs+=("${d}/pkgconfig")
+        done
+        if [[ "${#pc_dirs[@]}" -gt 0 ]]; then
+            local joined_pc
+            joined_pc="$(IFS=:; echo "${pc_dirs[*]}")"
+            cmake_args+=(-DPKG_CONFIG_PATH="${joined_pc}:${PKG_CONFIG_PATH:-}")
+        fi
     fi
     
     # Show build summary
@@ -1034,13 +1160,31 @@ cmd_build() {
     local -a build_cmd=(cmake --build . --parallel "$jobs")
     [[ -n "$build_target" ]] && build_cmd+=("--target" "$build_target")
     
+    # Use process substitution to preserve the build command's exit code
+    # (pipefail alone is insufficient because tee may succeed even if build fails,
+    #  and grep filtering can swallow the real exit code)
+    local build_result=0
     if [[ "$verbose" -eq 1 ]]; then
-        "${build_cmd[@]}" 2>&1 | tee -a "$LOG_FILE"
+        "${build_cmd[@]}" 2>&1 | tee -a "$LOG_FILE" || build_result=$?
     else
         "${build_cmd[@]}" 2>&1 | tee -a "$LOG_FILE" | grep -E '(error|Error|warning|Warning|\[.*%\])' || true
+        # grep may mask the real exit code; check the binary existence instead
     fi
     
-    local build_result=$?
+    # If tee reported success, verify the binary actually exists as a sanity check
+    if [[ "$build_result" -eq 0 ]]; then
+        case "$target" in
+            client)
+                [[ -x "${BIN_DIR}/luanti" ]] || build_result=1
+                ;;
+            server)
+                [[ -x "${BIN_DIR}/luantiserver" ]] || build_result=1
+                ;;
+            both)
+                { [[ -x "${BIN_DIR}/luanti" ]] && [[ -x "${BIN_DIR}/luantiserver" ]]; } || build_result=1
+                ;;
+        esac
+    fi
     cd "$SCRIPT_DIR"
     
     echo ""
@@ -1285,7 +1429,7 @@ cmd_status() {
         fi
     done
     for lib in "${CORE_DEPS_LIBS[@]}"; do
-        if ! pkg-config --exists "$lib" 2>/dev/null; then
+        if ! pc_exists "$lib" 2>/dev/null; then
             missing=$((missing + 1))
         fi
     done
@@ -1783,7 +1927,23 @@ cmd_clean() {
     done
     
     step "Cleaning build directory..."
+    # Preserve any user-space prefix directory inside build/ (build/prefix/)
+    # Note: local-prefix/ at the project root is NOT affected since it's outside build/
+    local prefix_backup=""
+    if [[ -d "${BUILD_DIR}/prefix" ]]; then
+        prefix_backup="$(mktemp -d /tmp/luantis_prefix_XXXXXX)"
+        step "Preserving user-space prefix at ${BUILD_DIR}/prefix..."
+        # Copy contents of prefix dir into backup (not the dir itself)
+        cp -a "${BUILD_DIR}/prefix/." "${prefix_backup}/" || warn "Failed to backup prefix"
+    fi
     rm -rf "$BUILD_DIR"
+    if [[ -n "$prefix_backup" && -d "$prefix_backup" ]]; then
+        mkdir -p "${BUILD_DIR}/prefix"
+        # Restore prefix contents from backup
+        cp -a "${prefix_backup}/." "${BUILD_DIR}/prefix/" || warn "Failed to restore prefix"
+        rm -rf "$prefix_backup"
+        success "User-space prefix preserved."
+    fi
     success "Build directory cleaned."
     
     if [[ "$deep" -eq 1 ]]; then
