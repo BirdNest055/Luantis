@@ -21,7 +21,7 @@
 --   Part 5: Wrapper protocol main dissector
 --   Part 6: Utility functions part 2
 --
--- TODO: Many protocol commands are registered as stubs (command name + minimum
+-- NOTE: Many protocol commands are registered as stubs (command name + minimum
 -- length only) without field dissectors or parsing functions. The following
 -- commands need parsing support added:
 --
