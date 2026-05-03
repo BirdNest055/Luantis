@@ -90,16 +90,11 @@ ItemStack &Player::getWieldedItem(ItemStack *selected, ItemStack *hand) const
 {
         assert(selected);
 
-        // NOTE: The inventory list name "main" is hardcoded here. Some mods may use
-        // different inventory structures (e.g., custom list names for wield items).
-        // Root cause: Player::getWieldedItem() assumes the wielded item comes from
-        // the "main" list at index m_wield_index. There is no setting or API to
-        // configure the source list name.
-        // Proposed fix: Add a string member (e.g., m_wield_list_name, default "main")
-        // that mods can set via a Lua API (player:set_wield_list("custom_list")).
-        // The server would validate the list exists in the player's inventory and
-        // fall back to "main" if not. This requires a protocol addition to sync
-        // the list name to the client, so it is blocked on a network version bump.
+        // NOTE: The inventory list name "main" is hardcoded here because the
+        // client-server protocol has no field for specifying a custom wield list.
+        // Changing this would require a network protocol version bump to add a
+        // wield list name to the player entity message, so it remains hardcoded
+        // until a breaking protocol change is scheduled.
         const InventoryList *mlist = inventory.getList("main");
         const InventoryList *hlist = inventory.getList("hand");
 

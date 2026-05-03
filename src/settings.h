@@ -120,7 +120,7 @@ public:
         Settings(std::string_view end_tag, SettingsHierarchy *h, int settings_layer);
         ~Settings();
 
-        Settings & operator=(const Settings &other);
+        Settings & operator=(const Settings &other) = delete;
 
         /***********************
          * Reading and writing *

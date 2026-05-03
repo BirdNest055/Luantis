@@ -119,33 +119,7 @@ Settings::~Settings()
 }
 
 
-Settings & Settings::operator=(const Settings &other)
-{
-        if (&other == this)
-                return *this;
-
-        // NOTE: This copy assignment operator should be deleted (= delete).
-        // Settings objects should not be copied — use references or pointers.
-        // The FATAL_ERROR_IF guard below prevents copying of hierarchical Settings
-        // at runtime, but a compile-time check (deleted operator=) would be better.
-        // Migration plan: Audit all call sites that copy Settings objects (grep for
-        // "Settings " and "= other_settings"). Convert them to use const Settings&
-        // or Settings*. Once all copies are eliminated, delete this operator.
-        // The main blocker is code like: Settings s = *g_settings; which must be
-        // changed to: const Settings &s = *g_settings;
-        FATAL_ERROR_IF(m_hierarchy || other.m_hierarchy,
-                "Cannot copy or overwrite Settings object that belongs to a hierarchy");
-
-        std::lock(m_mutex, other.m_mutex);
-        MutexAutoLock lock(m_mutex, std::adopt_lock);
-        MutexAutoLock lock2(other.m_mutex, std::adopt_lock);
-
-        clearNoLock();
-        m_settings = other.m_settings;
-        m_callbacks = other.m_callbacks;
-
-        return *this;
-}
+Settings &Settings::operator=(const Settings &other) = delete;
 
 
 bool Settings::checkNameValid(std::string_view name)
@@ -911,7 +885,10 @@ bool Settings::setGroup(const std::string &name, const Settings &group)
         // Settings must own the group pointer
         // avoid double-free by copying the source
         Settings *copy = new Settings();
-        *copy = group;
+        {
+                MutexAutoLock lock(group.m_mutex);
+                copy->m_settings = group.m_settings;
+        }
         return setEntry(name, &copy, true);
 }
 
