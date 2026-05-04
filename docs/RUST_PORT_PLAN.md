@@ -1095,4 +1095,134 @@ These are the monolithic files that will require the most careful decomposition:
 
 ---
 
+## 15. Performance ROI Analysis — Easy Changes, Big Wins
+
+This section answers: **Which specific files are easiest to change/port and promise the biggest performance improvement?** Files are ranked by Return On Investment (ROI), combining ease-of-change (few dependencies, self-contained) with performance impact (hot path, frequently called, computationally intensive).
+
+### 15.1 Top 10 Files by Performance ROI
+
+| Rank | File | Lines | #includes | Hot Path? | Self-Contained? | Perf Gain | ROI Score |
+|------|------|-------|-----------|-----------|-----------------|-----------|-----------|
+| 1 | `noise.cpp` | 750 | 5 | CRITICAL (mapgen) | Yes | Very High | **10/10** |
+| 2 | `util/serialize.h` | 492 | 9 | CRITICAL (millions of calls) | Yes | High | **9/10** |
+| 3 | `light.cpp` | 92 | 5 | CRITICAL (per-node) | Yes | Very High | **9/10** |
+| 4 | `util/numeric.h` | 519 | 9 | CRITICAL (every collision/render) | Yes | High | **8/10** |
+| 5 | `serialization.cpp` | 369 | 6 | HOT (all I/O) | Yes | High | **8/10** |
+| 6 | `collision.cpp` | 688 | 15 | CRITICAL (per-entity/tick) | Moderate | Very High | **7/10** |
+| 7 | `voxelalgorithms.cpp` | 1,309 | 5 | HOT (mapgen/lighting) | Yes | High | **7/10** |
+| 8 | `network/networkpacket.cpp` | 526 | 4 | HOT (every packet) | Yes | High | **7/10** |
+| 9 | `mapgen/cavegen.cpp` | 913 | 6 | HOT (mapgen) | Yes | High | **6/10** |
+| 10 | `pathfinder.cpp` | 1,419 | 4 | On-demand | Yes | Medium-High | **6/10** |
+
+### 15.2 Why Each File Is a Top ROI Target
+
+#### #1: `noise.cpp` — The Biggest Win Per Line Changed
+
+- **Why easy**: Only 5 includes, depends on debug + util/numeric + util/string. No class hierarchies.
+- **Why big perf**: `valueMap2D()` and `valueMap3D()` iterate over 80x80x80 grids doing bilinear/trilinear interpolation. `updateResults()` has 4 nearly-identical code paths that are **embarrassingly SIMD-vectorizable**. Mapgen accounts for 30-40% of server CPU during chunk loading bursts.
+- **Expected Rust improvement**: 4-8x on `valueMap3D` via `std::simd` or `packed_simd2`. Additional 2x from `rayon` parallel chunk generation.
+- **Benchmark**: `benchmark_lighting`, `benchmark_map`
+
+#### #2: `util/serialize.h` — The Most-Called Function in the Engine
+
+- **Why easy**: Header-only inline byte-swapping functions. Zero external deps beyond `irrlichttypes`. Pure functions.
+- **Why big perf**: `readU16`/`writeU32` etc. are called millions of times for every network packet and every map block save/load. Currently uses manual shift-and-mask (`(buf[0] << 8) | buf[1]`).
+- **Expected Rust improvement**: `u16::from_le_bytes()` compiles to a single `mov` + `bswap` on x86 — 2-3x fewer instructions per call. Over millions of calls, this adds up significantly.
+- **Benchmark**: `benchmark_serialize`
+
+#### #3: `light.cpp` — Tiny File, Massive Impact
+
+- **Why easy**: Only 92 lines, 5 includes. Minimal deps (irrlichttypes, nodedef). Nearly standalone.
+- **Why big perf**: Light propagation is per-node, called for every block that changes. This is one of the hottest functions in the entire engine for both client and server.
+- **Expected Rust improvement**: SIMD `u8x16` for the BFS queue (process 16 nodes at once). Lookup table pre-computation via `const eval`. Parallel reflow via `rayon` across columns. Expected 3-5x improvement.
+- **Caveat**: Depends on MapNode/NodeDef types (Phase 11 in the full plan), but the core algorithm can be prototyped independently.
+
+#### #4: `util/numeric.h` — Called Everywhere, Zero-Cost in Rust
+
+- **Why easy**: Header-only inline math functions. 9 includes. Pure functions.
+- **Why big perf**: `floatToInt()`, `intToFloat()`, `rangelim()`, `myround()` are used in every collision detection call, every rendering frame, and every network packet. The C++ compiler may not inline these across translation units.
+- **Expected Rust improvement**: Rust monomorphization guarantees inlining. `glam` provides SIMD-optimized replacements for all float math. `clamp()` is a single CPU instruction on modern hardware.
+
+#### #5: `serialization.cpp` — The Compression Bottleneck
+
+- **Why easy**: Only 6 includes. Thin wrapper around zlib/zstd. Self-contained.
+- **Why big perf**: Every map block save/load goes through this file. Every network packet with compression. The current `decompressZlib()` uses `is.unget()` in a loop — this is catastrophically slow (per-byte virtual call on the stream).
+- **Expected Rust improvement**: Replace `unget()` loop with `&[u8]` slice position tracking (zero-cost indexing). Use `flate2::read::ZlibDecoder` which is optimized. Expected 2-3x on decompression alone.
+
+#### #6: `collision.cpp` — The Per-Tick Per-Entity Bottleneck
+
+- **Why moderate**: 15 includes. Depends on map, nodedef, environment, profiler. Entangled but the inner `axisAlignedCollision()` is self-contained.
+- **Why big perf**: Called once per entity per server tick. `axisAlignedCollision()` has 3 nearly identical code blocks for X/Y/Z axes that could be processed in a single SIMD lane.
+- **Strategy**: Port `axisAlignedCollision()` as a standalone Rust function with C FFI first. Call it from existing C++ collision.cpp. Then port the full file once dependencies are resolved.
+- **Expected Rust improvement**: 3x via SIMD `f32x3` for X/Y/Z axes. Additional improvement from SOA (Struct of Arrays) layout for collision box lists enabling cache-friendly SIMD iteration.
+
+#### #7: `voxelalgorithms.cpp` — Pure Algorithmic Code
+
+- **Why easy**: Only 5 includes. Nearly standalone. No rendering or networking deps.
+- **Why big perf**: `blitBackWithLight()` has a nested loop over 16x16x16 blocks. Used in mapgen and lighting calculations.
+- **Expected Rust improvement**: SIMD-parallelize the light comparison in `blitBackWithLight()`. Use `rayon` for parallel voxel operations across independent blocks.
+
+#### #8: `network/networkpacket.cpp` — The Packet Construction Hot Path
+
+- **Why easy**: Only 4 includes. The most self-contained networking file.
+- **Why big perf**: Every single network packet (hundreds per second per player) goes through this file for construction and parsing.
+- **Expected Rust improvement**: Replace `std::vector<u8>` growth with `Vec::with_capacity()` — eliminates realloc on packet construction. Zero-copy parsing via `&[u8]` slices instead of copying into vector.
+
+#### #9: `mapgen/cavegen.cpp` — Cave Carving Inner Loop
+
+- **Why easy**: Only 6 includes. Self-contained algorithm.
+- **Why big perf**: Cave generation iterates over noise values carving out voxel data. Called for every chunk during mapgen.
+- **Expected Rust improvement**: SIMD for the noise-to-voxel mapping loop. `rayon` for parallel cave generation across chunks.
+
+#### #10: `pathfinder.cpp` — A* With Better Data Structures
+
+- **Why easy**: Only 4 includes. Fully standalone. No game logic dependencies.
+- **Why big perf**: A* pathfinding is used by mobs and navigation. Currently uses `std::priority_queue` with `std::unordered_map` for the visited set.
+- **Expected Rust improvement**: Replace `priority_queue` with Rust's `BinaryHeap` (faster due to no indirection). Use `rustc_hash::FxHashMap` for the visited set (2-3x faster than `std::unordered_map` for integer keys).
+
+### 15.3 Performance Anti-Patterns Found in the Codebase
+
+| # | Anti-Pattern | File | Impact | Rust Fix |
+|---|-------------|------|--------|----------|
+| 1 | `ostringstream` in inline functions | `util/string.h` | Heap allocation per call | `std::to_string()` or `fmt::format_int` (stack-based) |
+| 2 | `is.unget()` in decompression loop | `serialization.cpp` | Per-byte virtual call | Position tracking in `&[u8]` slice |
+| 3 | Scalar X/Y/Z in collision | `collision.cpp` | 3x redundant code | SIMD `f32x3` single-lane processing |
+| 4 | Linear biome scan | `mapgen/mg_biome.cpp` | O(n) per column | `HashMap` or sorted + binary search O(log n) |
+| 5 | Manual shift-and-mask byte swap | `util/serialize.h` | 3-5 instructions per value | `from_le_bytes()` → 1-2 instructions |
+| 6 | `std::vector` growth in packet build | `network/networkpacket.cpp` | Realloc per packet | `Vec::with_capacity()` pre-allocation |
+| 7 | `std::unordered_map` for visited set | `pathfinder.cpp` | Slow hash + indirection | `FxHashMap` with integer hash |
+| 8 | No SIMD in noise interpolation | `noise.cpp` | Scalar float loops | `f32x4`/`f32x8` SIMD lanes |
+| 9 | `thread_local` vector reuse only | `collision.cpp` | Good but limited | SOA layout for SIMD-friendly iteration |
+| 10 | Schematic re-parsed every load | `mapgen/mg_schematic.cpp` | Redundant I/O + parsing | `once_cell::sync::Lazy` permanent cache |
+
+### 15.4 Existing Benchmarks (Use These to Validate)
+
+The codebase already has benchmarks in `src/benchmark/`:
+
+| Benchmark File | What It Tests | Relevant To |
+|---------------|---------------|-------------|
+| `benchmark_serialize.cpp` | Serialization speed | `util/serialize.h`, `serialization.cpp` |
+| `benchmark_sha.cpp` | SHA hashing | `util/sha1.cpp` |
+| `benchmark_lighting.cpp` | Light propagation | `light.cpp`, `noise.cpp` |
+| `benchmark_map.cpp` | Map block operations | `map.cpp`, `mapblock.cpp` |
+| `benchmark_mapblock.cpp` | MapBlock serialization | `mapblock.cpp`, `serialization.cpp` |
+| `benchmark_mapmodify.cpp` | Map modification + collision | `collision.cpp`, `mapnode.cpp` |
+| `benchmark_activeobjectmgr.cpp` | Active object management | `server/activeobjectmgr.cpp` |
+
+**Rule**: Every Rust port must be validated against these benchmarks. The Rust version must measure equal to or faster than the C++ version on each benchmark before the C++ code is removed.
+
+### 15.5 Quick-Win Action Plan (First 2 Weeks)
+
+If you want maximum performance improvement with minimum effort, do these **five files** first:
+
+1. **Port `util/serialize.h`** (2-3 days) — Replace shift-and-mask with `from_le_bytes()`. Validate with `benchmark_serialize`.
+2. **Port `util/numeric.h`** (1-2 days) — Replace inline math with `glam` equivalents. Validate with `benchmark_map`.
+3. **Port `serialization.cpp`** (2-3 days) — Fix `decompressZlib` `unget()` anti-pattern. Validate with `benchmark_mapblock`.
+4. **Port `noise.cpp`** (3-5 days) — SIMD-vectorize `valueMap3D`. Validate with `benchmark_lighting`.
+5. **Port `network/networkpacket.cpp`** (2-3 days) — Replace vector growth with pre-allocation. Validate with network throughput test.
+
+**Total estimated effort**: 10-16 days for measurable, benchmarked performance improvements across the entire engine.
+
+---
+
 *This plan is a living document. As each phase is completed, update the status and adjust estimates based on actual experience.*
