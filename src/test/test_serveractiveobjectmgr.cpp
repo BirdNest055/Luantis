@@ -265,7 +265,7 @@ SECTION("get added active objects around pos") {
         }
 
         std::vector<u16> result;
-        std::set<u16> cur_objects;
+        std::unordered_set<u16> cur_objects;
         saomgr.getAddedActiveObjectsAroundPos(v3f(), "singleplayer", 100, 50, cur_objects, result);
         CHECK(result.size() == 1);
 

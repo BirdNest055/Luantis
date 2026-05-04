@@ -461,7 +461,7 @@ IncomingSplitBuffer::~IncomingSplitBuffer()
         }
         // Batch 35: Swap-and-release — frees map capacity immediately
         // instead of keeping memory allocated for split packet buffer.
-        std::map<u16, IncomingSplitPacket *> empty;
+        std::unordered_map<u16, IncomingSplitPacket *> empty;
         std::swap(m_buf, empty);
 }
 

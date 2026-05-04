@@ -7,6 +7,7 @@
 #include <memory> // std::unique_ptr
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility> // std::function
 #include <vector>
 
@@ -48,9 +49,9 @@ public:
         void update(std::vector<PlayerSAO*> &active_players,
                 s16 active_block_range,
                 s16 active_object_range,
-                std::set<v3s16> &blocks_removed,
-                std::set<v3s16> &blocks_added,
-                std::set<v3s16> &extra_blocks_added);
+                std::unordered_set<v3s16> &blocks_removed,
+                std::unordered_set<v3s16> &blocks_added,
+                std::unordered_set<v3s16> &extra_blocks_added);
 
         bool contains(v3s16 p) const {
                 return (m_list.find(p) != m_list.end());
@@ -79,12 +80,12 @@ public:
         }
 
         // list of all active blocks
-        std::set<v3s16> m_list;
+        std::unordered_set<v3s16> m_list;
         // list of blocks for ABM processing
         // subset of `m_list` that does not contain view cone affected blocks
-        std::set<v3s16> m_abm_list;
+        std::unordered_set<v3s16> m_abm_list;
         // list of blocks that are always active, not modified by this class
-        std::set<v3s16> m_forceloaded_list;
+        std::unordered_set<v3s16> m_forceloaded_list;
 };
 
 /*
@@ -194,7 +195,7 @@ public:
         */
         void getAddedActiveObjects(PlayerSAO *playersao, s16 radius,
                 s16 player_radius,
-                const std::set<u16> &current_objects,
+                const std::unordered_set<u16> &current_objects,
                 std::vector<u16> &added_objects);
 
         /*
@@ -203,7 +204,7 @@ public:
         */
         void getRemovedActiveObjects(PlayerSAO *playersao, s16 radius,
                 s16 player_radius,
-                const std::set<u16> &current_objects,
+                const std::unordered_set<u16> &current_objects,
                 std::vector<std::pair<bool /* gone? */, u16>> &removed_objects);
 
         /*
@@ -278,7 +279,7 @@ public:
         void reportMaxLagEstimate(float f) { m_max_lag_estimate = f; }
         float getMaxLagEstimate() const { return m_max_lag_estimate; }
 
-        std::set<v3s16>* getForceloadedBlocks() { return &m_active_blocks.m_forceloaded_list; }
+        std::unordered_set<v3s16>* getForceloadedBlocks() { return &m_active_blocks.m_forceloaded_list; }
 
         // Sorted by how ready a mapblock is
         enum BlockStatus {
@@ -296,7 +297,7 @@ public:
 
         RemotePlayer *getPlayer(const session_t peer_id);
         RemotePlayer *getPlayer(const std::string &name, bool match_invalid_peer = false);
-        const std::vector<RemotePlayer *> getPlayers() const { return m_players; }
+        const std::vector<RemotePlayer *> &getPlayers() const { return m_players; }
         u32 getPlayerCount() const { return m_players.size(); }
 
         static std::vector<std::string> getPlayerDatabaseBackends();
@@ -444,6 +445,8 @@ private:
 
         // peer_ids in here should be unique, except that there may be many 0s
         std::vector<RemotePlayer*> m_players;
+        // Hash index for O(1) peer_id lookups (maintained alongside m_players)
+        std::unordered_map<session_t, RemotePlayer*> m_players_by_peer_id;
 
         PlayerDatabase *m_player_database = nullptr;
         AuthDatabase *m_auth_database = nullptr;

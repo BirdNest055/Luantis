@@ -298,7 +298,7 @@ public:
         /*
                 List of active objects that the client knows of.
         */
-        std::set<u16> m_known_objects;
+        std::unordered_set<u16> m_known_objects;
 
         ClientState getState() const { return m_state; }
 

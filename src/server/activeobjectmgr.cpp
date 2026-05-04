@@ -170,7 +170,7 @@ void ActiveObjectMgr::getObjectsInArea(const aabb3f &box,
 void ActiveObjectMgr::getAddedActiveObjectsAroundPos(
                 v3f player_pos, const std::string &player_name,
                 f32 radius, f32 player_radius,
-                const std::set<u16> &current_objects,
+                const std::unordered_set<u16> &current_objects,
                 std::vector<u16> &added_objects)
 {
         /*

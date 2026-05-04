@@ -12,6 +12,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <unordered_set>
 #include <queue>
 #include <cassert>
@@ -112,7 +113,7 @@ public:
         }
 
 private:
-        std::map<Key, Value> m_values;
+        std::unordered_map<Key, Value> m_values;
         mutable std::mutex m_mutex;
 };
 

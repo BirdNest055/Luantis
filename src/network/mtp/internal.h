@@ -7,6 +7,7 @@
 #include "network/mtp/impl.h"
 #include "network/crypto.h"
 #include "util/numeric.h"
+#include <unordered_map>
 
 // Constant that differentiates the protocol from random data and other protocols
 #define PROTOCOL_ID 0x4f457403
@@ -310,7 +311,7 @@ public:
 
 private:
         // Key is seqnum
-        std::map<u16, IncomingSplitPacket*> m_buf;
+        std::unordered_map<u16, IncomingSplitPacket*> m_buf;
 
         std::mutex m_map_mutex;
 };

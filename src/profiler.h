@@ -7,7 +7,7 @@
 #include "irrlichttypes.h"
 #include <cassert>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <ostream>
 
 #include "threading/mutex_auto_lock.h"
@@ -36,7 +36,7 @@ public:
         int getAvgCount(const std::string &name) const;
         u64 getElapsedMs() const;
 
-        typedef std::map<std::string, float> GraphValues;
+        typedef std::unordered_map<std::string, float> GraphValues;
 
         // Returns the line count
         int print(std::ostream &o, u32 page = 1, u32 pagecount = 1);
@@ -89,8 +89,8 @@ private:
         // Batch 34: Made mutable so const methods (getValue, getAvgCount, getElapsedMs)
         // can acquire the lock for thread-safe reads
         mutable std::mutex m_mutex;
-        std::map<std::string, DataPair> m_data;
-        std::map<std::string, float> m_graphvalues;
+        std::unordered_map<std::string, DataPair> m_data;
+        std::unordered_map<std::string, float> m_graphvalues;
         u64 m_start_time;
 };
 

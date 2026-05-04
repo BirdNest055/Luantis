@@ -49,7 +49,7 @@ static constexpr u32 BLOCK_RESAVE_TIMESTAMP_DIFF = 60; // in units of game time
         ActiveBlockList
 */
 
-static void fillRadiusBlock(v3s16 p0, s16 r, std::set<v3s16> &list)
+static void fillRadiusBlock(v3s16 p0, s16 r, std::unordered_set<v3s16> &list)
 {
         v3s16 p;
         for(p.X=p0.X-r; p.X<=p0.X+r; p.X++)
@@ -67,7 +67,7 @@ static void fillViewConeBlock(v3s16 p0,
         const v3f camera_pos,
         const v3f camera_dir,
         const float camera_fov,
-        std::set<v3s16> &list)
+        std::unordered_set<v3s16> &list)
 {
         v3s16 p;
         const s16 r_nodes = r * BS * MAP_BLOCKSIZE;
@@ -83,15 +83,15 @@ static void fillViewConeBlock(v3s16 p0,
 void ActiveBlockList::update(std::vector<PlayerSAO*> &active_players,
         s16 active_block_range,
         s16 active_object_range,
-        std::set<v3s16> &blocks_removed,
-        std::set<v3s16> &blocks_added,
-        std::set<v3s16> &extra_blocks_added)
+        std::unordered_set<v3s16> &blocks_removed,
+        std::unordered_set<v3s16> &blocks_added,
+        std::unordered_set<v3s16> &extra_blocks_added)
 {
         /*
                 Create the new list
         */
-        std::set<v3s16> newlist = m_forceloaded_list;
-        std::set<v3s16> extralist;
+        std::unordered_set<v3s16> newlist = m_forceloaded_list;
+        std::unordered_set<v3s16> extralist;
         for (const PlayerSAO *playersao : active_players) {
                 v3s16 pos = getNodeBlockPos(floatToInt(playersao->getBasePosition(), BS));
                 fillRadiusBlock(pos, active_block_range, newlist);
@@ -116,8 +116,10 @@ void ActiveBlockList::update(std::vector<PlayerSAO*> &active_players,
         m_abm_list = newlist;
 
         // 1. Find out which blocks on the new list are not on the old list
-        std::set_difference(newlist.begin(), newlist.end(), m_list.begin(), m_list.end(),
-                        std::inserter(blocks_added, blocks_added.end()));
+        for (const auto &p : newlist) {
+                if (m_list.find(p) == m_list.end())
+                        blocks_added.insert(p);
+        }
 
         // 2. remove duplicate blocks from the extra list
         for (v3s16 p : newlist) {
@@ -125,15 +127,19 @@ void ActiveBlockList::update(std::vector<PlayerSAO*> &active_players,
         }
 
         // 3. Find out which blocks on the extra list are not on the old list
-        std::set_difference(extralist.begin(), extralist.end(), m_list.begin(), m_list.end(),
-                        std::inserter(extra_blocks_added, extra_blocks_added.end()));
+        for (const auto &p : extralist) {
+                if (m_list.find(p) == m_list.end())
+                        extra_blocks_added.insert(p);
+        }
 
         // 4. make sure newlist has all new block
         newlist.insert(extralist.begin(), extralist.end());
 
         // 5. Find out which blocks on the old list are not on the new + extra list
-        std::set_difference(m_list.begin(), m_list.end(), newlist.begin(), newlist.end(),
-                        std::inserter(blocks_removed, blocks_removed.end()));
+        for (const auto &p : m_list) {
+                if (newlist.find(p) == newlist.end())
+                        blocks_removed.insert(p);
+        }
 
         /*
                 Do some least-effort sanity checks to hopefully catch code bugs.
@@ -345,10 +351,9 @@ const ServerMap & ServerEnvironment::getServerMap() const
 
 RemotePlayer *ServerEnvironment::getPlayer(const session_t peer_id)
 {
-        for (RemotePlayer *player : m_players) {
-                if (player->getPeerId() == peer_id)
-                        return player;
-        }
+        auto it = m_players_by_peer_id.find(peer_id);
+        if (it != m_players_by_peer_id.end())
+                return it->second;
         return NULL;
 }
 
@@ -379,12 +384,18 @@ void ServerEnvironment::addPlayer(RemotePlayer *player)
         FATAL_ERROR_IF(getPlayer(player->getName()) != NULL, "Player name not unique");
         // Add.
         m_players.push_back(player);
+        // Maintain hash index
+        if (player->getPeerId() != PEER_ID_INEXISTENT)
+                m_players_by_peer_id[player->getPeerId()] = player;
 }
 
 void ServerEnvironment::removePlayer(RemotePlayer *player)
 {
         for (auto it = m_players.begin(); it != m_players.end(); ++it) {
                 if ((*it) == player) {
+                        // Maintain hash index
+                        if (player->getPeerId() != PEER_ID_INEXISTENT)
+                                m_players_by_peer_id.erase(player->getPeerId());
                         delete *it;
                         it = m_players.erase(it); // Batch 29: use erase-return-value idiom
                         return;
@@ -942,9 +953,9 @@ void ServerEnvironment::step(float dtime)
                 // so runtime setting changes take effect immediately.
                 s16 active_object_range = std::max(g_settings->getS16("active_object_send_range_blocks"), s16(1));
                 s16 active_block_range = std::max(g_settings->getS16("active_block_range"), s16(1));
-                std::set<v3s16> blocks_removed;
-                std::set<v3s16> blocks_added;
-                std::set<v3s16> extra_blocks_added;
+                std::unordered_set<v3s16> blocks_removed;
+                std::unordered_set<v3s16> blocks_added;
+                std::unordered_set<v3s16> extra_blocks_added;
                 m_active_blocks.update(players, active_block_range, active_object_range,
                         blocks_removed, blocks_added, extra_blocks_added);
 
@@ -1290,7 +1301,7 @@ void ServerEnvironment::invalidateActiveObjectObserverCaches()
 */
 void ServerEnvironment::getAddedActiveObjects(PlayerSAO *playersao, s16 radius,
         s16 player_radius,
-        const std::set<u16> &current_objects,
+        const std::unordered_set<u16> &current_objects,
         std::vector<u16> &added_objects)
 {
         f32 radius_f = radius * BS;
@@ -1314,7 +1325,7 @@ void ServerEnvironment::getAddedActiveObjects(PlayerSAO *playersao, s16 radius,
 */
 void ServerEnvironment::getRemovedActiveObjects(PlayerSAO *playersao, s16 radius,
         s16 player_radius,
-        const std::set<u16> &current_objects,
+        const std::unordered_set<u16> &current_objects,
         std::vector<std::pair<bool /* gone? */, u16>> &removed_objects)
 {
         f32 radius_f = radius * BS;

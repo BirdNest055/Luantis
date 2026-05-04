@@ -217,7 +217,7 @@ private:
         MapDatabaseAccessor *m_db = nullptr;
 
         std::mutex m_queue_mutex;
-        std::map<v3s16, BlockEmergeData> m_blocks_enqueued;
+        std::unordered_map<v3s16, BlockEmergeData> m_blocks_enqueued;
         std::unordered_map<u16, u32> m_peer_queue_count;
 
         u32 m_qlimit_total;
