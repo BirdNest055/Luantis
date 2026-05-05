@@ -613,7 +613,9 @@ void Server::handleCommand_PlayerPos(NetworkPacket* pkt)
 
         RemotePlayer *player = m_env->getPlayer(peer_id);
         if (!player) {
-                warningstream << FUNCTION_NAME << ": player is null" << std::endl;
+                // This can happen during connection setup when the client sends
+                // position packets before the player is fully created in the
+                // environment. Not an error — just a timing race.
                 return;
         }
 
