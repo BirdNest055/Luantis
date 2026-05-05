@@ -261,7 +261,7 @@ void NodeVisuals::preUpdateTextures(ITextureSource *tsrc,
 void NodeVisuals::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc, Client *client,
                 PreLoadedTextures *texture_pool, const TextureSettings &tsettings)
 {
-        // Things needed form ContentFeatures
+        // Things needed from ContentFeatures
         auto &alpha = f->alpha;
         auto &drawtype = f->drawtype;
         const auto &tiledef = f->tiledef;
@@ -635,24 +635,27 @@ void NodeVisuals::fillNodeVisuals(NodeDefManager *ndef, Client *client, void *pr
                 v->updateTextures(tsrc, shdsrc, client, &plt, tsettings);
                 v->updateMesh(client, tsettings);
 
-                // Consistency check: verify mesh nodes have their textures applied.
-                // This catches the race between updateMesh() and updateTextures()
-                // where a mesh is loaded but materials haven't been bound yet.
+                // Consistency check: verify mesh nodes have tile textures.
+                // NOTE: mesh_ptr is a template mesh loaded from file; its materials
+                // are NOT populated by the Irrlicht loader. Textures are applied at
+                // render time via tiles[] in content_mapblock.cpp drawMeshNode().
+                // Checking mesh_ptr materials produces false positives for every
+                // NDT_MESH node, so we check tiles[] instead.
                 if (v->mesh_ptr && f.drawtype == NDT_MESH) {
-                        scene::IMesh *mesh = v->mesh_ptr;
-                        bool textures_applied = false;
-                        for (u32 mi = 0; mi < mesh->getMeshBufferCount(); mi++) {
-                                scene::IMeshBuffer *buf = mesh->getMeshBuffer(mi);
-                                if (buf && buf->getMaterial().getTexture(0)) {
-                                        textures_applied = true;
-                                        break;
+                        bool has_texture = false;
+                        for (u16 j = 0; j < 6; j++) {
+                                for (u8 layer = 0; layer < 2; layer++) {
+                                        if (v->tiles[j].layers[layer].texture) {
+                                                has_texture = true;
+                                                break;
+                                        }
                                 }
+                                if (has_texture)
+                                        break;
                         }
-                        if (!textures_applied && mesh->getMeshBufferCount() > 0) {
-                                // Mesh exists but no textures bound — apply a retry hint
-                                warningstream << "NodeVisuals: mesh for "
-                                        << f.name << " has no textures applied after update"
-                                        << std::endl;
+                        if (!has_texture) {
+                                warningstream << "NodeVisuals: mesh node "
+                                        << f.name << " has no tile textures" << std::endl;
                         }
                 }
 

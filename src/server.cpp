@@ -2113,8 +2113,10 @@ void Server::SendTimeOfDay(session_t peer_id, u16 time, f32 time_speed)
                 m_clients.sendToAll(&pkt);
         }
         else {
-                // Crash guard: verify peer exists before sending
-                if (!m_clients.getClientNoEx(peer_id)) {
+                // Crash guard: verify peer exists before sending.
+                // Use CS_InitDone as minimum state — SendTimeOfDay is called
+                // from handleCommand_Init2 before the client reaches CS_Active.
+                if (!m_clients.getClientNoEx(peer_id, CS_InitDone)) {
                         warningstream << "Server::SendTimeOfDay(): peer_id="
                                 << peer_id << " not found, skipping." << std::endl;
                         return;

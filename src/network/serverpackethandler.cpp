@@ -1123,7 +1123,7 @@ void Server::handleCommand_Interact(NetworkPacket *pkt)
                                 << " tried to interact while dead; ignoring." << std::endl;
                 if (pointed.type == POINTEDTHING_NODE) {
                         // Re-send block to revert change on client-side
-                        RemoteClient *client = getClient(peer_id);
+                        // Reuse the existing 'client' pointer (already validated at top of function)
                         v3s16 blockpos = getNodeBlockPos(pointed.node_undersurface);
                         client->SetBlockNotSent(blockpos);
                 }
