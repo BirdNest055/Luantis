@@ -196,10 +196,11 @@ void ScriptApiBase::clientOpenLibs(lua_State *L)
                 { LUA_OSLIBNAME,   luaopen_os      },
                 { LUA_STRLIBNAME,  luaopen_string  },
                 { LUA_MATHLIBNAME, luaopen_math    },
-                // Batch 38: Removed luaopen_debug from client libs to prevent
-                // client mods from using debug.sethook/debug.gethook for DoS
-                // or inspecting sensitive internal state. debug.traceback is
-                // still available via the secure wrapper in initializeSecurityClient.
+                // debug library is loaded here so that initializeSecurityClient()
+                // can copy safe functions (traceback) into the sandboxed env.
+                // Unsafe functions (sethook, gethook, etc.) are removed by the
+                // security sandbox whitelist in initializeSecurityClient().
+                { LUA_DBLIBNAME,   luaopen_debug   },
 #if USE_LUAJIT
                 { LUA_JITLIBNAME,  luaopen_jit     },
 #endif

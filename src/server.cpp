@@ -1491,16 +1491,10 @@ void Server::Send(NetworkPacket *pkt)
 
 void Server::Send(session_t peer_id, NetworkPacket *pkt)
 {
-        // Sanity check: verify the RemotePlayer exists for this peer_id
-        RemotePlayer *player = m_env->getPlayer(peer_id);
-        if (!player) {
-                // This can happen during connection setup or teardown — just log it
-                // rather than failing silently or crashing.
-                infostream << "Server::Send(): No RemotePlayer for peer_id="
-                        << peer_id << ", dropping packet (cmd="
-                        << pkt->getCommand() << ")" << std::endl;
-                return;
-        }
+        // Note: RemotePlayer may not exist yet during the connection handshake
+        // (TOCLIENT_HELLO, SRP exchange, TOCLIENT_AUTH_ACCEPT, etc.).
+        // The player is only added to the environment after successful auth.
+        // Therefore we must not block sends based on player existence here.
         m_clients.send(peer_id, pkt);
 }
 

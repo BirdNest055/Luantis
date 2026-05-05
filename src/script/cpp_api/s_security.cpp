@@ -449,13 +449,16 @@ void ScriptApiSecurity::initializeSecurityClient()
 
 
         // Copy safe debug functions
+        // Note: debug library may not be loaded on client builds (Batch 38 removed
+        // luaopen_debug from clientOpenLibs). Handle nil gracefully.
         lua_getglobal(L, "debug");
         lua_newtable(L);
-        copy_safe(L, debug_whitelist, sizeof(debug_whitelist));
+        if (!lua_isnil(L, -2)) {
+                copy_safe(L, debug_whitelist, sizeof(debug_whitelist));
 
-        // And replace unsafe ones
-        SECURE_API(debug, getinfo); // (used by builtin and unset before mods load)
-
+                // And replace unsafe ones
+                SECURE_API(debug, getinfo); // (used by builtin and unset before mods load)
+        }
         lua_setfield(L, -3, "debug");
         lua_pop(L, 1);  // Pop old debug
 
@@ -579,9 +582,13 @@ void ScriptApiSecurity::initializeSecuritySSCSM()
 
 
         // Copy safe debug functions
+        // Note: debug library may not be loaded on client builds (Batch 38 removed
+        // luaopen_debug from clientOpenLibs). Handle nil gracefully.
         lua_getglobal(L, "debug");
         lua_newtable(L);
-        copy_safe(L, debug_whitelist, sizeof(debug_whitelist));
+        if (!lua_isnil(L, -2)) {
+                copy_safe(L, debug_whitelist, sizeof(debug_whitelist));
+        }
         lua_setfield(L, -3, "debug");
         lua_pop(L, 1);  // Pop old debug
 

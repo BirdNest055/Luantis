@@ -1069,7 +1069,7 @@ void Server::handleCommand_Interact(NetworkPacket *pkt)
         *pkt >> (u8 &)action;
         *pkt >> item_i;
 
-        std::istringstream tmp_is(pkt->readLongString(), std::ios::binary);
+        std::istringstream tmp_is(pkt->readLongBinaryString(), std::ios::binary);
         PointedThing pointed;
         pointed.deSerialize(tmp_is);
 
@@ -1704,7 +1704,10 @@ void Server::handleCommand_FirstSrp(NetworkPacket* pkt)
         std::string addr_s = client->getAddress().serializeString();
         u8 is_empty;
 
-        *pkt >> salt >> verification_key >> is_empty;
+        // Use readBinaryString to avoid UTF-8 validation corrupting SRP binary data
+        salt = pkt->readBinaryString();
+        verification_key = pkt->readBinaryString();
+        *pkt >> is_empty;
 
         verbosestream << "Server: Got TOSERVER_FIRST_SRP from " << addr_s
                 << ", with is_empty=" << (is_empty == 1) << std::endl;
@@ -1827,9 +1830,10 @@ void Server::handleCommand_SrpBytesA(NetworkPacket* pkt)
                 return;
         }
 
-        std::string bytes_A;
+        // Use readBinaryString to avoid UTF-8 validation corrupting SRP binary data
+        std::string bytes_A = pkt->readBinaryString();
         u8 based_on;
-        *pkt >> bytes_A >> based_on;
+        *pkt >> based_on;
 
         infostream << "Server: TOSERVER_SRP_BYTES_A received with "
                 << "based_on=" << int(based_on) << " and len_A="
@@ -1969,8 +1973,8 @@ void Server::handleCommand_SrpBytesM(NetworkPacket* pkt)
                 return;
         }
 
-        std::string bytes_M;
-        *pkt >> bytes_M;
+        // Use readBinaryString to avoid UTF-8 validation corrupting SRP binary data
+        std::string bytes_M = pkt->readBinaryString();
 
         if (srp_verifier_get_session_key_length((SRPVerifier *) client->auth_data)
                         != bytes_M.size()) {
@@ -2358,7 +2362,8 @@ void Server::handleCommand_EcdhPubkey(NetworkPacket *pkt)
         RemoteClient *client = getClient(peer_id, CS_Invalid);
 
         // Read client's X25519 public key (32 bytes)
-        std::string pubkey_str = pkt->readLongString();
+        // Use readLongBinaryString to avoid UTF-8 validation corrupting the raw key bytes
+        std::string pubkey_str = pkt->readLongBinaryString();
 
         if (pubkey_str.size() != X25519_PUBLIC_KEY_SIZE) {
                 errorstream << "Server::handleCommand_EcdhPubkey: invalid public key size from peer "
@@ -2446,8 +2451,8 @@ void Server::handleCommand_KeypairRegister(NetworkPacket* pkt)
         ClientState cstate = client->getState();
         const std::string playername = client->getName();
 
-        std::string public_key;
-        *pkt >> public_key;
+        // Use readBinaryString to avoid UTF-8 validation corrupting the raw key bytes
+        std::string public_key = pkt->readBinaryString();
 
         std::string addr_s = client->getAddress().serializeString();
 
@@ -2614,8 +2619,8 @@ void Server::handleCommand_KeypairResponse(NetworkPacket* pkt)
         RemoteClient *client = getClient(peer_id, CS_Invalid);
         const std::string playername = client->getName();
 
-        std::string signature;
-        *pkt >> signature;
+        // Use readBinaryString to avoid UTF-8 validation corrupting the raw signature bytes
+        std::string signature = pkt->readBinaryString();
 
         std::string addr_s = client->getAddress().serializeString();
 

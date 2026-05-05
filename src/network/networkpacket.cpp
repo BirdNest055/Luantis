@@ -128,6 +128,31 @@ NetworkPacket& NetworkPacket::operator>>(std::string& dst)
         return *this;
 }
 
+std::string NetworkPacket::readBinaryString()
+{
+        checkReadOffset(m_read_offset, 2);
+        u16 strLen = readU16(&m_data[m_read_offset]);
+        m_read_offset += 2;
+
+        if (strLen == 0) {
+                return "";
+        }
+
+        checkReadOffset(m_read_offset, strLen);
+
+        std::string dst;
+        dst.reserve(strLen);
+        dst.append((char*)&m_data[m_read_offset], strLen);
+
+        // NOTE: No UTF-8 validation — this method is for binary data
+        // (cryptographic keys, signatures, etc.) where byte-for-byte
+        // fidelity is required. The regular operator>> validates and
+        // may transform non-UTF-8 sequences, which corrupts binary data.
+
+        m_read_offset += strLen;
+        return dst;
+}
+
 NetworkPacket& NetworkPacket::operator<<(std::string_view src)
 {
         if (src.size() > STRING_MAX_LEN) {
@@ -263,6 +288,36 @@ std::string NetworkPacket::readLongString()
         if (!is_valid_utf8(dst)) {
                 dst = wide_to_utf8(utf8_to_wide(dst));
         }
+
+        m_read_offset += strLen;
+
+        return dst;
+}
+
+std::string NetworkPacket::readLongBinaryString()
+{
+        checkReadOffset(m_read_offset, 4);
+        u32 strLen = readU32(&m_data[m_read_offset]);
+        m_read_offset += 4;
+
+        if (strLen == 0) {
+                return "";
+        }
+
+        if (strLen > LONG_STRING_MAX_LEN) {
+                throw PacketError("String too long");
+        }
+
+        checkReadOffset(m_read_offset, strLen);
+
+        std::string dst;
+        dst.reserve(strLen);
+        dst.append((char*)&m_data[m_read_offset], strLen);
+
+        // NOTE: No UTF-8 validation — this method is for binary data
+        // (cryptographic keys, signatures, etc.) where byte-for-byte
+        // fidelity is required. The regular readLongString validates and
+        // may transform non-UTF-8 sequences, which corrupts binary data.
 
         m_read_offset += strLen;
 

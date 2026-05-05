@@ -721,7 +721,7 @@ void Client::handleCommand_NodemetaChanged(NetworkPacket *pkt)
         if (pkt->getSize() < 1)
                 return;
 
-        std::istringstream is(pkt->readLongString(), std::ios::binary);
+        std::istringstream is(pkt->readLongBinaryString(), std::ios::binary);
         std::stringstream sstr(std::ios::binary | std::ios::in | std::ios::out);
         decompressZlib(is, sstr);
 
@@ -946,7 +946,7 @@ void Client::handleCommand_ActiveObjectRemoveAdd(NetworkPacket* pkt)
 
                 for (u16 i = 0; i < added_count; i++) {
                         *pkt >> id >> type;
-                        m_env.addActiveObject(id, type, pkt->readLongString());
+                        m_env.addActiveObject(id, type, pkt->readLongBinaryString());
                 }
         } while (0);
 
@@ -1151,7 +1151,7 @@ void Client::handleCommand_AnnounceMedia(NetworkPacket* pkt)
                 // compressed table of media names
                 std::vector<std::string> names;
                 {
-                        std::istringstream iss(pkt->readLongString(), std::ios::binary);
+                        std::istringstream iss(pkt->readLongBinaryString(), std::ios::binary);
                         std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
                         decompressZstd(iss, ss);
                         names = deserializeString16Array(ss);
@@ -1220,7 +1220,9 @@ void Client::handleCommand_Media(NetworkPacket* pkt)
                 std::string name, data;
 
                 *pkt >> name;
-                data = pkt->readLongString();
+                // Use readLongBinaryString: media data may be compressed (zstd)
+                // and would be corrupted by UTF-8 validation
+                data = pkt->readLongBinaryString();
                 if (m_proto_ver >= 48) {
                         std::istringstream iss(data, std::ios::binary);
                         std::ostringstream oss(std::ios::binary);
@@ -1259,7 +1261,7 @@ void Client::handleCommand_NodeDef(NetworkPacket* pkt)
         sanity_check(!m_mesh_update_manager->isRunning());
 
         // Decompress node definitions
-        std::istringstream tmp_is(pkt->readLongString(), std::ios::binary);
+        std::istringstream tmp_is(pkt->readLongBinaryString(), std::ios::binary);
         std::stringstream tmp_os(std::ios::binary | std::ios::in | std::ios::out);
         if (m_proto_ver >= 48)
                 decompressZstd(tmp_is, tmp_os);
@@ -1281,7 +1283,7 @@ void Client::handleCommand_ItemDef(NetworkPacket* pkt)
         sanity_check(!m_mesh_update_manager->isRunning());
 
         // Decompress item definitions
-        std::istringstream tmp_is(pkt->readLongString(), std::ios::binary);
+        std::istringstream tmp_is(pkt->readLongBinaryString(), std::ios::binary);
         std::stringstream tmp_os(std::ios::binary | std::ios::in | std::ios::out);
         if (m_proto_ver >= 48)
                 decompressZstd(tmp_is, tmp_os);
@@ -1503,7 +1505,7 @@ void Client::handleCommand_SpawnParticleBatch(NetworkPacket *pkt)
 {
         std::stringstream particle_batch_data(std::ios::binary | std::ios::in | std::ios::out);
         {
-                std::istringstream compressed(pkt->readLongString(), std::ios::binary);
+                std::istringstream compressed(pkt->readLongBinaryString(), std::ios::binary);
                 decompressZstd(compressed, particle_batch_data);
         }
 
@@ -2139,9 +2141,9 @@ void Client::handleCommand_SrpBytesSandB(NetworkPacket* pkt)
         char *bytes_M = 0;
         size_t len_M = 0;
         SRPUser *usr = (SRPUser *) m_auth_data;
-        std::string s;
-        std::string B;
-        *pkt >> s >> B;
+        // Use readBinaryString to avoid UTF-8 validation corrupting SRP binary data
+        std::string s = pkt->readBinaryString();
+        std::string B = pkt->readBinaryString();
 
         infostream << "Client: Received TOCLIENT_SRP_BYTES_S_B." << std::endl;
 
@@ -2212,7 +2214,7 @@ void Client::handleCommand_MediaPush(NetworkPacket *pkt)
         if (m_proto_ver >= 40)
                 *pkt >> token;
         else
-                filedata = pkt->readLongString();
+                filedata = pkt->readLongBinaryString();
 
         if (raw_hash.size() != 20 || filename.empty() ||
                         (m_proto_ver < 40 && filedata.empty()) ||
@@ -2437,7 +2439,8 @@ void Client::handleCommand_SetLighting(NetworkPacket *pkt)
 void Client::handleCommand_EcdhPubkey(NetworkPacket *pkt)
 {
         // Read server's X25519 public key (32 bytes)
-        std::string pubkey_str = pkt->readLongString();
+        // Use readLongBinaryString to avoid UTF-8 validation corrupting the raw key bytes
+        std::string pubkey_str = pkt->readLongBinaryString();
 
         if (pubkey_str.size() != X25519_PUBLIC_KEY_SIZE) {
                 errorstream << "Client::handleCommand_EcdhPubkey: invalid public key size ("
@@ -2588,8 +2591,8 @@ void Client::handleCommand_KeypairChallenge(NetworkPacket *pkt)
                 return;
         }
 
-        std::string nonce;
-        *pkt >> nonce;
+        // Use readBinaryString to avoid UTF-8 validation corrupting the raw nonce bytes
+        std::string nonce = pkt->readBinaryString();
 
         if (nonce.size() != KEYPAIR_CHALLENGE_SIZE) {
                 errorstream << "Client: Invalid keypair challenge nonce size ("

@@ -1557,15 +1557,10 @@ bool Connection::ReceiveTimeoutMs(NetworkPacket *pkt, u32 timeout_ms)
                                 continue;
                         }
 
-                        // Validate channel number is within bounds for received packets
-                        if (e.data.getSize() > BASE_HEADER_SIZE) {
-                                u8 channel = readU8(&(*e.data)[6]);
-                                if (channel >= CHANNEL_COUNT) {
-                                        errorstream << "Receive: Dropping packet with invalid channel="
-                                                << (int)channel << " from peer_id=" << e.peer_id << std::endl;
-                                        continue;
-                                }
-                        }
+                        // Note: Channel validation is already performed in the receive
+                        // thread (threads.cpp) before the event is queued. The event
+                        // data here is already-processed payload (headers stripped), so
+                        // reading byte 6 as a channel number would be incorrect.
 
                         pkt->putRawPacket(*e.data, e.data.getSize(), e.peer_id);
                         return true;
