@@ -9,4 +9,5 @@ set(benchmark_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_mapmodify.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_sha.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_containers.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/benchmark_client_perf.cpp
         PARENT_SCOPE)

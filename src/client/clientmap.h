@@ -7,7 +7,8 @@
 #include "irrlichttypes_bloated.h"
 #include "map.h"
 #include <ISceneNode.h>
-#include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 struct MapDrawControl
@@ -142,17 +143,18 @@ private:
         // update the vertex order in transparent mesh buffers
         void updateTransparentMeshBuffers();
 
-        // Orders blocks by distance to the camera
+        // Comparator for sorting blocks by distance to the camera (used on-demand)
         class MapBlockComparer
         {
         public:
                 MapBlockComparer(const v3s16 &camera_block) : m_camera_block(camera_block) {}
 
-                bool operator() (const v3s16 &left, const v3s16 &right) const
+                bool operator() (const std::pair<const v3s16, MapBlock*> &left,
+                                const std::pair<const v3s16, MapBlock*> &right) const
                 {
-                        auto distance_left = left.getDistanceFromSQ(m_camera_block);
-                        auto distance_right = right.getDistanceFromSQ(m_camera_block);
-                        return distance_left > distance_right || (distance_left == distance_right && left > right);
+                        auto distance_left = left.first.getDistanceFromSQ(m_camera_block);
+                        auto distance_right = right.first.getDistanceFromSQ(m_camera_block);
+                        return distance_left > distance_right || (distance_left == distance_right && left.first > right.first);
                 }
 
         private:
@@ -174,11 +176,11 @@ private:
         video::SColor m_camera_light_color = video::SColor(0xFFFFFFFF);
         bool m_needs_update_transparent_meshes = true;
 
-        std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
+        std::unordered_map<v3s16, MapBlock*> m_drawlist;
         // List of additional blocks to keep (relevant with mesh_chunk > 1, since
         // not all blocks contain a mesh)
         std::vector<MapBlock*> m_keeplist;
-        std::map<v3s16, MapBlock*> m_drawlist_shadow;
+        std::unordered_map<v3s16, MapBlock*> m_drawlist_shadow;
         bool m_needs_update_drawlist;
         CachedMeshBuffers m_dynamic_buffers;
 

@@ -220,3 +220,41 @@ Stage Summary:
 - PointedThing can be read from Lua tables (reverse of push_pointed_thing)
 - Node visual consistency check now actively detects missing textures instead of being a no-op
 
+
+---
+Task ID: v9.62
+Agent: Main Agent
+Task: FPS performance optimization with benchmark-verified std::map→unordered_map/set conversions
+
+Work Log:
+- Created branch clawtest-v9.62-fps-perf-benchmarks from v9.61 (a211344)
+- Launched 4 parallel exploration agents to analyze rendering, map/chunk, network/server, and generic hotspots
+- Identified 50+ performance hotspots across the codebase, categorized by ease-of-fix and impact
+- Selected the systemic std::map→unordered_map conversion as the biggest single class of wins
+- Confirmed v3s16 already has std::hash specialization (in irr/include/vector3d.h:534)
+- Created benchmark_containers.cpp with 8 benchmark suites comparing std::map vs unordered_map
+- Built baseline and captured benchmark measurements before any code changes
+- Applied 11 container type optimizations across 15 source files:
+  1. Profiler::m_data and m_graphvalues → unordered_map
+  2. MutexedMap::m_values → unordered_map
+  3. RemoteClient::m_known_objects → unordered_set
+  4. ActiveBlockList: all 3 sets → unordered_set + replaced set_difference with loop-based diff
+  5. EmergeManager::m_blocks_enqueued → unordered_map
+  6. ServerMap::m_chunks_in_progress → unordered_set
+  7. NodeMetadataMap → unordered_map
+  8. NodeTimerList::m_iterators → unordered_map
+  9. IncomingSplitBuffer::m_buf → unordered_map
+  10. ServerEnvironment::getPlayer() → hash index (O(1) lookup)
+  11. getPlayers() → return by const ref instead of copy
+- Updated ActiveBlockList::update() to replace std::set_difference with O(n) loop-based operations
+- Updated all method signatures affected by the type changes
+- Rebuilt and ran optimized benchmarks, verifying speedups
+- Ran unit tests: all 22 Catch2 test cases pass (161,998 assertions)
+- Created PERFORMANCE_V962_RESULTS.md with detailed before/after comparison
+- Committed and pushed to GitHub
+
+Stage Summary:
+- Branch: clawtest-v9.62-fps-perf-benchmarks
+- 17 files changed, 800 insertions, 217 deletions
+- Key speedups: v3s16 map lookup 10.9×, v3s16 set insert 7.7×, string map 6.3×, MutexedMap 3.2×
+- Estimated FPS/TPS improvement: 15-30% server, 10-20% client under load

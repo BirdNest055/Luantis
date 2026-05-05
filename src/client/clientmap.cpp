@@ -23,6 +23,7 @@
 #include "client/renderingengine.h"
 
 #include <queue>
+#include <algorithm>
 
 namespace {
         // data structure that groups block meshes by material
@@ -167,8 +168,7 @@ ClientMap::ClientMap(
                 rendering_engine->get_scene_manager(), id),
         m_client(client),
         m_rendering_engine(rendering_engine),
-        m_control(control),
-        m_drawlist(MapBlockComparer(v3s16(0,0,0)))
+        m_control(control)
 {
 
         /*
@@ -408,7 +408,6 @@ void ClientMap::updateDrawList()
 
         const v3s16 camera_block = getContainerPos(cam_pos_nodes, MAP_BLOCKSIZE);
         assert(m_drawlist.empty());
-        m_drawlist = decltype(m_drawlist)(MapBlockComparer(camera_block));
 
         auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
@@ -431,7 +430,7 @@ void ClientMap::updateDrawList()
         };
 
         // Set of mesh holding blocks, will be transferred to m_drawlist
-        std::set<v3s16> shortlist;
+        std::unordered_set<v3s16> shortlist;
 
         /*
          When range_all is enabled, enumerate all blocks visible in the
@@ -480,9 +479,10 @@ void ClientMap::updateDrawList()
                                 }
 
                                 // First, perform a simple distance check.
+                                // Use squared distance to avoid expensive sqrt() per block
                                 if (!m_control.range_all &&
-                                        mesh_sphere_center.getDistanceFrom(m_camera_position) >
-                                                m_control.wanted_range * BS + mesh_sphere_radius)
+                                        mesh_sphere_center.getDistanceFromSQ(m_camera_position) >
+                                                std::pow(m_control.wanted_range * BS + mesh_sphere_radius, 2.0f))
                                         continue; // Out of range, skip.
 
                                 // Keep the block alive as long as it is in range.
@@ -587,8 +587,9 @@ void ClientMap::updateDrawList()
                         }
 
                         // First, perform a simple distance check.
-                        if (mesh_sphere_center.getDistanceFrom(intToFloat(cam_pos_nodes, BS)) >
-                                        m_control.wanted_range * BS + mesh_sphere_radius)
+                        // Use squared distance to avoid expensive sqrt() per block
+                        if (mesh_sphere_center.getDistanceFromSQ(intToFloat(cam_pos_nodes, BS)) >
+                                        std::pow(m_control.wanted_range * BS + mesh_sphere_radius, 2.0f))
                                 continue; // Out of range, skip.
 
                         // Frustum culling
@@ -794,8 +795,9 @@ void ClientMap::touchMapBlocks()
                         }
 
                         // First, perform a simple distance check.
-                        if (mesh_sphere_center.getDistanceFrom(m_camera_position) >
-                                        m_control.wanted_range * BS + mesh_sphere_radius)
+                        // Use squared distance to avoid expensive sqrt() per block
+                        if (mesh_sphere_center.getDistanceFromSQ(m_camera_position) >
+                                        std::pow(m_control.wanted_range * BS + mesh_sphere_radius, 2.0f))
                                 continue; // Out of range, skip.
 
                         // Keep the block alive as long as it is in range.
@@ -1035,26 +1037,50 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 
         auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
-        for (auto &i : m_drawlist) {
-                const v3s16 block_pos = i.first;
-                MapBlock *block = i.second;
-                MapBlockMesh *block_mesh = block->mesh;
+        // For the transparent pass, blocks must be drawn back-to-front (far-to-near)
+        // for correct alpha blending. With unordered_map, we sort on demand only
+        // when needed. For the solid pass, order doesn't matter (grouped by material).
+        // Sorting once per frame is O(N log N) vs O(N log N) per-insertion with
+        // the old std::map, but with much better cache locality and no per-node
+        // heap allocation overhead.
+        if (is_transparent_pass) {
+                std::vector<std::pair<v3s16, MapBlock*>> sorted_drawlist(
+                        m_drawlist.begin(), m_drawlist.end());
+                std::sort(sorted_drawlist.begin(), sorted_drawlist.end(),
+                        MapBlockComparer(getContainerPos(floatToInt(camera_position, BS), MAP_BLOCKSIZE)));
+                for (auto &i : sorted_drawlist) {
+                        const v3s16 block_pos = i.first;
+                        MapBlock *block = i.second;
+                        MapBlockMesh *block_mesh = block->mesh;
 
-                // If the mesh of the block happened to get deleted, ignore it
-                if (!block_mesh)
-                        continue;
+                        if (!block_mesh)
+                                continue;
 
-                // Do exact frustum culling
-                // (The one in updateDrawList is only coarse.)
-                v3f mesh_sphere_center = intToFloat(block->getPosRelative(), BS)
-                                + block_mesh->getBoundingSphereCenter();
-                f32 mesh_sphere_radius = block_mesh->getBoundingRadius();
-                if (is_frustum_culled(mesh_sphere_center, mesh_sphere_radius))
-                        continue;
+                        v3f mesh_sphere_center = intToFloat(block->getPosRelative(), BS)
+                                        + block_mesh->getBoundingSphereCenter();
+                        f32 mesh_sphere_radius = block_mesh->getBoundingRadius();
+                        if (is_frustum_culled(mesh_sphere_center, mesh_sphere_radius))
+                                continue;
 
-                // Mesh animation
-                if (pass == scene::ESNRP_SOLID) {
-                        // 50 nodes is pretty arbitrary but it should work somewhat nicely
+                        for (auto &buffer : block_mesh->getTransparentBuffers())
+                                draw_order.emplace_back(get_block_wpos(block_pos), &buffer);
+                }
+        } else {
+                for (auto &i : m_drawlist) {
+                        const v3s16 block_pos = i.first;
+                        MapBlock *block = i.second;
+                        MapBlockMesh *block_mesh = block->mesh;
+
+                        if (!block_mesh)
+                                continue;
+
+                        v3f mesh_sphere_center = intToFloat(block->getPosRelative(), BS)
+                                        + block_mesh->getBoundingSphereCenter();
+                        f32 mesh_sphere_radius = block_mesh->getBoundingRadius();
+                        if (is_frustum_culled(mesh_sphere_center, mesh_sphere_radius))
+                                continue;
+
+                        // Mesh animation
                         float distance_sq = camera_position.getDistanceFromSQ(mesh_sphere_center);
                         bool faraway = distance_sq >= std::pow(BS * 50 + mesh_sphere_radius, 2.0f);
 
@@ -1068,18 +1094,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
                         } else {
                                 block_mesh->decreaseAnimationForceTimer();
                         }
-                }
 
-                /*
-                        Get the meshbuffers of the block
-                */
-                if (is_transparent_pass) {
-                        // In transparent pass, the mesh will give us
-                        // the partial buffers in the correct order
-                        for (auto &buffer : block_mesh->getTransparentBuffers())
-                                draw_order.emplace_back(get_block_wpos(block_pos), &buffer);
-                } else {
-                        // Otherwise, group them
                         grouped_buffers.addFromBlock(block_pos, block_mesh, driver);
                 }
         }
@@ -1628,8 +1643,8 @@ void ClientMap::updateTransparentMeshBuffers()
         f32 sorting_distance = m_cache_transparency_sorting_distance * BS;
 
         // Update the order of transparent mesh buffers in each mesh
-        for (auto it = m_drawlist.begin(); it != m_drawlist.end(); it++) {
-                MapBlock *block = it->second;
+        for (auto &i : m_drawlist) {
+                MapBlock *block = i.second;
                 MapBlockMesh *blockmesh = block->mesh;
                 if (!blockmesh)
                         continue;
