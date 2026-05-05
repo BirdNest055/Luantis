@@ -9,6 +9,7 @@
 #include "util/string.h"
 #include "util/basic_macros.h"
 #include "GUITheme.h"
+#include <map>
 
 void ProfilerGraph::put(const Profiler::GraphValues &values)
 {
