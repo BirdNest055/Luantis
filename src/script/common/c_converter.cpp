@@ -300,6 +300,11 @@ bool read_color(lua_State *L, int index, video::SColor *color)
 
 video::SColor read_ARGB8(lua_State *L, int index)
 {
+        // Normalize negative index to positive so that subsequent lua_getfield
+        // calls don't shift the stack position as values are pushed.
+        if (index < 0)
+                index = lua_gettop(L) + 1 + index;
+
         auto clamp_col = [](double c) -> u32 {
                 return std::fmax(0.0, std::fmin(255.0, c));
         };
