@@ -1069,7 +1069,7 @@ int ModApiEnv::l_fix_light(lua_State *L)
         v3s16 blockpos1 = getContainerPos(read_v3s16(L, 1), MAP_BLOCKSIZE);
         v3s16 blockpos2 = getContainerPos(read_v3s16(L, 2), MAP_BLOCKSIZE);
         ServerMap &map = env->getServerMap();
-        std::map<v3s16, MapBlock *> modified_blocks;
+        std::unordered_map<v3s16, MapBlock *> modified_blocks;
         bool success = true;
         v3s16 blockpos;
         for (blockpos.X = blockpos1.X; blockpos.X <= blockpos2.X; blockpos.X++)

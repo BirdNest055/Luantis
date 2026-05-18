@@ -1995,7 +1995,7 @@ void Client::sendUpdateClientInfo(const ClientDynamicInfo& info)
 
 void Client::removeNode(v3s16 p)
 {
-        std::map<v3s16, MapBlock*> modified_blocks;
+        std::unordered_map<v3s16, MapBlock*> modified_blocks;
 
         try {
                 m_env.getMap().removeNodeAndUpdate(p, modified_blocks);
@@ -2056,7 +2056,7 @@ void Client::addNode(v3s16 p, MapNode n, bool remove_metadata)
 {
         //TimeTaker timer1("Client::addNode()");
 
-        std::map<v3s16, MapBlock*> modified_blocks;
+        std::unordered_map<v3s16, MapBlock*> modified_blocks;
 
         try {
                 //TimeTaker timer3("Client::addNode(): addNodeAndUpdate");
