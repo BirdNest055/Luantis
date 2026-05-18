@@ -7,6 +7,7 @@
 #include "network/mtp/impl.h"
 #include "network/crypto.h"
 #include "util/numeric.h"
+#include <unordered_map>
 
 // Constant that differentiates the protocol from random data and other protocols
 #define PROTOCOL_ID 0x4f457403
@@ -225,7 +226,7 @@ BufferedPacketPtr makePacket(const Address &address, const SharedBuffer<u8> &dat
 // Depending on size, make a TYPE_ORIGINAL or TYPE_SPLIT packet
 // Increments split_seqnum if a split packet is made
 void makeAutoSplitPacket(const SharedBuffer<u8> &data, u32 chunksize_max,
-                u16 &split_seqnum, std::list<SharedBuffer<u8>> *list);
+                u16 &split_seqnum, std::vector<SharedBuffer<u8>> *list);
 
 // Add the TYPE_RELIABLE header to the data
 SharedBuffer<u8> makeReliablePacket(const SharedBuffer<u8> &data, u16 seqnum);
@@ -310,7 +311,7 @@ public:
 
 private:
         // Key is seqnum
-        std::map<u16, IncomingSplitPacket*> m_buf;
+        std::unordered_map<u16, IncomingSplitPacket*> m_buf;
 
         std::mutex m_map_mutex;
 };

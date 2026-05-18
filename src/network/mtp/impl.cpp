@@ -93,7 +93,7 @@ SharedBuffer<u8> makeOriginalPacket(const SharedBuffer<u8> &data)
 
 // Split data in chunks and add TYPE_SPLIT headers to them
 void makeSplitPacket(const SharedBuffer<u8> &data, u32 chunksize_max, u16 seqnum,
-                std::list<SharedBuffer<u8>> *chunks)
+                std::vector<SharedBuffer<u8>> *chunks)
 {
         // Chunk packets, containing the TYPE_SPLIT header
         const u32 chunk_header_size = 7;
@@ -131,7 +131,7 @@ void makeSplitPacket(const SharedBuffer<u8> &data, u32 chunksize_max, u16 seqnum
 }
 
 void makeAutoSplitPacket(const SharedBuffer<u8> &data, u32 chunksize_max,
-                u16 &split_seqnum, std::list<SharedBuffer<u8>> *list)
+                u16 &split_seqnum, std::vector<SharedBuffer<u8>> *list)
 {
         u32 original_header_size = 1;
 
@@ -1096,7 +1096,7 @@ bool UDPPeer::processReliableSendCommand(
                                                         - BASE_HEADER_SIZE
                                                         - RELIABLE_HEADER_SIZE;
 
-        std::list<SharedBuffer<u8>> originals;
+        std::vector<SharedBuffer<u8>> originals;
 
         if (c.raw) {
                 originals.emplace_back(c.data);
@@ -1351,7 +1351,7 @@ void Connection::TriggerSend()
 PeerHelper Connection::getPeerNoEx(session_t peer_id)
 {
         MutexAutoLock peerlock(m_peers_mutex);
-        std::map<session_t, Peer *>::iterator node = m_peers.find(peer_id);
+        auto node = m_peers.find(peer_id);
 
         if (node == m_peers.end()) {
                 return PeerHelper(NULL);
@@ -1452,7 +1452,7 @@ bool Connection::Connected()
         if (m_peers.size() != 1)
                 return false;
 
-        std::map<session_t, Peer *>::iterator node = m_peers.find(PEER_ID_SERVER);
+        auto node = m_peers.find(PEER_ID_SERVER);
         if (node == m_peers.end())
                 return false;
 

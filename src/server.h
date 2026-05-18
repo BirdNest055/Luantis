@@ -791,7 +791,7 @@ private:
                 Queue of map edits from the environment for sending to the clients
                 This is behind m_env_mutex
         */
-        std::queue<MapEditEvent*> m_unsent_map_edit_queue;
+        std::queue<MapEditEvent> m_unsent_map_edit_queue;
         /*
                 If a non-empty area, map edit events contained within are left
                 unsent. Done at map generation time to speed up editing of the

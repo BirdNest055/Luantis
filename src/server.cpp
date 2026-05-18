@@ -460,7 +460,6 @@ Server::~Server()
         delete m_thread;
 
         while (!m_unsent_map_edit_queue.empty()) {
-                delete m_unsent_map_edit_queue.front();
                 m_unsent_map_edit_queue.pop();
         }
 }
@@ -1015,7 +1014,7 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                 std::unordered_set<v3s16> node_meta_updates;
 
                 while (!m_unsent_map_edit_queue.empty()) {
-                        MapEditEvent* event = m_unsent_map_edit_queue.front();
+                        MapEditEvent event = std::move(m_unsent_map_edit_queue.front());
                         m_unsent_map_edit_queue.pop();
 
                         // Players far away from the change are stored here.
@@ -1023,27 +1022,27 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                         // for them.
                         std::unordered_set<u16> far_players;
 
-                        switch (event->type) {
+                        switch (event.type) {
                         case MEET_ADDNODE:
                         case MEET_SWAPNODE:
                                 prof.add("MEET_ADDNODE", 1);
-                                sendAddNode(event->p, event->n, &far_players,
+                                sendAddNode(event.p, event.n, &far_players,
                                                 disable_single_change_sending ? 5 : 30,
-                                                event->type == MEET_ADDNODE);
+                                                event.type == MEET_ADDNODE);
                                 break;
                         case MEET_REMOVENODE:
                                 prof.add("MEET_REMOVENODE", 1);
-                                sendRemoveNode(event->p, &far_players,
+                                sendRemoveNode(event.p, &far_players,
                                                 disable_single_change_sending ? 5 : 30);
                                 break;
                         case MEET_BLOCK_NODE_METADATA_CHANGED: {
                                 prof.add("MEET_BLOCK_NODE_METADATA_CHANGED", 1);
-                                if (!event->is_private_change) {
-                                        node_meta_updates.emplace(event->p);
+                                if (!event.is_private_change) {
+                                        node_meta_updates.emplace(event.p);
                                 }
 
                                 if (MapBlock *block = m_env->getMap().getBlockNoCreateNoEx(
-                                                getNodeBlockPos(event->p))) {
+                                                getNodeBlockPos(event.p))) {
                                         block->raiseModified(MOD_STATE_WRITE_NEEDED,
                                                 MOD_REASON_REPORT_META_CHANGE);
                                 }
@@ -1051,26 +1050,24 @@ void Server::AsyncRunStep(float dtime, bool initial_step)
                         }
                         case MEET_OTHER:
                                 prof.add("MEET_OTHER", 1);
-                                m_clients.markBlocksNotSent(event->modified_blocks, event->low_priority);
+                                m_clients.markBlocksNotSent(event.modified_blocks, event.low_priority);
                                 break;
                         default:
                                 prof.add("unknown", 1);
                                 warningstream << "Server: Unknown MapEditEvent "
-                                                << ((u32)event->type) << std::endl;
+                                                << ((u32)event.type) << std::endl;
                                 break;
                         }
 
-                        block_count += event->modified_blocks.size();
+                        block_count += event.modified_blocks.size();
 
                         /*
                                 Set blocks not sent to far players
                         */
                         for (const u16 far_player : far_players) {
                                 if (RemoteClient *client = getClient(far_player))
-                                        client->SetBlocksNotSent(event->modified_blocks, event->low_priority);
+                                        client->SetBlocksNotSent(event.modified_blocks, event.low_priority);
                         }
-
-                        delete event;
                 }
 
                 if (event_count != 0) {
@@ -1386,7 +1383,7 @@ void Server::onMapEditEvent(const MapEditEvent &event)
         if (m_ignore_map_edit_events_area.contains(event.getArea()))
                 return;
 
-        m_unsent_map_edit_queue.push(new MapEditEvent(event));
+        m_unsent_map_edit_queue.push(event);
 }
 
 void Server::peerAdded(con::IPeer *peer)

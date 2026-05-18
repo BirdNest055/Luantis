@@ -759,7 +759,7 @@ void ConnectionSendThread::send(session_t peer_id, u8 channelnum,
         u16 split_sequence_number = peer->getNextSplitSequenceNumber(channelnum);
 
         u32 chunksize_max = m_max_packet_size - BASE_HEADER_SIZE;
-        std::list<SharedBuffer<u8>> originals;
+        std::vector<SharedBuffer<u8>> originals;
 
         makeAutoSplitPacket(data, chunksize_max, split_sequence_number, &originals);
 

@@ -16,7 +16,7 @@
 #include <cfloat>
 #include <vector>
 #include <memory>
-#include <map>
+#include <unordered_map>
 
 namespace con
 {
@@ -319,7 +319,7 @@ private:
         session_t m_peer_id = 0;
         u32 m_protocol_id;
 
-        std::map<session_t, Peer *> m_peers;
+        std::unordered_map<session_t, Peer *> m_peers;
         std::vector<session_t> m_peer_ids;
         // v9.20: mutable to allow const query methods (IsPeerEncryptionActive,
         // IsPeerECDHCompleted) to lock the mutex for thread-safe reads.
