@@ -239,9 +239,9 @@ keymap_fastmove (Toggle fast) key SYSTEM_SCANCODE_13
 
 keymap_noclip (Toggle noclip) key SYSTEM_SCANCODE_11
 
-keymap_hotbar_next (Hotbar: select next item) key SYSTEM_SCANCODE_17
+keymap_hotbar_next (Hotbar: select next item) key
 
-keymap_hotbar_previous (Hotbar: select previous item) key SYSTEM_SCANCODE_5
+keymap_hotbar_previous (Hotbar: select previous item) key
 
 keymap_mute (Mute) key SYSTEM_SCANCODE_16
 
@@ -255,7 +255,7 @@ keymap_cinematic (Toggle cinematic mode) key
 
 keymap_minimap (Toggle minimap) key SYSTEM_SCANCODE_25
 
-keymap_screenshot (Screenshot) key SYSTEM_SCANCODE_69
+keymap_screenshot (Screenshot) key SYSTEM_SCANCODE_59
 
 keymap_fullscreen (Toggle fullscreen) key SYSTEM_SCANCODE_68
 
@@ -279,11 +279,11 @@ keymap_camera_pitch_down (Look down) key
 
 keymap_toggle_hud (Toggle HUD) key SYSTEM_SCANCODE_58
 
-keymap_toggle_chat (Toggle chat log) key SYSTEM_SCANCODE_59
+keymap_toggle_chat (Toggle chat log) key SYSTEM_SCANCODE_69
 
 keymap_console (Toggle large chat console) key SYSTEM_SCANCODE_67
 
-keymap_toggle_fog (Toggle fog) key SYSTEM_SCANCODE_10
+keymap_toggle_fog (Toggle fog) key SYSTEM_SCANCODE_9
 
 keymap_toggle_debug (Toggle debug info) key SYSTEM_SCANCODE_60
 

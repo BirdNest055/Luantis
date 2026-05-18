@@ -169,8 +169,8 @@ void set_default_settings()
         settings->setDefault("keymap_pitchmove", "");
         settings->setDefault("keymap_fastmove", "SYSTEM_SCANCODE_13"); // KEY_KEY_J
         settings->setDefault("keymap_noclip", "SYSTEM_SCANCODE_11"); // KEY_KEY_H
-        settings->setDefault("keymap_hotbar_next", "SYSTEM_SCANCODE_17"); // KEY_KEY_N
-        settings->setDefault("keymap_hotbar_previous", "SYSTEM_SCANCODE_5"); // KEY_KEY_B
+        settings->setDefault("keymap_hotbar_next", ""); // v9.47: Removed N binding — Minecraft uses mouse scroll for hotbar navigation
+        settings->setDefault("keymap_hotbar_previous", ""); // v9.47: Removed B binding — Minecraft uses mouse scroll for hotbar navigation
         settings->setDefault("keymap_mute", "SYSTEM_SCANCODE_16"); // KEY_KEY_M
         settings->setDefault("keymap_increase_volume", "");
         settings->setDefault("keymap_decrease_volume", "");
@@ -180,8 +180,8 @@ void set_default_settings()
         settings->setDefault("keymap_cinematic", "");
         settings->setDefault("keymap_toggle_block_bounds", "");
         settings->setDefault("keymap_toggle_hud", "SYSTEM_SCANCODE_58"); // KEY_F1
-        settings->setDefault("keymap_toggle_chat", "SYSTEM_SCANCODE_59"); // KEY_F2
-        settings->setDefault("keymap_toggle_fog", "SYSTEM_SCANCODE_10"); // KEY_KEY_G  // v9.28: Changed from F3 to G (F3 now used for debug, Minecraft-like)
+        settings->setDefault("keymap_toggle_chat", "SYSTEM_SCANCODE_69"); // KEY_F12  // v9.47: Moved from F2 to F12 (F2 now screenshot, Minecraft-like)
+        settings->setDefault("keymap_toggle_fog", "SYSTEM_SCANCODE_9"); // KEY_KEY_F  // v9.47: Changed from G to F (Minecraft uses F for fog toggle)
 #ifndef NDEBUG
         settings->setDefault("keymap_toggle_update_camera", "SYSTEM_SCANCODE_61"); // KEY_F4
 #else
@@ -194,7 +194,7 @@ void set_default_settings()
         settings->setDefault("keymap_camera_yaw_right", "");
         settings->setDefault("keymap_camera_pitch_up", "");
         settings->setDefault("keymap_camera_pitch_down", "");
-        settings->setDefault("keymap_screenshot", "SYSTEM_SCANCODE_69"); // KEY_F12
+        settings->setDefault("keymap_screenshot", "SYSTEM_SCANCODE_59"); // KEY_F2  // v9.47: Changed from F12 to F2 (Minecraft uses F2 for screenshots)
         settings->setDefault("keymap_serverinfo", "SYSTEM_SCANCODE_15"); // KEY_TAB
         settings->setDefault("keymap_fullscreen", "SYSTEM_SCANCODE_68"); // KEY_F11
         settings->setDefault("keymap_increase_viewing_range_min", "SYSTEM_SCANCODE_46"); // +

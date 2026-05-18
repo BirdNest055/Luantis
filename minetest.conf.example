@@ -193,12 +193,12 @@
 #    Hotbar: select next item
 #    See https://docs.luanti.org/for-players/controls/
 #    type: key
-# keymap_hotbar_next = SYSTEM_SCANCODE_17
+# keymap_hotbar_next =
 
 #    Hotbar: select previous item
 #    See https://docs.luanti.org/for-players/controls/
 #    type: key
-# keymap_hotbar_previous = SYSTEM_SCANCODE_5
+# keymap_hotbar_previous =
 
 #    Mute
 #    See https://docs.luanti.org/for-players/controls/
@@ -233,7 +233,7 @@
 #    Screenshot
 #    See https://docs.luanti.org/for-players/controls/
 #    type: key
-# keymap_screenshot = SYSTEM_SCANCODE_69
+# keymap_screenshot = SYSTEM_SCANCODE_59
 
 #    Toggle fullscreen
 #    See https://docs.luanti.org/for-players/controls/
@@ -258,7 +258,7 @@
 #    Toggle chat log
 #    See https://docs.luanti.org/for-players/controls/
 #    type: key
-# keymap_toggle_chat = SYSTEM_SCANCODE_59
+# keymap_toggle_chat = SYSTEM_SCANCODE_69
 
 #    Toggle large chat console
 #    See https://docs.luanti.org/for-players/controls/
@@ -268,7 +268,7 @@
 #    Toggle fog
 #    See https://docs.luanti.org/for-players/controls/
 #    type: key
-# keymap_toggle_fog = SYSTEM_SCANCODE_60
+# keymap_toggle_fog = SYSTEM_SCANCODE_9
 
 #    Toggle debug info
 #    See https://docs.luanti.org/for-players/controls/
