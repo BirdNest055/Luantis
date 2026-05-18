@@ -231,8 +231,9 @@ bool ConnectionSendThread::packetsQueued()
 
 void ConnectionSendThread::runTimeouts(float dtime, u32 peer_packet_quota)
 {
-        std::vector<session_t> timeouted_peers;
         std::vector<session_t> peerIds = m_connection->getPeerIDs();
+        std::vector<session_t> timeouted_peers;
+        timeouted_peers.reserve(peerIds.size());
 
         for (const session_t peerId : peerIds) {
                 PeerHelper peer = m_connection->getPeerNoEx(peerId);
@@ -806,7 +807,9 @@ void ConnectionSendThread::sendPackets(float dtime, u32 peer_packet_quota)
 {
         std::vector<session_t> peerIds = m_connection->getPeerIDs();
         std::vector<session_t> pendingDisconnect;
-        std::map<session_t, bool> pending_unreliable;
+        pendingDisconnect.reserve(peerIds.size());
+        std::unordered_map<session_t, bool> pending_unreliable;
+        pending_unreliable.reserve(peerIds.size());
 
         for (session_t peerId : peerIds) {
                 PeerHelper peer = m_connection->getPeerNoEx(peerId);
